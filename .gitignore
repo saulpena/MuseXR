@@ -84,3 +84,14 @@ sysinfo.txt
 # Local secrets. Nothing with a key in it goes in git.
 .env
 .env.local
+
+# ---------------------------------------------------------------------------
+# Vendor SDKs that are licence-gated. Each developer must accept PICO's SDK
+# licence themselves before downloading, so these are not redistributable here
+# and are not committed. 87 MB+ each, which git would not thank us for either.
+#
+# Get them from https://developer.picoxr.com/resources/?platform=unity
+#   PICO Unity OpenXR SDK -> LocalPackages/com.unity.xr.openxr.picoxr
+# manifest.json references them by relative path.
+# ---------------------------------------------------------------------------
+/LocalPackages/

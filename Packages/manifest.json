@@ -15,6 +15,7 @@
     "com.unity.xr.interaction.toolkit": "3.6.0",
     "com.unity.xr.management": "4.7.0",
     "com.unity.xr.openxr": "1.18.0",
+    "com.unity.xr.openxr.picoxr": "file:../LocalPackages/com.unity.xr.openxr.picoxr",
     "org.nesnausk.gaussian-splatting": "https://github.com/aras-p/UnityGaussianSplatting.git?path=/package#v1.1.1",
     "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.adaptiveperformance": "1.0.0",

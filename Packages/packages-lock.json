@@ -278,6 +278,15 @@
       },
       "url": "https://packages.unity.com"
     },
+    "com.unity.xr.openxr.picoxr": {
+      "version": "file:../LocalPackages/com.unity.xr.openxr.picoxr",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.unity.xr.core-utils": "2.2.0",
+        "com.unity.xr.openxr": "1.8.2"
+      }
+    },
     "org.nesnausk.gaussian-splatting": {
       "version": "file:org.nesnausk.gaussian-splatting",
       "depth": 0,
