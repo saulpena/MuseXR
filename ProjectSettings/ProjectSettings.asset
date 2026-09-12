@@ -831,7 +831,7 @@ PlayerSettings:
   webWasm2023: 0
   webEnableSubmoduleStrippingCompatibility: 0
   scriptingDefineSymbols:
-    Android: ENABLE_PICO_OPENXR_SDK
+    Android: ENABLE_PICO_OPENXR_SDK;MUSEXR_PICO
     Standalone: ENABLE_PICO_XR_SDK;PICO_SPATIALIZER;ENABLE_PICO_OPENXR_SDK
   additionalCompilerArguments: {}
   platformArchitecture: {}
