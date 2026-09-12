@@ -826,7 +826,8 @@ PlayerSettings:
   webGLCloseOnQuit: 0
   webWasm2023: 0
   webEnableSubmoduleStrippingCompatibility: 0
-  scriptingDefineSymbols: {}
+  scriptingDefineSymbols:
+    Standalone: ENABLE_PICO_XR_SDK;PICO_SPATIALIZER
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend:
