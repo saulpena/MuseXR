@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "pico-dev-knowledge": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@picoxr/pico-cli",
+        "knowledge:server"
+      ],
+      "startup_timeout_sec": 60
+    }
+  }
+}
