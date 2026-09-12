@@ -1,5 +1,17 @@
 {
   "dependencies": {
+    "com.bytedance.pico.xr": {
+      "version": "file:../LocalPackages/com.bytedance.pico.xr",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.unity.xr.management": "4.0.0",
+        "com.unity.xr.interaction.toolkit": "2.0.0",
+        "com.unity.xr.core-utils": "2.3.0",
+        "com.unity.ugui": "1.0.0",
+        "com.unity.textmeshpro": "3.0.6"
+      }
+    },
     "com.coplaydev.unity-mcp": {
       "version": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#v10.2.0",
       "depth": 0,
@@ -186,6 +198,14 @@
       },
       "url": "https://packages.unity.com"
     },
+    "com.unity.textmeshpro": {
+      "version": "5.0.0",
+      "depth": 1,
+      "source": "builtin",
+      "dependencies": {
+        "com.unity.ugui": "2.0.0"
+      }
+    },
     "com.unity.timeline": {
       "version": "1.8.11",
       "depth": 0,
@@ -277,15 +297,6 @@
         "com.unity.xr.legacyinputhelpers": "2.1.2"
       },
       "url": "https://packages.unity.com"
-    },
-    "com.unity.xr.openxr.picoxr": {
-      "version": "file:../LocalPackages/com.unity.xr.openxr.picoxr",
-      "depth": 0,
-      "source": "local",
-      "dependencies": {
-        "com.unity.xr.core-utils": "2.2.0",
-        "com.unity.xr.openxr": "1.8.2"
-      }
     },
     "org.nesnausk.gaussian-splatting": {
       "version": "file:org.nesnausk.gaussian-splatting",
