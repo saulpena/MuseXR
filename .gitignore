@@ -109,3 +109,6 @@ sysinfo.txt
 # ---------------------------------------------------------------------------
 /.pico-env.json
 /.claude/skills/
+
+# Marble API downloads — generated worlds, refetchable, some are large
+/Tools/marble/worlds-out/
