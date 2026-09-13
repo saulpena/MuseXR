@@ -55,7 +55,7 @@ MonoBehaviour:
   recommendMSAA: 0
   validationFFREnabled: 0
   validationETFREnabled: 0
-  portalInited: 0
+  portalInited: 1
   isDataCollectionDisabled: 0
   portalFirstSelected: 0
   isSpatialAdapter: 0
