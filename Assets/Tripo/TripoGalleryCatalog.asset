@@ -1,0 +1,107 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a14e20c966304642ada97aa1b83dc3f, type: 3}
+  m_Name: TripoGalleryCatalog
+  m_EditorClassIdentifier: 
+  description: Tripo-generated exhibits. The five characters came from muse-infinity,
+    where they were generated with Tripo from AI-synthesised four-view turnaround
+    sheets and bundled as ~2M-triangle GLBs. They are decimated to ~60k here by Tools/tripo/decimate.mjs.
+  radius: 3.6
+  arcDegrees: 112
+  defaultTargetHeight: 1.7
+  pedestalHeight: 0.75
+  entries:
+  - id: monet
+    displayName: Claude Monet
+    caption: "Impressionist painter, 1840\u20131926\nAI interpretation \xB7 public-domain
+      self-portrait"
+    model: {fileID: 4763709778603971394, guid: 8a77616056ce47c4a9a157e6a9ba2541, type: 3}
+    tripoModelVersion: 
+    tripoTaskType: multiview_to_model (inferred from the four-view inputs)
+    tripoTaskId: 
+    sourceInputs: 'Generated with Tripo from assets/generated/turnarounds/views/monet/
+      (front, left, back, right). The task id, model version and date were not recorded
+      upstream. Identity reference: public-domain self-portrait.'
+    rights: AI interpretation, not an authentic likeness. Derived from a documented
+      public-domain portrait; unseen angles, costume and geometry are synthesis.
+      See muse-infinity/THIRD_PARTY_NOTICES.md.
+    generatedOn: 
+    targetHeight: 0
+    yawOffset: 0
+  - id: van-gogh
+    displayName: Vincent van Gogh
+    caption: "Post-impressionist painter, 1853\u20131890\nAI interpretation \xB7
+      public-domain self-portrait"
+    model: {fileID: 3431674526647851462, guid: 2542d6089303c0f4cb30e3c2cc5c3423, type: 3}
+    tripoModelVersion: 
+    tripoTaskType: multiview_to_model (inferred from the four-view inputs)
+    tripoTaskId: 
+    sourceInputs: 'Generated with Tripo from assets/generated/turnarounds/views/van-gogh/
+      (front, left, back, right). The task id, model version and date were not recorded
+      upstream. Identity reference: public-domain self-portrait.'
+    rights: AI interpretation, not an authentic likeness. Derived from a documented
+      public-domain portrait; unseen angles, costume and geometry are synthesis.
+      See muse-infinity/THIRD_PARTY_NOTICES.md.
+    generatedOn: 
+    targetHeight: 0
+    yawOffset: 0
+  - id: picasso
+    displayName: Pablo Picasso
+    caption: "Cubist painter, 1881\u20131973\nAI interpretation \xB7 public-domain
+      1908 photograph"
+    model: {fileID: -6748355683002479574, guid: 09cec924ffc45874ca562c2b61f7b028, type: 3}
+    tripoModelVersion: 
+    tripoTaskType: multiview_to_model (inferred from the four-view inputs)
+    tripoTaskId: 
+    sourceInputs: 'Generated with Tripo from assets/generated/turnarounds/views/picasso/
+      (front, left, back, right). The task id, model version and date were not recorded
+      upstream. Identity reference: public-domain 1908 photograph.'
+    rights: AI interpretation, not an authentic likeness. Derived from a documented
+      public-domain portrait; unseen angles, costume and geometry are synthesis.
+      See muse-infinity/THIRD_PARTY_NOTICES.md.
+    generatedOn: 
+    targetHeight: 0
+    yawOffset: 0
+  - id: frida
+    displayName: Frida Kahlo
+    caption: "Painter, 1907\u20131954\nAI interpretation \xB7 public-domain photograph"
+    model: {fileID: -6103886874400166182, guid: 01fb53aa4e394984ba747d6fda338916, type: 3}
+    tripoModelVersion: 
+    tripoTaskType: multiview_to_model (inferred from the four-view inputs)
+    tripoTaskId: 
+    sourceInputs: 'Generated with Tripo from assets/generated/turnarounds/views/frida/
+      (front, left, back, right). The task id, model version and date were not recorded
+      upstream. Identity reference: public-domain photograph.'
+    rights: AI interpretation, not an authentic likeness. Derived from a documented
+      public-domain portrait; unseen angles, costume and geometry are synthesis.
+      See muse-infinity/THIRD_PARTY_NOTICES.md.
+    generatedOn: 
+    targetHeight: 0
+    yawOffset: 0
+  - id: socrates
+    displayName: Socrates
+    caption: "Athenian philosopher, c.470\u2013399 BC\nAI reconstruction of a classical
+      marble bust"
+    model: {fileID: 4356430329804789358, guid: 76dd2db634c90be44b83e99b0d31863e, type: 3}
+    tripoModelVersion: 
+    tripoTaskType: multiview_to_model (inferred from the four-view inputs)
+    tripoTaskId: 
+    sourceInputs: 'Generated with Tripo from assets/generated/turnarounds/views/socrates/
+      (front, left, back, right). The task id, model version and date were not recorded
+      upstream. Identity reference: public-domain photograph of a classical marble
+      bust.'
+    rights: AI interpretation, not an authentic likeness. Derived from a documented
+      public-domain portrait; unseen angles, costume and geometry are synthesis.
+      See muse-infinity/THIRD_PARTY_NOTICES.md.
+    generatedOn: 
+    targetHeight: 0
+    yawOffset: 0

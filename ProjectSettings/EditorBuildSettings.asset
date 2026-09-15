@@ -8,12 +8,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Tests/XRRig.unity
     guid: 2f7ec3275ba4188428c73350bea7a47f
-  - enabled: 0
-    path: Assets/Scenes/Tests/World.unity
-    guid: 90a7bf9c3d6411e478b2979ad6eb4d6d
   m_configObjects:
-    ByteDance.PICO.XR.Settings: {fileID: 11400000, guid: 9f82a7e226e84ab4081cb46faa2d5d3f, type: 2}
+    ByteDance.PICO.XR.Settings: {fileID: 11400000, guid: 44d14326aaab62546b3ae3482ffe04dd, type: 2}
+    com.unity.addressableassets: {fileID: 11400000, guid: c156beb3d366a0c49b4ce8e902ec1ecb, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 092dff9ec5f6f1843886047005501691, type: 2}
-    com.unity.xr.openxr.settings4: {fileID: 11400000, guid: 9bfab25ed1073c7469182eda39cf93ef, type: 2}
+    com.unity.xr.openxr.settings4: {fileID: 11400000, guid: e94f08aa1411ec14ab9fe31e0358f9bd, type: 2}
   m_UseUCBPForAssetBundles: 0

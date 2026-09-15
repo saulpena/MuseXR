@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 508edb944d24e574595a91425051a8e4, type: 3}
   m_Name: PXR_PlatformSetting
-  m_EditorClassIdentifier: ByteDance.PICO.Platform::ByteDance.PICO.Platform.Framework.PXR_PlatformSetting
+  m_EditorClassIdentifier: PICO.Platform::Unity.XR.PXR.PXR_PlatformSetting
   entitlementCheckSimulation: 0
   startTimeEntitlementCheck: 0
   appID: 

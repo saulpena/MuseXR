@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: SampleWorlds
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: SampleWorlds
+  m_GUID: 1b2f977e5f10cf94282b526a6ae18225
+  m_SerializeEntries:
+  - m_GUID: 08b391326b1a6e24e8642f1f3819c319
+    m_Address: modern_house_with_lush_landscaping_500k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0cdecdc44b858d4408ccd8f986759aa1
+    m_Address: narrow_european_cobblestone_lane_500k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4b5c9e6249203e047a4d2508e4f77419
+    m_Address: warm_traditional_kitchen_interior_500k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 50aee0e58ee94764aa33fbbb21436d83
+    m_Address: elegant_library_with_fireplace_500k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e22baa9bf1e7db34687e733b14ed4082
+    m_Address: rustic_kitchen_with_natural_light_500k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 79db9c0aa57a04f4790cc9a5ccfb9344, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 5072e00bf72f1e34bbd76e14b031444b, type: 2}
+    - {fileID: 11400000, guid: 1439961ca67a399429405db16741279d, type: 2}
+    m_SchemaDisplayOrder:
+    - SampleWorlds_BundledAssetGroupSchema
+    - SampleWorlds_ContentUpdateGroupSchema
+  m_IncludeInBuild: 0
+  m_IncludeInBuildMigrated: 1

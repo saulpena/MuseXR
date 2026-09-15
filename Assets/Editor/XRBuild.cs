@@ -6,37 +6,40 @@ using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 using UnityEngine.XR.OpenXR;
-using UnityEngine.XR.OpenXR.Features;
 
 namespace MuseXR.EditorTools
 {
     /// <summary>
-    /// PICO and Quest need separate APKs, and the reason is not OpenXR — it is PICO's own
-    /// build validator. PICOFeature.GetValidationChecks fails the build when any non-PICO
-    /// interaction profile is enabled ("Only the PICO Touch Interaction Profile is supported
-    /// right now"), so the two vendors' controller profiles cannot ship in one APK.
+    /// Six builds: three scenes on two vendors.
     ///
-    /// This switches the whole project between vendor profiles in one step: OpenXR features,
-    /// scripting defines, and the product name. Build, or just switch and press Play.
+    /// PICO and Quest cannot share one APK — PICO's own validator
+    /// (PICOFeature.GetValidationChecks) fails the build when any non-PICO interaction profile
+    /// is enabled: "Only the PICO Touch Interaction Profile is supported right now." OpenXR
+    /// would be fine with both; PICO's validator is not.
     ///
-    ///   MuseXR > Switch To > PICO / Quest      set the profile, do not build
-    ///   MuseXR > Build > PICO APK / Quest APK  set the profile and build
+    ///   Rig      no worlds at all — proves the rig, tracking and controllers work
+    ///   Worlds   Skylar's 8 at full res (~29.8M splats). Expected to struggle: World Labs'
+    ///            own docs say 2M+ crashes standalone VR. Built to measure how badly.
+    ///   Samples  World Labs' 5 free worlds at 500k (~2.5M splats). The realistic option.
+    ///
+    /// The two vendors cannot be built in one batch: they differ by scripting define, and writing
+    /// defines queues a domain reload that tears down whatever is driving the batch. The sequence
+    /// is Switch To > PICO, wait for the recompile, Build > PICO > All Three, then the same for
+    /// Quest. Within one vendor nothing changes the defines, so the three builds run uninterrupted.
     /// </summary>
     public static class XRBuild
     {
         const string BuildDir = "Builds";
-        const string Scene = "Assets/Scenes/Tests/XRRig.unity";
 
-        /// <summary>Required by the PICO package for its OpenXR path to compile at all.
-        /// Kept on for both profiles: toggling it forces a full recompile, and it is inert
-        /// for Quest once the PICO features are disabled.</summary>
+        // PICO Unity SDK 6.1.1 gates ALL of its OpenXR code (121 files) behind this. Without it
+        // the PICOFeature/interaction-profile classes do not exist and the PICO profile is empty.
+        // The standalone PICO Unity OpenXR SDK 1.4.1 does NOT use it — harmless there either way.
         const string PicoSdkDefine = "ENABLE_PICO_OPENXR_SDK";
-
         const string PicoDefine = "MUSEXR_PICO";
         const string QuestDefine = "MUSEXR_QUEST";
 
         // OpenXRExtensions is not optional: without it PICO's validator reports
-        // "No PICO OpenXR Features selected" and refuses to build. The message does not name it.
+        // "No PICO OpenXR Features selected" and refuses to build. The message never names it.
         static readonly string[] PicoFeatures =
         {
             "PICOFeature", "OpenXRExtensions",
@@ -54,36 +57,118 @@ namespace MuseXR.EditorTools
 
         public enum Vendor { Pico, Quest }
 
-        // ---- menu -------------------------------------------------------------------
+        class Target
+        {
+            public string Name;             // Rig / Worlds / Samples
+            public string Scene;
+            public string AddressableGroup; // null = no worlds in this build
+        }
+
+        static readonly Target[] Targets =
+        {
+            new Target { Name = "Rig",     Scene = "Assets/Scenes/Tests/XRRig.unity",        AddressableGroup = null },
+            new Target { Name = "Worlds",  Scene = "Assets/Scenes/Tests/Worlds.unity",       AddressableGroup = AddressableWorldSetup.SkylarGroup },
+            new Target { Name = "Samples", Scene = "Assets/Scenes/Tests/SampleWorlds.unity", AddressableGroup = AddressableWorldSetup.SampleGroup },
+
+            // Ported from MusePico 14 Sep 2026. These hold DIRECT references to their splat and
+            // mesh assets rather than loading through Addressables, which is why every one of them
+            // takes AddressableGroup = null: the assets come in as ordinary scene dependencies.
+            // That is deliberate and matches MusePico — Addressables earns its keep for Skylar's
+            // 1.37 GB, not for a single world or 19 MB of characters.
+            new Target { Name = "SplatLoop", Scene = "Assets/Scenes/SplatLoop.unity",    AddressableGroup = null },
+            new Target { Name = "Walk",      Scene = "Assets/Scenes/WalkTest.unity",     AddressableGroup = null },
+            new Target { Name = "Gallery",   Scene = "Assets/Scenes/TripoGallery.unity", AddressableGroup = null },
+            new Target { Name = "Generate",  Scene = "Assets/Scenes/TripoRuntime.unity", AddressableGroup = null },
+            new Target { Name = "Salon",     Scene = "Assets/Scenes/MuseumSalon.unity",  AddressableGroup = null },
+        };
+
+        /// <summary>What "All Three" builds — the original content sets only. The ported scenes are
+        /// deliberately excluded: Walk alone carries a full-resolution world (~355 MB in MusePico),
+        /// so sweeping them all into one batch turns a routine build into a multi-gigabyte one.
+        /// Build those individually.</summary>
+        static Target[] CoreTargets => Targets.Take(3).ToArray();
+
+        // ---- menu ------------------------------------------------------------------
 
         [MenuItem("MuseXR/Switch To/PICO", priority = 0)]
-        public static void SwitchToPico() { ApplyProfile(Vendor.Pico); }
+        public static void SwitchToPico() => ApplyProfile(Vendor.Pico);
 
         [MenuItem("MuseXR/Switch To/Quest", priority = 1)]
-        public static void SwitchToQuest() { ApplyProfile(Vendor.Quest); }
+        public static void SwitchToQuest() => ApplyProfile(Vendor.Quest);
 
-        [MenuItem("MuseXR/Build/PICO APK", priority = 20)]
-        public static void BuildPico() { Build(Vendor.Pico); }
+        [MenuItem("MuseXR/Build/PICO/Rig", priority = 20)]       static void P0() => BuildOne(Vendor.Pico, Targets[0]);
+        [MenuItem("MuseXR/Build/PICO/Worlds", priority = 21)]    static void P1() => BuildOne(Vendor.Pico, Targets[1]);
+        [MenuItem("MuseXR/Build/PICO/Samples", priority = 22)]   static void P2() => BuildOne(Vendor.Pico, Targets[2]);
+        [MenuItem("MuseXR/Build/PICO/SplatLoop", priority = 40)] static void P3() => BuildOne(Vendor.Pico, Targets[3]);
+        [MenuItem("MuseXR/Build/PICO/Walk", priority = 41)]      static void P4() => BuildOne(Vendor.Pico, Targets[4]);
+        [MenuItem("MuseXR/Build/PICO/Gallery", priority = 42)]   static void P5() => BuildOne(Vendor.Pico, Targets[5]);
+        [MenuItem("MuseXR/Build/PICO/Generate", priority = 43)]  static void P6() => BuildOne(Vendor.Pico, Targets[6]);
+        [MenuItem("MuseXR/Build/PICO/Salon", priority = 44)]     static void P7() => BuildOne(Vendor.Pico, Targets[7]);
 
-        [MenuItem("MuseXR/Build/Quest APK", priority = 21)]
-        public static void BuildQuest() { Build(Vendor.Quest); }
+        [MenuItem("MuseXR/Build/Quest/Rig", priority = 20)]       static void Q0() => BuildOne(Vendor.Quest, Targets[0]);
+        [MenuItem("MuseXR/Build/Quest/Worlds", priority = 21)]    static void Q1() => BuildOne(Vendor.Quest, Targets[1]);
+        [MenuItem("MuseXR/Build/Quest/Samples", priority = 22)]   static void Q2() => BuildOne(Vendor.Quest, Targets[2]);
+        [MenuItem("MuseXR/Build/Quest/SplatLoop", priority = 40)] static void Q3() => BuildOne(Vendor.Quest, Targets[3]);
+        [MenuItem("MuseXR/Build/Quest/Walk", priority = 41)]      static void Q4() => BuildOne(Vendor.Quest, Targets[4]);
+        [MenuItem("MuseXR/Build/Quest/Gallery", priority = 42)]   static void Q5() => BuildOne(Vendor.Quest, Targets[5]);
+        [MenuItem("MuseXR/Build/Quest/Generate", priority = 43)]  static void Q6() => BuildOne(Vendor.Quest, Targets[6]);
+        [MenuItem("MuseXR/Build/Quest/Salon", priority = 44)]     static void Q7() => BuildOne(Vendor.Quest, Targets[7]);
 
-        [MenuItem("MuseXR/Build/Both", priority = 22)]
-        public static void BuildBoth() { BuildPico(); BuildQuest(); }
+        [MenuItem("MuseXR/Build/PICO/All Three", priority = 25)]
+        public static void BuildAllPico() => BuildAllFor(Vendor.Pico);
 
-        // ---- profile switching ------------------------------------------------------
+        [MenuItem("MuseXR/Build/Quest/All Three", priority = 25)]
+        public static void BuildAllQuest() => BuildAllFor(Vendor.Quest);
+
+        /// <summary>Refuses to build under the wrong vendor profile rather than switching to it.
+        /// Switching writes the scripting defines, which queues a domain reload that aborts the
+        /// call before BuildPlayer is ever reached — leaving no APK and no error, which is how
+        /// this went unnoticed the first time.</summary>
+        static bool GuardProfile(Vendor vendor)
+        {
+            if (ProfileIsCurrent(vendor)) return true;
+            Debug.LogError($"[XRBuild] profile is not {vendor}. Run MuseXR > Switch To > {vendor} " +
+                           "first, wait for the recompile to finish, then build. Building now would " +
+                           "change the scripting defines and reload the domain mid-build.");
+            return false;
+        }
+
+        static void BuildOne(Vendor vendor, Target target)
+        {
+            if (!GuardProfile(vendor)) return;
+            Build(vendor, target);
+        }
+
+        /// <summary>All three content sets for one vendor. Deliberately NOT "all six": the two
+        /// vendors differ by scripting define, and changing that mid-batch queues a domain reload
+        /// that kills the batch. Switch vendor, let the reload finish, then run this.</summary>
+        static void BuildAllFor(Vendor vendor)
+        {
+            if (!GuardProfile(vendor)) return;
+
+            var results = new List<string>();
+            foreach (var t in CoreTargets)
+            {
+                try { results.Add(Build(vendor, t)); }
+                catch (Exception e) { results.Add($"{vendor}-{t.Name}: FAILED — {e.Message}"); }
+            }
+            Debug.Log($"[XRBuild] {vendor} complete:\n  " + string.Join("\n  ", results));
+        }
+
+        // ---- profile ---------------------------------------------------------------
 
         public static void ApplyProfile(Vendor vendor)
         {
             SelectFeatures(vendor == Vendor.Pico ? PicoFeatures : QuestFeatures);
-            SetDefines(vendor);
+            bool reloading = SetDefines(vendor);
             PlayerSettings.productName = vendor == Vendor.Pico ? "MuseXR" : "MuseXR (Quest)";
             AssetDatabase.SaveAssets();
-            Debug.Log($"[XRBuild] profile -> {vendor}. Features and defines updated.");
+            Debug.Log($"[XRBuild] profile = {vendor}" +
+                      (reloading ? " — defines changed, domain reload queued; build AFTER it finishes." : ""));
         }
 
-        /// <summary>Enables exactly the named OpenXR features for Android and disables every
-        /// other one, so the two vendor profiles cannot drift into each other over time.</summary>
+        /// <summary>Enables exactly the named features and disables every other one, so the two
+        /// vendor profiles cannot drift into each other over repeated switches.</summary>
         public static void SelectFeatures(IEnumerable<string> wanted)
         {
             var want = new HashSet<string>(wanted);
@@ -93,24 +178,29 @@ namespace MuseXR.EditorTools
             foreach (var feature in settings.GetFeatures())
             {
                 if (feature == null) continue;
-                bool shouldBeOn = want.Contains(feature.GetType().Name);
-                if (feature.enabled == shouldBeOn) continue;
-
+                bool on = want.Contains(feature.GetType().Name);
+                if (feature.enabled == on) continue;
                 var so = new SerializedObject(feature);
-                var prop = so.FindProperty("m_enabled");
-                if (prop == null) continue;
-                prop.boolValue = shouldBeOn;
+                var p = so.FindProperty("m_enabled");
+                if (p == null) continue;
+                p.boolValue = on;
                 so.ApplyModifiedProperties();
                 EditorUtility.SetDirty(feature);
             }
         }
 
-        /// <summary>Swaps MUSEXR_PICO / MUSEXR_QUEST so gameplay code can branch on the target,
-        /// e.g. #if MUSEXR_PICO … #endif. Leaves every unrelated define untouched.</summary>
-        public static void SetDefines(Vendor vendor)
+        /// <summary>Swaps MUSEXR_PICO / MUSEXR_QUEST for #if branching, leaving others alone.
+        ///
+        /// Writes only when the value actually changes. Assigning defines queues a domain reload,
+        /// and a reload part-way through a batch tears down whatever is driving it (the MCP bridge
+        /// loses its session, a menu item never returns). Switching vendor therefore has to be its
+        /// own step; the builds that follow must find the defines already correct and touch
+        /// nothing. Returns true if a reload was queued.</summary>
+        public static bool SetDefines(Vendor vendor)
         {
-            var defines = PlayerSettings
-                .GetScriptingDefineSymbolsForGroup(BuildTargetGroup.Android)
+            var current = PlayerSettings.GetScriptingDefineSymbolsForGroup(BuildTargetGroup.Android);
+
+            var defines = current
                 .Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(d => d.Trim())
                 .Where(d => d != PicoDefine && d != QuestDefine)
@@ -119,21 +209,52 @@ namespace MuseXR.EditorTools
             if (!defines.Contains(PicoSdkDefine)) defines.Add(PicoSdkDefine);
             defines.Add(vendor == Vendor.Pico ? PicoDefine : QuestDefine);
 
-            PlayerSettings.SetScriptingDefineSymbolsForGroup(
-                BuildTargetGroup.Android, string.Join(";", defines));
+            var wanted = string.Join(";", defines);
+            if (SameDefines(current, wanted)) return false;
+
+            PlayerSettings.SetScriptingDefineSymbolsForGroup(BuildTargetGroup.Android, wanted);
+            return true;
         }
 
-        // ---- build ------------------------------------------------------------------
+        static bool SameDefines(string a, string b)
+        {
+            var sa = new HashSet<string>(a.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(d => d.Trim()));
+            var sb = new HashSet<string>(b.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(d => d.Trim()));
+            return sa.SetEquals(sb);
+        }
 
-        static void Build(Vendor vendor)
+        /// <summary>True when the defines already match this vendor, so a build can proceed
+        /// without queueing a reload.</summary>
+        public static bool ProfileIsCurrent(Vendor vendor)
+        {
+            var d = PlayerSettings.GetScriptingDefineSymbolsForGroup(BuildTargetGroup.Android);
+            var want = vendor == Vendor.Pico ? PicoDefine : QuestDefine;
+            var other = vendor == Vendor.Pico ? QuestDefine : PicoDefine;
+            var set = new HashSet<string>(d.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()));
+            return set.Contains(want) && !set.Contains(other);
+        }
+
+        // ---- build -----------------------------------------------------------------
+
+        static string Build(Vendor vendor, Target target)
         {
             ApplyProfile(vendor);
 
+            // Only this build's worlds go into the content, so a Samples APK does not quietly
+            // carry 1.37 GB of Skylar's. BuildContent cleans first, so a content build that fails
+            // leaves an empty folder rather than the previous target's bundles. Rebuilt for every
+            // APK even though the bundles are vendor-independent: a cache shared across runs would
+            // trade a long build for a silent staleness bug, which is the worse failure.
+            AddressableWorldSetup.SetIncludedGroup(target.AddressableGroup);
+            AddressableWorldSetup.BuildContent();
+
+            ClearGradlePackaging();
+
             Directory.CreateDirectory(BuildDir);
-            string apk = vendor == Vendor.Pico ? "MuseXR-PICO.apk" : "MuseXR-Quest.apk";
+            string apk = $"MuseXR-{(vendor == Vendor.Pico ? "PICO" : "Quest")}-{target.Name}.apk";
             var opts = new BuildPlayerOptions
             {
-                scenes = new[] { Scene },
+                scenes = new[] { target.Scene },
                 locationPathName = Path.Combine(BuildDir, apk),
                 target = BuildTarget.Android,
                 targetGroup = BuildTargetGroup.Android,
@@ -142,19 +263,69 @@ namespace MuseXR.EditorTools
 
             var report = BuildPipeline.BuildPlayer(opts);
             var s = report.summary;
-            Debug.Log($"[XRBuild] {apk}: {s.result} — {s.totalSize / 1048576} MB, " +
-                      $"{s.totalErrors} errors, {s.totalWarnings} warnings, {s.totalTime}");
-            if (s.result != BuildResult.Succeeded)
-                throw new Exception($"{apk} build {s.result}");
+
+            // summary.totalSize is not the APK size — it reported 1694 MB for a 105 MB APK.
+            // Measure the file that actually gets sideloaded.
+            var path = Path.Combine(BuildDir, apk);
+            var mb = File.Exists(path) ? new FileInfo(path).Length / 1048576.0 : 0;
+            string line = $"{apk}: {s.result}, {mb:F1} MB, {s.totalErrors} errors, {s.totalTime}";
+            Debug.Log("[XRBuild] " + line);
+            if (s.result != BuildResult.Succeeded) throw new Exception(line);
+            return line;
         }
 
-        /// <summary>Headless entry point:
-        /// Unity -batchmode -quit -executeMethod MuseXR.EditorTools.XRBuild.CI
-        /// with MUSEXR_TARGET=pico|quest (defaults to pico).</summary>
+        /// <summary>
+        /// Deletes Gradle's packaging caches so each APK is written fresh.
+        ///
+        /// Without this, a build whose content SHRANK relative to the previous one reuses the
+        /// previous archive's layout: Gradle overwrites the entries that changed and leaves the
+        /// freed space as unreferenced holes rather than compacting. Measured here — building
+        /// Samples (5 worlds) straight after Worlds (8 worlds) produced a 614 MB APK containing a
+        /// single 399.7 MB gap where Skylar's bundles had been. The archive was valid and its
+        /// contents correct, just 3x the necessary size; clearing these caches gave 209 MB.
+        ///
+        /// Note this is under Library/Bee, NOT Temp/gradleOut — Unity 6 moved the Gradle project,
+        /// and clearing Temp/ looks like it works while changing nothing.
+        /// </summary>
+        static void ClearGradlePackaging()
+        {
+            const string gradle = "Library/Bee/Android/Prj/IL2CPP/Gradle/launcher/build";
+            foreach (var sub in new[] { "outputs", "intermediates" })
+            {
+                var dir = Path.Combine(gradle, sub);
+                if (Directory.Exists(dir)) Directory.Delete(dir, true);
+            }
+        }
+
+        /// <summary>Headless: -executeMethod MuseXR.EditorTools.XRBuild.CI, MUSEXR_TARGET=pico|quest.
+        /// One vendor per invocation — see BuildAllFor for why the two cannot share a run.</summary>
         public static void CI()
         {
             var which = Environment.GetEnvironmentVariable("MUSEXR_TARGET") ?? "pico";
-            Build(which.Equals("quest", StringComparison.OrdinalIgnoreCase) ? Vendor.Quest : Vendor.Pico);
+            var vendor = which.Equals("quest", StringComparison.OrdinalIgnoreCase) ? Vendor.Quest : Vendor.Pico;
+
+            // MUSEXR_SCENES: unset -> the three core content sets (what this always built);
+            // "all" -> every target including the ported scenes; or a comma-separated list of
+            // target names, e.g. "Rig,Walk". Defaulting to the core three keeps an existing CI
+            // invocation building exactly what it built before the ported scenes were added.
+            var pick = Environment.GetEnvironmentVariable("MUSEXR_SCENES");
+            Target[] chosen;
+            if (string.IsNullOrWhiteSpace(pick)) chosen = CoreTargets;
+            else if (pick.Equals("all", StringComparison.OrdinalIgnoreCase)) chosen = Targets;
+            else
+            {
+                var want = new HashSet<string>(
+                    pick.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()),
+                    StringComparer.OrdinalIgnoreCase);
+                chosen = Targets.Where(t => want.Contains(t.Name)).ToArray();
+                var unknown = want.Where(w => !Targets.Any(t => t.Name.Equals(w, StringComparison.OrdinalIgnoreCase))).ToArray();
+                if (unknown.Length > 0)
+                    throw new Exception($"[XRBuild] MUSEXR_SCENES names no such target: {string.Join(", ", unknown)}. " +
+                                        $"Known: {string.Join(", ", Targets.Select(t => t.Name))}");
+            }
+
+            ApplyProfile(vendor);
+            foreach (var t in chosen) Build(vendor, t);
         }
     }
 }

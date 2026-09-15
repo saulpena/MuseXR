@@ -112,3 +112,9 @@ sysinfo.txt
 
 # Marble API downloads — generated worlds, refetchable, some are large
 /Tools/marble/worlds-out/
+
+# API keys injected into StreamingAssets by KeyInjectionBuildStep for the duration of a
+# build and deleted again afterwards. If a build dies mid-way they survive on disk, and
+# `git add -A` would commit a live key. Belt and braces, matching MusePico.
+/[Aa]ssets/[Ss]treamingAssets/*.key
+/[Aa]ssets/[Ss]treamingAssets/*.key.meta

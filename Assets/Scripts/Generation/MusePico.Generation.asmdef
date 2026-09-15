@@ -1,0 +1,19 @@
+{
+    "name": "MusePico.Generation",
+    "rootNamespace": "MusePico.Generation",
+    "references": [
+        "MusePico.Tripo",
+        "glTFast",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

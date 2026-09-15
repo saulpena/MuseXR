@@ -1,0 +1,20 @@
+{
+    "name": "MusePico.Tripo.Editor",
+    "rootNamespace": "MusePico.TripoEditor",
+    "references": [
+        "MusePico.Tripo",
+        "MusePico.Gallery",
+        "MusePico.Dialogue"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

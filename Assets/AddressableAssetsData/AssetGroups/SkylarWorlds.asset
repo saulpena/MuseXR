@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: SkylarWorlds
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: SkylarWorlds
+  m_GUID: 0f55673abb129d2418aaf98cb4b3945f
+  m_SerializeEntries:
+  - m_GUID: 36d148f794138744eabd942bdd8a9d39
+    m_Address: elegant-floral-palace-interior
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4abb83bc22782124aaef108e99d7e74b
+    m_Address: grand-conservatory-with-lush-gardens
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 54cad8f6d1d10234e8f0f508cbe68979
+    m_Address: mexican-courtyard-bedroom-fantasy
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5d0a51f660bd7334c96a1ca1e2de0599
+    m_Address: sunlit-palace-gardens
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 819cda05f162ab744ababd0f46418943
+    m_Address: enchanted-water-garden-sanctuary
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 860eebd8dee24544ea07fcb2f7862ec4
+    m_Address: yellow-polka-dot-infinity-room
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9df0a248735f18b4e84f76ac5f141880
+    m_Address: dreamlike-coastal-villa-gardens
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ec5c2a88a076d014a86edb05d62a60ae
+    m_Address: van-gogh-inspired-gallery-interior
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 79db9c0aa57a04f4790cc9a5ccfb9344, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 4a54a3073a888df42bc448015413cd03, type: 2}
+    - {fileID: 11400000, guid: 6a78d1aaae6c6f740877303c5f9adb61, type: 2}
+    m_SchemaDisplayOrder:
+    - SkylarWorlds_BundledAssetGroupSchema
+    - SkylarWorlds_ContentUpdateGroupSchema
+  m_IncludeInBuild: 0
+  m_IncludeInBuildMigrated: 1

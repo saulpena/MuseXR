@@ -1,0 +1,21 @@
+{
+    "name": "MusePico.Worlds",
+    "rootNamespace": "MusePico.Worlds",
+    "references": [
+        "GaussianSplatting",
+        "Unity.XR.CoreUtils",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem",
+        "Unity.Addressables",
+        "Unity.ResourceManager"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

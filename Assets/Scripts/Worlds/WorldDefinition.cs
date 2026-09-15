@@ -36,10 +36,13 @@ namespace MuseXR.Worlds
         /// <summary>Far clip. Outdoor worlds need much more than interiors.</summary>
         public float cameraFar = 200f;
 
-        public bool enclosed;
+        /// <summary>False for worlds with no hand-measured spawn (the World Labs samples), which
+        /// the cycler places from the asset's own bounds instead of from data.</summary>
+        public bool hasMeasuredSpawn = true;
 
-        /// <summary>Where the converted splat asset lives.</summary>
-        public string AssetPath => $"Assets/Worlds/{key}.asset";
+        /// <summary>Addressables key. Set by AddressableWorldSetup to the asset's file name,
+        /// which is the world key.</summary>
+        public string Address => key;
 
         /// <summary>Spawn position with the immersion scale applied — the same transformation
         /// scaleProfile() performs in the original.</summary>

@@ -1,0 +1,19 @@
+{
+    "name": "MusePico.Dialogue",
+    "rootNamespace": "MusePico.Dialogue",
+    "references": [
+        "MusePico.Tripo",
+        "MusePico.Generation",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
