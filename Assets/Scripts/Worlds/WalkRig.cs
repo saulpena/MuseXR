@@ -1,7 +1,9 @@
 using Unity.XR.CoreUtils;
 using UnityEngine;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using GaussianSplatting.Runtime;
 using TMPro;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace MusePico.Worlds
@@ -39,10 +41,36 @@ namespace MusePico.Worlds
     public class WalkRig : MonoBehaviour
     {
         [Header("World")]
-        public GaussianSplatAsset world;
+        /// <summary>
+        /// Addressables key for the converted world — which <see cref="MuseXR.EditorTools.AddressableWorldSetup"/>
+        /// sets to the asset's file name, so it is the world key ("sunlit-museum-gallery-hallway").
+        ///
+        /// Deliberately an address rather than a direct <c>GaussianSplatAsset</c>: see
+        /// <see cref="WorldAssets"/> for why this project has exactly one loading path. A direct
+        /// reference here would also be built into the APK alongside the bundle.
+        /// </summary>
+        public string worldAddress;
 
         /// <summary>The matching <c>*-collider.glb</c>, dragged in as the imported prefab.</summary>
         public GameObject colliderModel;
+
+        /// <summary>
+        /// Negate X on the collider so it lines up with its own splat.
+        ///
+        /// TRUE for Skylar's eight: their <c>.spz</c> came through our three.js-matching
+        /// converter, and glTFast negates X importing the glTF, so the two disagree by a mirror.
+        /// FALSE for a world exported straight out of Marble with <b>Coordinate system =
+        /// OpenGL</b>, which is already in Unity's handedness and needs no correction.
+        ///
+        /// This is per-world and MEASURED, never assumed — an X-symmetric room hides the error
+        /// visually while still putting the visitor against the wrong wall.
+        /// </summary>
+        public bool mirrorColliderX = true;
+
+        /// <summary>Leave the collider's renderers on. Debug only — a Marble collider is a crude
+        /// reconstruction and looks like nothing, but drawing it over the splat is the only way
+        /// to confirm the two are aligned.</summary>
+        public bool showColliderForDebug;
 
         /// <summary>Immersion multiplier. Deliberately 1: she used 1.7-2 so companions read at a
         /// decent size in a browser viewport, but in a headset metres should be metres — scaling
@@ -67,6 +95,34 @@ namespace MusePico.Worlds
         [Tooltip("How high the boundary walls stand above the fallback floor, metres.")]
         public float wallHeight = 4f;
 
+        [Header("Splat performance")]
+        /// <summary>
+        /// Re-sort the splats every Nth frame instead of every frame.
+        ///
+        /// The package defaults to 1, which radix-sorts all 500,000 splats EVERY frame — and under
+        /// Multi Pass that happens once per eye, so twice. Splats only need re-sorting when the
+        /// view direction changes materially, so 2-3 is close to free visually and cuts the sort
+        /// cost proportionally. This is the same "sort once and reuse" idea the mobile-VR splat
+        /// literature recommends; the package already implements it and nothing was using it.
+        ///
+        /// Raise it further if sorting still dominates; the artifact to watch for is splats
+        /// briefly compositing in the wrong order during fast turns.
+        /// </summary>
+        [Range(1, 6)] public int sortNthFrame = 3;
+
+        /// <summary>
+        /// Spherical-harmonics order to evaluate. The package defaults to 3 (full SH).
+        ///
+        /// <b>Every World Labs Marble export is shLevel 0</b> — measured from the SPZ header:
+        /// <c>shDegree: 0</c>. There are no higher-order coefficients in the data, so evaluating
+        /// order 3 spends GPU time on information that does not exist. 0 should be visually
+        /// identical on this content and cheaper.
+        ///
+        /// Raise it only for splat content that genuinely carries spherical harmonics — a capture
+        /// from another tool might.
+        /// </summary>
+        [Range(0, 3)] public int shOrder;
+
         [Header("Splat renderer resources (see SplatWorldCycler for why these are serialized)")]
         public Shader shaderSplats;
         public Shader shaderComposite;
@@ -82,24 +138,53 @@ namespace MusePico.Worlds
         GameObject _splatObject;
         GameObject _colliderObject;
         CharacterController _character;
+        AsyncOperationHandle<GaussianSplatAsset> _worldHandle;
         readonly List<float> _hits = new List<float>();
         readonly RaycastHit[] _hitBuffer = new RaycastHit[32];
 
-        void Start()
+        /// <summary>True once the world has loaded and the visitor has been placed. A walkability
+        /// test has to wait for this — the collider does not exist until the load completes.</summary>
+        public bool Ready { get; private set; }
+
+        /// <summary>The loaded world, once <see cref="Ready"/>. Null before that.</summary>
+        public GaussianSplatAsset World => WorldAssets.Succeeded(_worldHandle) ? _worldHandle.Result : null;
+
+        IEnumerator Start()
         {
             _origin = FindAnyObjectByType<XROrigin>();
             _camera = _origin != null ? _origin.Camera : Camera.main;
             _character = _origin != null ? _origin.GetComponent<CharacterController>() : null;
 
+            if (string.IsNullOrWhiteSpace(worldAddress))
+            {
+                Debug.LogError("[WalkRig] worldAddress is empty — nothing to load.");
+                yield break;
+            }
+
+            _worldHandle = WorldAssets.LoadAsync(worldAddress);
+            yield return _worldHandle;
+
+            if (!WorldAssets.Succeeded(_worldHandle))
+            {
+                Debug.LogError(WorldAssets.DescribeFailure(worldAddress, _worldHandle));
+                yield break;
+            }
+
             BuildWorld();
             BuildCollider();
             BuildFallbackBounds();
             Place();
+            Ready = true;
+        }
+
+        void OnDestroy()
+        {
+            WorldAssets.Release(ref _worldHandle);
         }
 
         void BuildWorld()
         {
-            if (world == null) { Debug.LogError("[WalkRig] no world asset assigned."); return; }
+            var world = _worldHandle.Result;
             _splatObject = new GameObject("Splat_" + world.name);
             _splatObject.transform.localScale = Vector3.one * worldScale;
             var renderer = _splatObject.AddComponent<GaussianSplatRenderer>();
@@ -109,20 +194,25 @@ namespace MusePico.Worlds
             renderer.m_ShaderDebugPoints = shaderDebugPoints;
             renderer.m_ShaderDebugBoxes = shaderDebugBoxes;
             renderer.m_CSSplatUtilities = csSplatUtilities;
+            // Two tunables the package exposes and nothing was setting — see the fields above.
+            renderer.m_SortNthFrame = Mathf.Max(1, sortNthFrame);
+            renderer.m_SHOrder = Mathf.Clamp(shOrder, 0, 3);
             // Resources are built in OnEnable, which ran before the asset was assigned.
             renderer.enabled = false;
             renderer.enabled = true;
             Debug.Log($"[WalkRig] splat {world.name}: {world.splatCount:N0} splats " +
                       $"validAsset={renderer.HasValidAsset} validRenderSetup={renderer.HasValidRenderSetup} " +
+                      $"sortNthFrame={renderer.m_SortNthFrame} shOrder={renderer.m_SHOrder} " +
                       $"bounds={world.boundsMin:F2}..{world.boundsMax:F2}");
         }
 
         void BuildCollider()
         {
             if (colliderModel == null) { Debug.LogWarning("[WalkRig] no collider model — only the fallback box will exist."); return; }
-            // X negated to undo glTFast's handedness flip; see the class summary.
+            // X negated to undo glTFast's handedness flip; see mirrorColliderX for when it applies.
+            float sx = mirrorColliderX ? -worldScale : worldScale;
             _colliderObject = new GameObject("Collider_" + colliderModel.name);
-            _colliderObject.transform.localScale = new Vector3(-worldScale, worldScale, worldScale);
+            _colliderObject.transform.localScale = new Vector3(sx, worldScale, worldScale);
             var instance = Instantiate(colliderModel, _colliderObject.transform);
             int meshes = 0;
             foreach (var filter in instance.GetComponentsInChildren<MeshFilter>(true))
@@ -133,9 +223,10 @@ namespace MusePico.Worlds
                 meshes++;
             }
             // Physics only. A Marble collider is a crude reconstruction and looks like nothing.
-            foreach (var r in instance.GetComponentsInChildren<Renderer>(true)) r.enabled = false;
+            foreach (var r in instance.GetComponentsInChildren<Renderer>(true)) r.enabled = showColliderForDebug;
             Physics.SyncTransforms();
-            Debug.Log($"[WalkRig] collider: {meshes} mesh(es) mirrored on X, renderers off.");
+            Debug.Log($"[WalkRig] collider: {meshes} mesh(es), mirrorX={mirrorColliderX}, " +
+                      $"renderers={(showColliderForDebug ? "ON (debug)" : "off")}.");
         }
 
         /// <summary>Backs her collider with a closed box, so a gap in its patchy floor is a step

@@ -343,17 +343,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e081301080c3fc46b2bf1ee894b7a90, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  world: {fileID: 11400000, guid: ec5c2a88a076d014a86edb05d62a60ae, type: 2}
+  worldAddress: van-gogh-inspired-gallery-interior-500k
   colliderModel: {fileID: -212285753890768171, guid: a94c74fadf643ff4badf16405d327656, type: 3}
+  mirrorColliderX: 1
+  showColliderForDebug: 0
   worldScale: 1
   spawn: {x: 1.79, y: 0.3}
   groundY: 0
   yawDegrees: 0
   bounds: {x: -2.47, y: 10, z: -14.62, w: 13.73}
   cameraFar: 200
-  speed: 1.8
-  snapTurnDegrees: 30
-  skin: 0.45
+  buildFallbackBounds: 1
+  wallHeight: 4
+  sortNthFrame: 3
+  shOrder: 0
   shaderSplats: {fileID: 4800000, guid: ed800126ae8844a67aad1974ddddd59c, type: 3}
   shaderComposite: {fileID: 4800000, guid: 7e184af7d01193a408eb916d8acafff9, type: 3}
   shaderDebugPoints: {fileID: 4800000, guid: b44409fc67214394f8f47e4e2648425e, type: 3}

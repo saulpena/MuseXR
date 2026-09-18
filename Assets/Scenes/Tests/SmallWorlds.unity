@@ -252,7 +252,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3983e952e7269fd4698bbe4cf8d43a90, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MuseXR.Worlds.WorldCycler
-  worldSet: 1
+  worldSet: 2
   secondsPerWorld: 15
   autoAdvance: 1
   xrOrigin: {fileID: 1123985766}

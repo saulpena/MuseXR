@@ -314,6 +314,68 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &676894886
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 676894888}
+  - component: {fileID: 676894887}
+  m_Layer: 0
+  m_Name: Walk Rig
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &676894887
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 676894886}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e081301080c3fc46b2bf1ee894b7a90, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  worldAddress: sunlit-museum-gallery-hallway
+  colliderModel: {fileID: -212285753890768171, guid: 1650af9d66a432946a2d703a2c05d061, type: 3}
+  mirrorColliderX: 0
+  showColliderForDebug: 0
+  worldScale: 1
+  spawn: {x: 0, y: 6}
+  groundY: 0
+  yawDegrees: 180
+  bounds: {x: -2.9, y: 2.71, z: -29.64, w: 22.1}
+  cameraFar: 200
+  buildFallbackBounds: 1
+  wallHeight: 4
+  shaderSplats: {fileID: 4800000, guid: ed800126ae8844a67aad1974ddddd59c, type: 3}
+  shaderComposite: {fileID: 4800000, guid: 7e184af7d01193a408eb916d8acafff9, type: 3}
+  shaderDebugPoints: {fileID: 4800000, guid: b44409fc67214394f8f47e4e2648425e, type: 3}
+  shaderDebugBoxes: {fileID: 4800000, guid: 4006f2680fd7c8b4cbcb881454c782be, type: 3}
+  csSplatUtilities: {fileID: 7200000, guid: ec84f78b836bd4f96a105d6b804f08bd, type: 3}
+  hud: {fileID: 1607481020}
+--- !u!4 &676894888
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 676894886}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -401,6 +463,67 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 851228343}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1376099685
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1376099687}
+  - component: {fileID: 1376099686}
+  m_Layer: 0
+  m_Name: Companions
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1376099686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1376099685}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b576b226f28daaa4ab7f05dfae74b681, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Worlds::MusePico.Worlds.CompanionParty
+  avatars:
+  - {fileID: 8771091787928289351, guid: c3b17c31917821e4e9722eeaf5fa4609, type: 3}
+  - {fileID: 4763709778603971394, guid: 8a77616056ce47c4a9a157e6a9ba2541, type: 3}
+  - {fileID: 4356430329804789358, guid: 76dd2db634c90be44b83e99b0d31863e, type: 3}
+  humanHeight: 1.75
+  walkController: {fileID: 9100000, guid: 9e52a0c5c502fc446b022a3a5558d7d9, type: 2}
+  clipGroundSpeed: 1.055
+  speedSmoothing: 6
+  slots: []
+  followDamping: 0.08
+  repositionDistance: 1.6
+  repositionAngle: 70
+  settleRadius: 0.35
+  visitorStillSpeed: 0.15
+  personalSpace: 1.4
+  companionSeparation: 0.85
+  walkRig: {fileID: 676894887}
+--- !u!4 &1376099687
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1376099685}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -590,69 +713,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 10.796}
   m_SizeDelta: {x: 20, y: 3}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!1 &1893193066
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1893193068}
-  - component: {fileID: 1893193067}
-  m_Layer: 0
-  m_Name: World Cycler
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1893193067
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1893193066}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6884d7340f0c3b54aa871bdcc78ce95a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  worldAddresses:
-  - warm_traditional_kitchen_interior_500k
-  - elegant_library_with_fireplace_500k
-  - narrow_european_cobblestone_lane_500k
-  - modern_house_with_lush_landscaping_500k
-  - rustic_kitchen_with_natural_light_500k
-  worldScale: 1
-  buildFallbackBounds: 1
-  boundsInset: 0.5
-  wallHeight: 4
-  secondsPerWorld: 8
-  autoAdvance: 1
-  xrOrigin: {fileID: 2142605997}
-  label: {fileID: 1607481020}
-  shaderSplats: {fileID: 4800000, guid: ed800126ae8844a67aad1974ddddd59c, type: 3}
-  shaderComposite: {fileID: 4800000, guid: 7e184af7d01193a408eb916d8acafff9, type: 3}
-  shaderDebugPoints: {fileID: 4800000, guid: b44409fc67214394f8f47e4e2648425e, type: 3}
-  shaderDebugBoxes: {fileID: 4800000, guid: 4006f2680fd7c8b4cbcb881454c782be, type: 3}
-  csSplatUtilities: {fileID: 7200000, guid: ec84f78b836bd4f96a105d6b804f08bd, type: 3}
---- !u!4 &1893193068
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1893193066}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2142605995
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -718,17 +778,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7264293645217260027, guid: a23267c443842e04b9f9ab2f76fcde11, type: 3}
   m_PrefabInstance: {fileID: 2142605995}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2142605997 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8400369996942637349, guid: a23267c443842e04b9f9ab2f76fcde11, type: 3}
-  m_PrefabInstance: {fileID: 2142605995}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e0cb9aa70a22847b5925ee5f067c10a9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -736,5 +785,6 @@ SceneRoots:
   - {fileID: 410087041}
   - {fileID: 832575519}
   - {fileID: 851228345}
-  - {fileID: 1893193068}
+  - {fileID: 676894888}
   - {fileID: 2142605995}
+  - {fileID: 1376099687}

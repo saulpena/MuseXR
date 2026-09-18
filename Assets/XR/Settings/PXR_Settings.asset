@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: PXR_Settings
   m_EditorClassIdentifier: ByteDance.PICO.XR::ByteDance.PICO.XR.PXR_Settings
   appMode: 0
-  stereoRenderingModeAndroid: 1
+  stereoRenderingModeAndroid: 0
   systemDisplayFrequency: 0
-  optimizeBufferDiscards: 1
+  optimizeBufferDiscards: 0
   enableAppSpaceWarp: 0
   systemSplashScreen: {fileID: 0}

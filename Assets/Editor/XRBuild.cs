@@ -47,6 +47,25 @@ namespace MuseXR.EditorTools
             "FoveationFeature", "DisplayRefreshRateFeature",
         };
 
+        /// <summary>
+        /// The same PICO profile with the two features the emulator cannot run.
+        ///
+        /// This is why "MuseXR does not run on the emulator" was true, and it is a named cause
+        /// rather than an inherent limit. PICO documents foveation and refresh-rate as unsupported
+        /// under the emulator, and the MusePico build that died with SIGABRT inside Houdini ~0.4 s
+        /// after Unity created its surface had exactly these two enabled; the same build with them
+        /// off ran indefinitely. MuseXR's PICO profile has carried both all along, so it has never
+        /// had a fair chance on the emulator.
+        ///
+        /// Everything else is identical, including the define, so the build menu and its profile
+        /// guard work unchanged — only the feature set differs.
+        /// </summary>
+        static readonly string[] PicoEmulatorFeatures =
+        {
+            "PICOFeature", "OpenXRExtensions",
+            "PICO4ControllerProfile", "PICO4UltraControllerProfile", "PICONeo3ControllerProfile",
+        };
+
         static readonly string[] QuestFeatures =
         {
             "MetaQuestFeature",
@@ -56,6 +75,45 @@ namespace MuseXR.EditorTools
         };
 
         public enum Vendor { Pico, Quest }
+
+        const string DevPrefKey = "MuseXR.DevelopmentBuilds";
+
+        /// <summary>
+        /// Whether to produce a development build (profiler + script debugging).
+        ///
+        /// <b>OFF by default, and that is not a preference — a development build does not run on
+        /// PICO 4.</b> Measured 18 Sep 2026 on a PICO 4 (OS 5.13.3, Android 10, Adreno kona
+        /// driver): every Development|AllowDebugging build died ~2 s after launch with
+        /// SIGSEGV inside <c>vulkan.kona.so</c>, called from
+        /// <c>VKGpuProgram::Prepare(GpuProgramParameters&amp;, int)+2692</c> — fault address 0x2,
+        /// a null dereference in the driver while compiling a shader. Six builds reproduced it at
+        /// byte-identical offsets: the full gallery, the rig-only scene, and a four-object hello
+        /// world. It is independent of scene content, of the Gaussian splat shaders, and of every
+        /// Unity Vulkan workaround (pre-transform, late-acquire, swapchain count, GPU skinning,
+        /// HDR). The SAME hello world as a release build runs.
+        ///
+        /// This matches a known report against PICO 4 — crash before the splash screen, fixed by
+        /// disabling either Vulkan or the development build. Disabling Vulkan is not an option
+        /// here: the splat sort needs wave intrinsics that GLES3 does not have.
+        ///
+        /// So: PICO builds ship as release. The profiler and script debugging stay available in
+        /// the Editor and on the emulator, just not on PICO hardware.
+        /// </summary>
+        public static bool DevelopmentBuilds
+        {
+            get => EditorPrefs.GetBool(DevPrefKey, false);
+            set => EditorPrefs.SetBool(DevPrefKey, value);
+        }
+
+        [MenuItem("MuseXR/Development Builds", priority = 10)]
+        static void ToggleDevelopmentBuilds() => DevelopmentBuilds = !DevelopmentBuilds;
+
+        [MenuItem("MuseXR/Development Builds", validate = true)]
+        static bool ToggleDevelopmentBuildsValidate()
+        {
+            Menu.SetChecked("MuseXR/Development Builds", DevelopmentBuilds);
+            return true;
+        }
 
         class Target
         {
@@ -67,26 +125,45 @@ namespace MuseXR.EditorTools
         static readonly Target[] Targets =
         {
             new Target { Name = "Rig",     Scene = "Assets/Scenes/Tests/XRRig.unity",        AddressableGroup = null },
-            new Target { Name = "Worlds",  Scene = "Assets/Scenes/Tests/Worlds.unity",       AddressableGroup = AddressableWorldSetup.SkylarGroup },
             new Target { Name = "Samples", Scene = "Assets/Scenes/Tests/SampleWorlds.unity", AddressableGroup = AddressableWorldSetup.SampleGroup },
 
-            // Ported from MusePico 14 Sep 2026. These hold DIRECT references to their splat and
-            // mesh assets rather than loading through Addressables, which is why every one of them
-            // takes AddressableGroup = null: the assets come in as ordinary scene dependencies.
-            // That is deliberate and matches MusePico — Addressables earns its keep for Skylar's
-            // 1.37 GB, not for a single world or 19 MB of characters.
-            new Target { Name = "SplatLoop", Scene = "Assets/Scenes/SplatLoop.unity",    AddressableGroup = null },
-            new Target { Name = "Walk",      Scene = "Assets/Scenes/WalkTest.unity",     AddressableGroup = null },
+            // Ported from MusePico 14 Sep 2026, converted to Addressables 16 Sep 2026. The two
+            // that carry a world now name its group; Gallery/Generate/Salon hold Tripo meshes, not
+            // splats, so they stay at null.
+            new Target { Name = "SplatLoop", Scene = "Assets/Scenes/SplatLoop.unity", AddressableGroup = AddressableWorldSetup.SampleGroup },
+            new Target { Name = "Walk",      Scene = "Assets/Scenes/WalkTest.unity",  AddressableGroup = AddressableWorldSetup.SmallGroup },
             new Target { Name = "Gallery",   Scene = "Assets/Scenes/TripoGallery.unity", AddressableGroup = null },
             new Target { Name = "Generate",  Scene = "Assets/Scenes/TripoRuntime.unity", AddressableGroup = null },
             new Target { Name = "Salon",     Scene = "Assets/Scenes/MuseumSalon.unity",  AddressableGroup = null },
+
+            // First world generated by us rather than ported: Marble 1.1, exported at the 500k
+            // tier with Coordinate system = OpenGL and Plane level = Ground level.
+            new Target { Name = "Sunlit",    Scene = "Assets/Scenes/Tests/SunlitGallery.unity", AddressableGroup = AddressableWorldSetup.MarbleGroup },
+
+            // Skylar's eight captures re-exported from Marble at 500k, cycled one at a time.
+            // Its own group, not MarbleGroup: sharing that one made the single-world Sunlit build
+            // carry all nine.
+            new Target { Name = "Small",     Scene = "Assets/Scenes/Tests/SmallWorlds.unity",   AddressableGroup = AddressableWorldSetup.SmallGroup },
         };
 
-        /// <summary>What "All Three" builds — the original content sets only. The ported scenes are
-        /// deliberately excluded: Walk alone carries a full-resolution world (~355 MB in MusePico),
-        /// so sweeping them all into one batch turns a routine build into a multi-gigabyte one.
-        /// Build those individually.</summary>
-        static Target[] CoreTargets => Targets.Take(3).ToArray();
+        /// <summary>
+        /// The target a menu item builds, by NAME. Every menu item used to index Targets[n], so
+        /// removing one silently renumbered nine of them onto the wrong scene — a build that
+        /// succeeds and ships the wrong content is the worst shape this bug could take.
+        /// </summary>
+        static Target T(string name)
+        {
+            var t = Targets.FirstOrDefault(x => x.Name == name);
+            if (t == null) throw new Exception("[XRBuild] no build target named '" + name + "'");
+            return t;
+        }
+
+        /// <summary>What "All Three" builds. Named, not the first three, for the reason above.
+        /// Worlds (Skylar at full resolution) is gone: 29.8M splats and ~1.37 GB is past what a
+        /// mobile headset can do, which the project measured rather than assumed, and Small is the
+        /// same eight captures at a size that runs. The assets stay on disk for comparison — see
+        /// AddressableWorldSetup.ComparisonOnlyGroups.</summary>
+        static Target[] CoreTargets => new[] { T("Rig"), T("Samples"), T("Small") };
 
         // ---- menu ------------------------------------------------------------------
 
@@ -96,23 +173,39 @@ namespace MuseXR.EditorTools
         [MenuItem("MuseXR/Switch To/Quest", priority = 1)]
         public static void SwitchToQuest() => ApplyProfile(Vendor.Quest);
 
-        [MenuItem("MuseXR/Build/PICO/Rig", priority = 20)]       static void P0() => BuildOne(Vendor.Pico, Targets[0]);
-        [MenuItem("MuseXR/Build/PICO/Worlds", priority = 21)]    static void P1() => BuildOne(Vendor.Pico, Targets[1]);
-        [MenuItem("MuseXR/Build/PICO/Samples", priority = 22)]   static void P2() => BuildOne(Vendor.Pico, Targets[2]);
-        [MenuItem("MuseXR/Build/PICO/SplatLoop", priority = 40)] static void P3() => BuildOne(Vendor.Pico, Targets[3]);
-        [MenuItem("MuseXR/Build/PICO/Walk", priority = 41)]      static void P4() => BuildOne(Vendor.Pico, Targets[4]);
-        [MenuItem("MuseXR/Build/PICO/Gallery", priority = 42)]   static void P5() => BuildOne(Vendor.Pico, Targets[5]);
-        [MenuItem("MuseXR/Build/PICO/Generate", priority = 43)]  static void P6() => BuildOne(Vendor.Pico, Targets[6]);
-        [MenuItem("MuseXR/Build/PICO/Salon", priority = 44)]     static void P7() => BuildOne(Vendor.Pico, Targets[7]);
+        /// <summary>PICO, minus foveation and refresh-rate, so the build survives the emulator.
+        /// Same define as PICO, so Build > PICO > … works afterwards without further switching.</summary>
+        [MenuItem("MuseXR/Switch To/PICO (Emulator)", priority = 2)]
+        public static void SwitchToPicoEmulator()
+        {
+            SelectFeatures(PicoEmulatorFeatures);
+            bool reloading = SetDefines(Vendor.Pico);
+            PlayerSettings.productName = "MuseXR";
+            AssetDatabase.SaveAssets();
+            Debug.Log("[XRBuild] profile = PICO (Emulator): foveation and refresh-rate DISABLED. " +
+                      "Build with MuseXR > Build > PICO > …" +
+                      (reloading ? " AFTER the queued domain reload finishes." : ""));
+        }
 
-        [MenuItem("MuseXR/Build/Quest/Rig", priority = 20)]       static void Q0() => BuildOne(Vendor.Quest, Targets[0]);
-        [MenuItem("MuseXR/Build/Quest/Worlds", priority = 21)]    static void Q1() => BuildOne(Vendor.Quest, Targets[1]);
-        [MenuItem("MuseXR/Build/Quest/Samples", priority = 22)]   static void Q2() => BuildOne(Vendor.Quest, Targets[2]);
-        [MenuItem("MuseXR/Build/Quest/SplatLoop", priority = 40)] static void Q3() => BuildOne(Vendor.Quest, Targets[3]);
-        [MenuItem("MuseXR/Build/Quest/Walk", priority = 41)]      static void Q4() => BuildOne(Vendor.Quest, Targets[4]);
-        [MenuItem("MuseXR/Build/Quest/Gallery", priority = 42)]   static void Q5() => BuildOne(Vendor.Quest, Targets[5]);
-        [MenuItem("MuseXR/Build/Quest/Generate", priority = 43)]  static void Q6() => BuildOne(Vendor.Quest, Targets[6]);
-        [MenuItem("MuseXR/Build/Quest/Salon", priority = 44)]     static void Q7() => BuildOne(Vendor.Quest, Targets[7]);
+        [MenuItem("MuseXR/Build/PICO/Rig", priority = 20)]       static void P0() => BuildOne(Vendor.Pico, T("Rig"));
+        [MenuItem("MuseXR/Build/PICO/Samples", priority = 22)]   static void P2() => BuildOne(Vendor.Pico, T("Samples"));
+        [MenuItem("MuseXR/Build/PICO/SplatLoop", priority = 40)] static void P3() => BuildOne(Vendor.Pico, T("SplatLoop"));
+        [MenuItem("MuseXR/Build/PICO/Walk", priority = 41)]      static void P4() => BuildOne(Vendor.Pico, T("Walk"));
+        [MenuItem("MuseXR/Build/PICO/Gallery", priority = 42)]   static void P5() => BuildOne(Vendor.Pico, T("Gallery"));
+        [MenuItem("MuseXR/Build/PICO/Generate", priority = 43)]  static void P6() => BuildOne(Vendor.Pico, T("Generate"));
+        [MenuItem("MuseXR/Build/PICO/Salon", priority = 44)]     static void P7() => BuildOne(Vendor.Pico, T("Salon"));
+        [MenuItem("MuseXR/Build/PICO/Sunlit", priority = 45)]    static void P8() => BuildOne(Vendor.Pico, T("Sunlit"));
+        [MenuItem("MuseXR/Build/PICO/Small", priority = 46)]     static void P9() => BuildOne(Vendor.Pico, T("Small"));
+
+        [MenuItem("MuseXR/Build/Quest/Rig", priority = 20)]       static void Q0() => BuildOne(Vendor.Quest, T("Rig"));
+        [MenuItem("MuseXR/Build/Quest/Samples", priority = 22)]   static void Q2() => BuildOne(Vendor.Quest, T("Samples"));
+        [MenuItem("MuseXR/Build/Quest/SplatLoop", priority = 40)] static void Q3() => BuildOne(Vendor.Quest, T("SplatLoop"));
+        [MenuItem("MuseXR/Build/Quest/Walk", priority = 41)]      static void Q4() => BuildOne(Vendor.Quest, T("Walk"));
+        [MenuItem("MuseXR/Build/Quest/Gallery", priority = 42)]   static void Q5() => BuildOne(Vendor.Quest, T("Gallery"));
+        [MenuItem("MuseXR/Build/Quest/Generate", priority = 43)]  static void Q6() => BuildOne(Vendor.Quest, T("Generate"));
+        [MenuItem("MuseXR/Build/Quest/Salon", priority = 44)]     static void Q7() => BuildOne(Vendor.Quest, T("Salon"));
+        [MenuItem("MuseXR/Build/Quest/Sunlit", priority = 45)]    static void Q8() => BuildOne(Vendor.Quest, T("Sunlit"));
+        [MenuItem("MuseXR/Build/Quest/Small", priority = 46)]     static void Q9() => BuildOne(Vendor.Quest, T("Small"));
 
         [MenuItem("MuseXR/Build/PICO/All Three", priority = 25)]
         public static void BuildAllPico() => BuildAllFor(Vendor.Pico);
@@ -258,7 +351,11 @@ namespace MuseXR.EditorTools
                 locationPathName = Path.Combine(BuildDir, apk),
                 target = BuildTarget.Android,
                 targetGroup = BuildTargetGroup.Android,
-                options = BuildOptions.Development | BuildOptions.AllowDebugging,
+                // See DevelopmentBuilds: a development build crashes PICO 4 in the Vulkan driver
+                // before anything renders. Release is the default for that reason.
+                options = DevelopmentBuilds
+                    ? BuildOptions.Development | BuildOptions.AllowDebugging
+                    : BuildOptions.None,
             };
 
             var report = BuildPipeline.BuildPlayer(opts);

@@ -3,6 +3,7 @@ using GaussianSplatting.Runtime;
 using TMPro;
 using Unity.XR.CoreUtils;
 using UnityEngine;
+using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace MusePico.Worlds
 {
@@ -10,18 +11,21 @@ namespace MusePico.Worlds
     /// Shows one Gaussian-splat world at a time, holds it for a few seconds, then moves to the
     /// next — placing the viewer inside each one.
     ///
-    /// Deliberately simpler than MuseXR's WorldCycler, which loads through Addressables. That is
-    /// the right design there: Skylar's eight worlds are ~1.37 GB and cannot all be resident.
-    /// Here there are five World Labs samples at ~23 MB each, 116 MB in total against the 5.9 GB
-    /// the emulator reports, so direct references cost nothing and remove a whole failure surface
-    /// — no Addressables package, no content build that has to be remembered before every player
-    /// build. If Skylar's worlds ever come to this project, Addressables comes back with them.
+    /// Loads through Addressables, one world resident at a time, releasing the previous before
+    /// the next is shown.
+    ///
+    /// CORRECTION (16 Sep 2026): this used to hold a direct GaussianSplatAsset[] and argued that
+    /// five 23 MB samples cost nothing to keep resident. True in isolation, and the wrong call for
+    /// the project — it left MuseXR with two loading paths, so a scene on direct references never
+    /// exercised the catalog and Addressables could only first fail on the headset. One path now;
+    /// see <see cref="WorldAssets"/>.
     /// </summary>
     public class SplatWorldCycler : MonoBehaviour
     {
         [Header("What to show")]
-        [Tooltip("Converted GaussianSplatAssets, shown in this order and then looped.")]
-        public GaussianSplatAsset[] worlds;
+        [Tooltip("Addressables keys for the converted worlds — the world key, i.e. the asset's " +
+                 "file name. Shown in this order and then looped.")]
+        public string[] worldAddresses;
 
         [Tooltip("Immersion multiplier. The viewer is a fixed size, so the world scales instead.")]
         public float worldScale = 1f;
@@ -64,6 +68,7 @@ namespace MusePico.Worlds
         public ComputeShader csSplatUtilities;
 
         int _index = -1;
+        AsyncOperationHandle<GaussianSplatAsset> _handle;
         GameObject _current;
         GameObject _bounds;
         Camera _camera;
@@ -75,9 +80,9 @@ namespace MusePico.Worlds
             if (xrOrigin == null) xrOrigin = FindFirstObjectByType<XROrigin>();
             _camera = xrOrigin != null ? xrOrigin.Camera : Camera.main;
 
-            if (worlds == null || worlds.Length == 0)
+            if (worldAddresses == null || worldAddresses.Length == 0)
             {
-                Debug.LogError("[SplatWorldCycler] no worlds assigned — nothing to show.");
+                Debug.LogError("[SplatWorldCycler] no world addresses assigned — nothing to show.");
                 return;
             }
 
@@ -132,23 +137,39 @@ namespace MusePico.Worlds
         {
             for (;;)
             {
-                Show();
+                yield return Show();
                 if (!autoAdvance) yield break;
                 yield return new WaitForSeconds(secondsPerWorld);
             }
         }
 
-        void Show()
+        IEnumerator Show()
         {
-            _index = (_index + 1) % worlds.Length;
-            var asset = worlds[_index];
-            Unload();
+            _index = (_index + 1) % worldAddresses.Length;
+            string address = worldAddresses[_index];
 
-            if (asset == null)
+            if (string.IsNullOrWhiteSpace(address))
             {
-                Debug.LogError($"[SplatWorldCycler] slot {_index} is empty.");
-                return;
+                Debug.LogError($"[SplatWorldCycler] slot {_index} has no address.");
+                yield break;
             }
+
+            // Load the next BEFORE releasing the current, then swap: releasing first would leave a
+            // frame with no world at all, which reads as a flicker to black in a headset.
+            var handle = WorldAssets.LoadAsync(address);
+            yield return handle;
+
+            if (!WorldAssets.Succeeded(handle))
+            {
+                Debug.LogError(WorldAssets.DescribeFailure(address, handle));
+                WorldAssets.Release(ref handle);
+                yield break;
+            }
+
+            var asset = handle.Result;
+            Unload();
+            WorldAssets.Release(ref _handle);
+            _handle = handle;
 
             _current = new GameObject($"World_{asset.name}");
             _current.transform.localScale = Vector3.one * worldScale;
@@ -175,7 +196,7 @@ namespace MusePico.Worlds
                       $"origin={(xrOrigin != null ? xrOrigin.transform.position.ToString("F2") : "n/a")} " +
                       $"eye={(_camera != null ? _camera.transform.position.ToString("F2") : "n/a")}");
 
-            var caption = $"{_index + 1}/{worlds.Length}  {asset.name}\n{asset.splatCount:N0} splats";
+            var caption = $"{_index + 1}/{worldAddresses.Length}  {asset.name}\n{asset.splatCount:N0} splats";
             if (label != null) label.text = caption;
             // Logged unconditionally: this is what confirms which world is on screen when the
             // only view of the device is `adb exec-out screencap`.
@@ -241,6 +262,12 @@ namespace MusePico.Worlds
             _current = null;
         }
 
-        void OnDestroy() => Unload();
+        void OnDestroy()
+        {
+            Unload();
+            // The bundle stays loaded until its handle is released, so a scene change without
+            // this leaks the world for the lifetime of the app.
+            WorldAssets.Release(ref _handle);
+        }
     }
 }

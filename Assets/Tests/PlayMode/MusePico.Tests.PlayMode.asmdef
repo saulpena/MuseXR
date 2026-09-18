@@ -1,19 +1,18 @@
 {
-    "name": "MusePico.Tests.EditMode",
+    "name": "MusePico.Tests.PlayMode",
     "rootNamespace": "MusePico.Tests",
     "references": [
         "MusePico.Worlds",
         "GaussianSplatting",
-        "MusePico.Tripo",
-        "MusePico.Gallery",
-        "MusePico.Generation",
-        "MusePico.Dialogue",
+        "Unity.XR.CoreUtils",
+        "Unity.XR.Interaction.Toolkit",
+        "Unity.InputSystem",
+        "Unity.Addressables",
+        "Unity.ResourceManager",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,
