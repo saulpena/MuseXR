@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a52fb176e13206c45aec3bba9f6ab35d, type: 3}
+  m_Name: WallAnchors
+  m_EditorClassIdentifier: MusePico.Journey::MusePico.Journey.WallAnchors
+  worlds:
+  - worldKey: grand-conservatory-with-lush-gardens-500k
+    anchors:
+    - position: {x: -3.052451, y: 3.73, z: -4.1805134}
+      rotation: {x: -0.002855769, y: 0.9971109, z: -0.049436606, w: -0.05759948}
+    - position: {x: 3.300475, y: 3.73, z: -23.613874}
+      rotation: {x: -0.0063866833, y: 0.8658718, z: 0.011057819, w: 0.50010294}
+    - position: {x: -9.473672, y: 3.73, z: -40.523052}
+      rotation: {x: 0.0032492357, y: 0.6349219, z: 0.002670341, w: -0.7725648}
+    - position: {x: 1.0829408, y: 3.73, z: 26.757341}
+      rotation: {x: 0.12873828, y: 0.6412889, z: -0.1103229, w: 0.74833417}
+  - worldKey: elegant-floral-palace-interior-500k
+    anchors:
+    - position: {x: 8.5884075, y: 2.54, z: -3.7185273}
+      rotation: {x: 0.012037453, y: 0.58251274, z: -0.008628133, w: 0.8126867}
+    - position: {x: -14.033948, y: 2.54, z: -13.093806}
+      rotation: {x: -0.03109831, y: 0.453159, z: -0.015820978, w: -0.8907466}
+    - position: {x: -5.072763, y: 2.54, z: 19.449398}
+      rotation: {x: 0.0150491735, y: 0.7613199, z: 0.017681995, w: -0.6479607}
+    - position: {x: 17.033606, y: 2.54, z: 19.057838}
+      rotation: {x: 0.05901769, y: 0.36219183, z: 0.02298591, w: -0.9299493}
+  - worldKey: enchanted-water-garden-sanctuary-500k
+    anchors:
+    - position: {x: 9.522276, y: 4.07, z: -39.20658}
+      rotation: {x: 0.019444231, y: 0.62683207, z: -0.015650973, w: 0.77875453}
+    - position: {x: 2.9798508, y: 4.07, z: -15.502998}
+      rotation: {x: -0.105974905, y: 0.69718474, z: 0.105376914, w: 0.7011409}
+    - position: {x: 20.442785, y: 4.07, z: -29.573198}
+      rotation: {x: -0.09913508, y: -0.40115935, z: 0.04372243, w: -0.90957785}
+    - position: {x: -2.631052, y: 4.07, z: 7.2025795}
+      rotation: {x: 0.089382365, y: 0.6333772, z: 0.07399452, w: -0.76509404}
+  - worldKey: dreamlike-coastal-villa-gardens-500k
+    anchors: []
+  - worldKey: van-gogh-inspired-gallery-interior-500k
+    anchors:
+    - position: {x: 4.4218187, y: 2.2, z: 3.926748}
+      rotation: {x: -0.0001834987, y: 0.84553367, z: 0.00029059357, w: 0.533922}
+    - position: {x: -2.0797288, y: 2.2, z: -4.261853}
+      rotation: {x: 0.0035033047, y: 0.7448168, z: 0.0039105685, w: -0.6672484}
+    - position: {x: 5.5920434, y: 2.2, z: 14.8691845}
+      rotation: {x: 0.03489954, y: 0.43724623, z: 0.016983448, w: -0.89850396}
+    - position: {x: -3.778805, y: 2.2, z: -14.834223}
+      rotation: {x: 0.00032348442, y: 0.7631542, z: 0.0003820215, w: -0.6462163}
+  - worldKey: mexican-courtyard-bedroom-fantasy-500k
+    anchors:
+    - position: {x: 3.0971906, y: 2.3700001, z: -5.739048}
+      rotation: {x: 0.022675036, y: 0.5464044, z: -0.014801075, w: 0.8370837}
+  - worldKey: fantasy-realm-of-shimmering-spheres-500k
+    anchors: []

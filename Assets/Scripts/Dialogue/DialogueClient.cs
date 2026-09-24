@@ -49,11 +49,16 @@ namespace MusePico.Dialogue
         public const string DefaultEndpoint = "https://api.openai.com/v1/responses";
 
         /// <summary>
-        /// Not verified against this account. muse-infinity pins its model in <c>.env.example</c>
-        /// after measuring it, and records that the default was too slow for its own timeout —
-        /// so treat this as a starting point to measure, not a setting to trust.
+        /// <c>gpt-5.6</c> is an ALIAS for Sol — the deepest-reasoning, slowest, dearest tier.
+        /// That is why muse-infinity measured the default blowing its own 15s timeout, and why a
+        /// three-master turn timed 13.1s and 14.4s here. Luna is the same family's speed tier and
+        /// is what this workload wants: three concurrent calls, ~450 tokens in, under 50 words out,
+        /// against a strict schema.
+        ///
+        /// Do NOT copy muse-infinity's <c>gpt-5.3-codex-spark</c> pin — that is a Codex research
+        /// preview and is not available on the API.
         /// </summary>
-        public string Model = "gpt-5.6";
+        public string Model = "gpt-5.6-luna";
 
         public string Endpoint = DefaultEndpoint;
 
@@ -70,13 +75,25 @@ namespace MusePico.Dialogue
         // on a device — every await resumed on a worker thread, so the readings arrived, the
         // audio synthesised, and AudioClip.Create threw. These are IO waits that never block
         // the main thread, so there is nothing to win by hopping off it.
-        readonly ITripoTransport _transport;
+        readonly ResponsesCall _call;
         readonly MasterRosterData _roster;
 
         public DialogueClient(ITripoTransport transport, MasterRosterData roster)
+            : this(new ResponsesCall(transport), roster) { }
+
+        /// <summary>
+        /// Shares one <see cref="ResponsesCall"/> with the roundtable client, so the transport,
+        /// retry policy, envelope walk and error mapping live in one place. The fan-out, the
+        /// per-master prompt and the single-perspective schema stay here, because those are the
+        /// only things that actually differ between the two callers.
+        /// </summary>
+        public DialogueClient(ResponsesCall call, MasterRosterData roster)
         {
-            _transport = transport ?? throw new ArgumentNullException(nameof(transport));
+            _call = call ?? throw new ArgumentNullException(nameof(call));
             _roster = roster ?? throw new ArgumentNullException(nameof(roster));
+            _call.Model = Model;
+            _call.Endpoint = Endpoint;
+            _call.RetryLimit = RetryLimit;
         }
 
         /// <summary>
@@ -153,68 +170,32 @@ namespace MusePico.Dialogue
 
         async Task<Perspective> AskOneAsync(string instructions, string input, CancellationToken ct)
         {
-            Exception last = null;
+            // Keep the public knobs authoritative: they are Inspector-free plain fields, so a
+            // caller may set them after construction.
+            _call.Model = Model;
+            _call.Endpoint = Endpoint;
+            _call.RetryLimit = RetryLimit;
+            _call.TimeoutSeconds = TimeoutSeconds;
 
-            for (var attempt = 1; attempt <= RetryLimit + 1; attempt++)
-            {
-                ct.ThrowIfCancellationRequested();
-                try
-                {
-                    return await RequestAsync(instructions, input, ct);
-                }
-                catch (OperationCanceledException) { throw; }
-                catch (DialogueException ex)
-                {
-                    last = ex;
-                    if (!ex.Retryable) break;
-                }
-            }
+            var text = await _call.SendAsync(instructions, input, PerspectiveSchemaJson(),
+                raw => DescribeInvalid(raw), ct);
 
-            throw last ?? new DialogueException("The dialogue model could not be reached.", true);
+            return JsonUtility.FromJson<Perspective>(text);
         }
 
-        async Task<Perspective> RequestAsync(string instructions, string input, CancellationToken ct)
+        /// <summary>
+        /// Conformance for one perspective. Retryable by construction: the model can produce a
+        /// conforming reading on a second attempt, and a non-conforming one must never reach a
+        /// visitor.
+        /// </summary>
+        string DescribeInvalid(string rawJson)
         {
-            var body = new JsonBuilder()
-                .Add("model", Model)
-                .Add("store", false)
-                .Add("instructions", instructions)
-                .Add("input", input)
-                .AddRaw("text", PerspectiveSchemaJson())
-                .ToString();
-
-            var response = await _transport.SendAsync(new TripoHttpRequest
-            {
-                Method = "POST",
-                Url = Endpoint,
-                ContentType = "application/json",
-                Body = System.Text.Encoding.UTF8.GetBytes(body),
-            }, ct);
-
-            if (!string.IsNullOrEmpty(response.TransportError))
-                throw new DialogueException("transport failed: " + response.TransportError, true);
-
-            if (response.Status < 200 || response.Status >= 300)
-            {
-                var detail = (response.Body ?? string.Empty);
-                if (detail.Length > 300) detail = detail.Substring(0, 300);
-                throw new DialogueException("model returned " + response.Status + ": " + detail,
-                    IsRetryableStatus(response.Status));
-            }
-
-            var text = ResponsesEnvelope.ExtractOutputText(response.Body);
-            if (string.IsNullOrEmpty(text))
-                throw new DialogueException("response carried no output_text content.", true);
-
             Perspective parsed;
-            try { parsed = JsonUtility.FromJson<Perspective>(text); }
-            catch (Exception ex) { throw new DialogueException("output was not valid JSON: " + ex.Message, true); }
+            try { parsed = JsonUtility.FromJson<Perspective>(rawJson); }
+            catch (Exception ex) { return "output was not valid JSON: " + ex.Message; }
 
-            var problem = PerspectiveValidation.DescribeInvalid(parsed, _roster.effects);
-            if (problem != null)
-                throw new DialogueException("output failed conformance: " + problem, true);
-
-            return parsed;
+            if (parsed == null) return "output was not valid JSON";
+            return PerspectiveValidation.DescribeInvalid(parsed, _roster.effects);
         }
 
         /// <summary>
@@ -242,17 +223,8 @@ namespace MusePico.Dialogue
                 .AddStringArray("required", new[] { "speakerId", "speaker", "text", "effect" })
                 .Add("additionalProperties", false);
 
-            var format = new JsonBuilder()
-                .Add("type", "json_schema")
-                .Add("name", "museum_perspective")
-                .Add("strict", true)
-                .Add("schema", schema);
-
-            return new JsonBuilder().Add("format", format).ToString();
+            return ResponsesCall.TextFormat("museum_perspective", schema);
         }
-
-        static bool IsRetryableStatus(int status) =>
-            status == 408 || status == 429 || status >= 500;
 
         static IEnumerable<string> Ids(IReadOnlyList<MasterLens> masters)
         {

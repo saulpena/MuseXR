@@ -44,9 +44,6 @@ namespace MusePico.Dialogue
         public string artworkArtist = "Claude Monet";
         public string artworkDate = "1906";
 
-        [Header("Model")]
-        [Tooltip("Not verified against this account — measure it before trusting it.")]
-        public string dialogueModel = "gpt-5.6";
 
         public bool speakReplies = true;
 
@@ -92,7 +89,13 @@ namespace MusePico.Dialogue
             }
             else
             {
-                _dialogue = new DialogueClient(new TripoWebRequestTransport(openAiKey, DialogueClient.DefaultEndpoint), _roster) { Model = dialogueModel };
+                _dialogue = new DialogueClient(new TripoWebRequestTransport(openAiKey, DialogueClient.DefaultEndpoint), _roster);
+                // The model is NOT an Inspector field. A public/[SerializeField] field is
+                // written into every scene that holds the component, and the scene copy wins
+                // over the code default - which is exactly how four projects sat pointing at
+                // a model string that had been changed in C# and silently ignored at runtime.
+                // DialogueClient.Model is a plain C# field on a non-MonoBehaviour, so it is
+                // never serialized and there is exactly one place to change it.
                 _speech = new OpenAiSpeechToText();
             }
 
@@ -125,6 +128,28 @@ namespace MusePico.Dialogue
                    (_voiceService == null ? " (no MINIMAX_API_KEY, so text only)" : "");
         }
 
+        /// <summary>
+        /// Raised with the words heard, when listening was started by <see cref="ListenForText"/>.
+        ///
+        /// This is the microphone's ONLY job outside the gallery: it replaces the keyboard. The
+        /// words go into whatever field asked for them and stop there. Nothing is sent anywhere
+        /// until the visitor presses the button that sends it, exactly as typing works.
+        /// </summary>
+        public event System.Action<string> TextDictated;
+
+        /// <summary>True while the open microphone is filling a text field rather than asking.</summary>
+        bool _dictating;
+
+        /// <summary>
+        /// Listen, transcribe, and hand the words back through <see cref="TextDictated"/>.
+        /// <b>No master is asked and nothing is billed beyond the transcription.</b>
+        /// </summary>
+        public void ListenForText()
+        {
+            _dictating = true;
+            Listen();
+        }
+
         /// <summary>Starts listening. The utterance ends itself when they stop speaking.</summary>
         public void Listen()
         {
@@ -153,6 +178,11 @@ namespace MusePico.Dialogue
             if (string.IsNullOrWhiteSpace(text)) { Report("No transcript."); return; }
 
             LastTranscript = text;
+
+            // Dictation stops here. The words are handed back and the caller decides what, if
+            // anything, to do with them - which on the question screen is "put them in the box".
+            if (_dictating) { _dictating = false; TextDictated?.Invoke(text); Report(""); return; }
+
             await AskAsync(text);
         }
 

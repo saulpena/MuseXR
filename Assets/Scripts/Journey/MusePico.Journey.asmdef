@@ -1,0 +1,26 @@
+{
+    "name": "MusePico.Journey",
+    "rootNamespace": "MusePico.Journey",
+    "references": [
+        "MusePico.Dialogue",
+        "MusePico.Worlds",
+        "MusePico.Generation",
+        "MusePico.Tripo",
+        "GaussianSplatting",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem",
+        "Unity.XR.CoreUtils",
+        "Unity.XR.Interaction.Toolkit",
+        "Unity.Addressables",
+        "Unity.ResourceManager"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

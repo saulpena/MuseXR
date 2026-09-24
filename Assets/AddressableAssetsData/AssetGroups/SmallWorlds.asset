@@ -15,6 +15,11 @@ MonoBehaviour:
   m_GroupName: SmallWorlds
   m_GUID: 72e4a6d617c3a884cb5d982e11cf8c64
   m_SerializeEntries:
+  - m_GUID: 09ecb59c86e1e7c479c02041b861e87f
+    m_Address: grand-conservatory-garden-path-500k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 16d45b1b4bbbb1c4cb89efa9c30d787f
     m_Address: van-gogh-inspired-gallery-interior-500k
     m_ReadOnly: 0

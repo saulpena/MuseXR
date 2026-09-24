@@ -118,3 +118,7 @@ sysinfo.txt
 # `git add -A` would commit a live key. Belt and braces, matching MusePico.
 /[Aa]ssets/[Ss]treamingAssets/*.key
 /[Aa]ssets/[Ss]treamingAssets/*.key.meta
+
+# Verification screenshots. *.png is LFS-tracked here; these must not eat the quota.
+/[Aa]ssets/Screenshots/
+/[Aa]ssets/Screenshots.meta

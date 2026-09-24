@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using MuseXR.Worlds;
 using NUnit.Framework;
+using UnityEngine;
 using UnityEditor;
 
 namespace MusePico.Tests
@@ -48,9 +49,20 @@ namespace MusePico.Tests
                 .FirstOrDefault(p => Path.GetFileNameWithoutExtension(p) == address);
 
         [Test]
-        public void SmallSet_HasEightWorlds()
+        public void SmallSet_IsSkylarsEightPlusTheThreshold()
         {
-            Assert.AreEqual(8, WorldCatalog.Small.Count);
+            // Eight 500k re-exports of her captures, plus the threshold conservatory generated from
+            // her hero image on 23 Sep 2026 to give stage 00 somewhere to stand. A ninth entry is
+            // therefore expected; a TENTH means something was added without a note here.
+            Assert.AreEqual(9, WorldCatalog.Small.Count);
+
+            var threshold = WorldCatalog.Small
+                .FirstOrDefault(w => w.key.StartsWith("grand-conservatory-garden-path"));
+            Assert.IsNotNull(threshold, "the threshold world is what stage 00 stands in");
+            Assert.IsTrue(threshold.hasMeasuredSpawn,
+                "its bounds are 327 m of sky and terrain; the fallback would put the eye above it");
+            Assert.AreEqual(180f, threshold.yawDegrees, 1e-3f,
+                "yaw 0 faces the balustrade; 180 faces the glass dome, which is her composition");
         }
 
         [Test]
@@ -111,17 +123,31 @@ namespace MusePico.Tests
         }
 
         [Test]
-        public void TheTwoNewWorlds_AreMarkedUnmeasured()
+        public void TheTwoNewWorlds_NowCarryAMeasuredSpawn()
         {
-            // Neither has a spawn that ports: enchanted-palace-garden is not in worlds.js at all,
-            // and fantasy-realm's profile there is in metric space, ~11x off this .spz's extent.
-            // Claiming a measured spawn would put the visitor somewhere arbitrary with no warning.
+            // Superseded 22 Sep 2026. This used to assert the opposite: that neither world could
+            // claim a measured spawn, because enchanted-palace-garden is absent from worlds.js and
+            // fantasy-realm's profile there is in metric space, ~11x off this .spz's extent.
+            //
+            // Both were then measured directly instead of ported - loaded in the Editor, camera at
+            // the origin at eye height, screenshot compared at yaw 0 and 180
+            // (Assets/Screenshots/probe-*.png). Both stand correctly on the floor at groundY 0,
+            // which matches the six playtested worlds whose groundY runs 0.0 to 1.1, and matches
+            // these being web-UI Marble exports already baked to the final world frame.
+            //
+            // The old fallback was the actual defect: WorldCycler.Place backs the camera off 45%
+            // of the LARGER horizontal extent, which put the eye 44 m behind the palace garden and
+            // just past the far z bound of the spheres - i.e. outside the capture looking in.
             foreach (var baseKey in Unmeasured)
             {
                 var w = Find(baseKey);
                 Assert.IsNotNull(w, baseKey + " is missing from the Small set");
-                Assert.IsFalse(w.hasMeasuredSpawn,
-                    baseKey + " claims a measured spawn it does not have");
+                Assert.IsTrue(w.hasMeasuredSpawn,
+                    baseKey + " should carry the spawn measured on 22 Sep 2026");
+                Assert.AreEqual(0f, w.groundY, 1e-4f,
+                    baseKey + " is a pre-baked export, so its ground sits at y=0");
+                Assert.AreEqual(Vector2.zero, w.spawn,
+                    baseKey + " was measured standing at the origin");
             }
         }
 

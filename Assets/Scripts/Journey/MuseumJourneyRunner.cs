@@ -1,0 +1,1084 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using MusePico.Dialogue;
+using MusePico.Generation;
+using MuseXR.Worlds;          // WorldCatalog, WorldCycler and WorldDefinition live here, not MusePico.Worlds
+
+namespace MusePico.Journey
+{
+    /// <summary>
+    /// Walks the visitor through muse-infinity's ten stages, in VR.
+    ///
+    /// <b>This is her <c>setStage</c> and <c>act()</c>, and nothing more.</b> What each stage SAYS
+    /// lives in <see cref="JourneyScript"/>; what the journey ALLOWS lives in
+    /// <see cref="MuseumJourney"/>; both are pure and tested. This class only connects them to a
+    /// scene: it activates the matching <c>Stage_*</c> root, draws the panel, routes the buttons,
+    /// and loads the world a chapter needs.
+    ///
+    /// <b>Walking is a stage property, not a global.</b> Her stages 00-03 are screens the visitor
+    /// stands still in front of; 04 is the gallery they walk. Locomotion follows the stage, so the
+    /// opening reads as being addressed rather than as being dumped in an empty room with a menu.
+    ///
+    /// <b>The world only exists from stage 04.</b> Hers loads a Marble world when
+    /// <c>world_exploration</c> opens and covers it with a veil until it is framed; ours keeps the
+    /// splat renderer off until the same moment, for the same reason — the visitor should not watch
+    /// a room assemble itself behind a title card.
+    /// </summary>
+    [DisallowMultipleComponent]
+    public sealed class MuseumJourneyRunner : MonoBehaviour
+    {
+        [Header("Scene")]
+        [Tooltip("The root holding one child per stage, named Stage_<StageName>.")]
+        public Transform journeyRoot;
+
+        [Tooltip("Drawn every frame. Created if left empty.")]
+        public JourneyPanel panel;
+
+        [Tooltip("Loads the chapter worlds. Put it in drivenExternally mode; this does that on Start.")]
+        public WorldCycler worlds;
+
+        [Tooltip("The three masters who walk with the visitor. Hidden until stage 04.")]
+        public Transform companions;
+
+        [Tooltip("The hung artworks. Hidden until stage 04, as hers are.")]
+        public Transform wall;
+
+        [Tooltip("Assets/Dialogue/masters.json — the cast for stage 02. Read-only product; never hand-edit.")]
+        public TextAsset mastersJson;
+
+        [Tooltip("The seven master portraits. Matched to a master by file name: a master called " +
+                 "Claude Monet takes the texture named portrait-claude-monet.")]
+        public Texture2D[] portraits;
+
+        [Tooltip("The nine chapter thumbnails, IN SPINE ORDER — 01-entrance-conservatory first. " +
+                 "Order is the join, because the file names and the scene ids do not match.")]
+        public Texture2D[] chapterImages;
+
+        [Tooltip("Assets/Museum/artworks.json — her sceneCollections, four works per chapter.")]
+        public TextAsset artworksJson;
+
+        [Tooltip("The 36 artwork images. Matched to a record by file name: aic-110541.jpg for id aic-110541.")]
+        public Texture2D[] artworkImages;
+
+        [Tooltip("Metres tall. Each work keeps its own aspect, so only the height is shared.")]
+        public float artworkHeight = 1.4f;
+
+        [Tooltip("How far from the spawn a hung work may be. Big captures have big walk boxes; " +
+                 "this keeps the four works a gallery rather than a hike.")]
+        public float GalleryReach = 14f;
+
+        [Tooltip("Wall positions swept from each capture's collider in the Editor. A capture with " +
+                 "no entry falls back to the walk box.")]
+        public WallAnchors wallAnchors;
+
+        [Tooltip("The world behind the opening stages. Empty means a black void, which is what " +
+                 "stages 00-03 were before one existed.")]
+        public string homeWorldKey = "grand-conservatory-garden-path" + MuseXR.Worlds.WorldCatalog.SmallSuffix;
+
+        [Header("Dialogue")]
+        [Tooltip("Optional. Without it the gallery still walks, and asking says so honestly.")]
+        public MuseumDialogue dialogue;
+
+        [Tooltip("Optional. Needed for stage 01 to take a spoken question.")]
+        public VoiceCapture voice;
+
+        [Tooltip("The background score. Follows the journey; ducks under the masters.")]
+        public MuseumScoreSource score;
+
+        [Header("Locomotion")]
+        /// <summary>
+        /// The rig's whole Locomotion subtree, not one provider.
+        ///
+        /// <b>Measured, by falling 4,791 metres.</b> Disabling <c>DynamicMoveProvider</c> alone
+        /// leaves <c>GravityProvider</c> running as a separate component, and stages 00-03 have no
+        /// world and therefore no floor — so the visitor drops out of the scene before the opening
+        /// title can be read, and every frame after that is black. Toggling the root cannot miss a
+        /// provider, including one added later.
+        /// </summary>
+        [Tooltip("The rig's Locomotion object. Active only while the visitor is walking a loaded world.")]
+        public GameObject locomotionRoot;
+
+        [Tooltip("The rig's CharacterController. Switched off with locomotion so nothing falls.")]
+        public CharacterController body;
+
+        [Tooltip("The rig itself, returned here whenever the visitor is not walking.")]
+        public Transform rig;
+
+        public MuseumJourney Journey { get; private set; }
+
+        ClosingEnding _ending;
+        XrButtons _buttons;
+        MasterRosterData _roster;
+        readonly Dictionary<Stage, GameObject> _stageRoots = new Dictionary<Stage, GameObject>();
+        Coroutine _worldLoad;
+
+        /// <summary>
+        /// The world we have ASKED for, which is not the same as the one that has arrived.
+        ///
+        /// Guarding on <c>worlds.Current</c> alone is wrong while a load is in flight: Current is
+        /// still null, so the next caller starts the same load again and the first is cancelled
+        /// part-way. Measured — the threshold world was loading three times on a single entry to
+        /// Play Mode, which is most of the startup delay it is being blamed for.
+        /// </summary>
+        string _requestedWorldKey;
+
+        /// <summary>Which hung work the walk is heading for. Advances when the visitor engages it.</summary>
+        int _tourIndex;
+
+        /// <summary>The wall order the compass walks, nearest-first from where the chapter began.</summary>
+        readonly List<int> _tourOrder = new List<int>();
+
+        /// <summary>
+        /// What the salon is saying right now — a status line, or the master currently speaking.
+        ///
+        /// It overrides the stage's own lede while a turn is running, because during those ~20
+        /// seconds the only thing the visitor cares about is whether they were heard.
+        /// </summary>
+        string _speech = string.Empty;
+
+        /// <summary>The companion whose ask form is open, or null when it is not.</summary>
+        MasterLens _asking;
+
+        /// <summary>What is in the question box of that form. Dictated, or defaulted from the work.</summary>
+        string _askQuestion = string.Empty;
+
+        /// <summary>The three readings, once they arrive.</summary>
+        string _askReplies = string.Empty;
+
+        /// <summary>The work last stopped at, which seeds the question exactly as hers does.</summary>
+        ArtworkRecord _focused;
+
+        ArtworkCatalogData _artworks;
+
+        /// <summary>The records currently on the wall, in the order the wall holds them.</summary>
+        readonly List<ArtworkRecord> _hanging = new List<ArtworkRecord>();
+
+        /// <summary>
+        /// Guards the closing call. Hers refuses a second request while one is in flight or done
+        /// ("the idempotency guard in requestRoundtable"), because the roundtable costs money and
+        /// a visitor who re-enters stage 06 has not asked for a second one.
+        /// </summary>
+        bool _roundtableAsked;
+        float _transformationStarted;
+
+        void Awake()
+        {
+            Journey = new MuseumJourney();
+            if (artworksJson != null) _artworks = ArtworkCatalog.Parse(artworksJson.text);
+
+            if (mastersJson != null)
+            {
+                try { _roster = MasterRoster.Parse(mastersJson.text); }
+                catch (System.Exception e)
+                {
+                    Debug.LogError("[MuseumJourneyRunner] masters.json did not parse, so stage 02 " +
+                                   "will offer nobody: " + e.Message);
+                }
+            }
+            else Debug.LogWarning("[MuseumJourneyRunner] no masters.json assigned; stage 02 will " +
+                                  "have no cast to invite.");
+
+            IndexStageRoots();
+
+            if (panel == null)
+            {
+                var go = new GameObject("Journey Panel");
+                go.transform.SetParent(transform, false);
+                panel = go.AddComponent<JourneyPanel>();
+            }
+            panel.ChoiceTaken += OnChoice;
+            panel.ActionTaken += OnAction;
+            panel.BackTaken += OnBack;
+            panel.NavTaken += OnNav;
+            panel.ImageFor = PortraitFor;
+
+            if (worlds != null)
+            {
+                worlds.drivenExternally = true;
+                // Start the threshold world in Awake rather than waiting for Start and the first
+                // EnterStage. It is the one world that is ALWAYS needed, and every frame it is not
+                // requested is a frame the visitor spends in the dark.
+                OpenHomeWorld();
+                // Only once the world is up does the visitor have a floor; only then may they walk.
+                worlds.WorldChanged += loaded =>
+                {
+                    SetWalking(Walks(Journey.Current));
+                    HangChapterWall(loaded); // her syncSceneWall: four new works per chapter
+                    RebuildTour();           // the spawn moved, so the walk order did too
+                };
+            }
+        }
+
+        void OnEnable() { _buttons = new XrButtons(); }
+
+        void OnDisable() { _buttons?.Dispose(); _buttons = null; }
+
+        void OnDestroy()
+        {
+            if (dialogue != null)
+            {
+                dialogue.StatusChanged -= OnDialogueStatus;
+                dialogue.PerspectiveReady -= OnPerspective;
+                dialogue.TextDictated -= OnDictated;
+            }
+
+            if (panel == null) return;
+            panel.ChoiceTaken -= OnChoice;
+            panel.ActionTaken -= OnAction;
+            panel.BackTaken -= OnBack;
+            panel.NavTaken -= OnNav;
+        }
+
+        void OnDialogueStatus(string status) => _speech = status ?? string.Empty;
+
+        /// <summary>
+        /// Dictated words arrive here and go in the box. That is the whole of it - no call, no
+        /// master, no spend. The visitor reads what was heard and submits it themselves.
+        /// </summary>
+        void OnDictated(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+
+            // Whichever box asked for the words gets them. Neither one sends anything.
+            if (_asking != null) _askQuestion = text.Trim();
+            else Journey.SetQuestion(text.Trim());
+
+            _speech = string.Empty;
+        }
+
+        /// <summary>
+        /// One master has answered: say it, animate them, and write it into the record.
+        ///
+        /// <see cref="VisitSession"/> is the only ground the closing roundtable stands on — it
+        /// keeps the newest line per speaker, so a visitor who asks five questions still gets a
+        /// synthesis built from three masters rather than fifteen fragments.
+        /// </summary>
+        void OnPerspective(Perspective p)
+        {
+            if (p == null) return;
+
+            _speech = p.speaker + " — " + p.text;
+            Journey.Session.RecordPerspective(p.speakerId, p.speaker, p.text);
+            SetTalkingMaster(p.speakerId, true);
+        }
+
+        /// <summary>
+        /// Drive the walk animation for whichever companion is speaking.
+        ///
+        /// <c>CompanionParty.SetTalking</c> has existed since the party was written and nothing has
+        /// ever called it — the cheapest visible win available, and the difference between three
+        /// figures standing there and a conversation.
+        /// </summary>
+        void SetTalkingMaster(string speakerId, bool talking)
+        {
+            if (companions == null) return;
+            var party = companions.GetComponent<MusePico.Worlds.CompanionParty>();
+            if (party == null) return;
+
+            var invited = Journey.InvitedMasterIds;
+            for (var i = 0; i < invited.Count && i < party.Count; i++)
+            {
+                if (invited[i] == speakerId) { party.SetTalking(i, talking); return; }
+            }
+        }
+
+        void Start()
+        {
+            if (dialogue != null)
+            {
+                dialogue.StatusChanged += OnDialogueStatus;
+                dialogue.PerspectiveReady += OnPerspective;
+                dialogue.TextDictated += OnDictated;
+                if (dialogue.mastersJson == null) dialogue.mastersJson = mastersJson;
+            }
+
+            Journey.StageChanged += (_, to) => EnterStage(to);
+            EnterStage(Journey.Current);
+        }
+
+        void Update()
+        {
+            // Floor tracking puts the rig ON the floor, so this is the height the panel rides —
+            // never the head's, which bobs.
+            if (rig != null) panel.floorY = rig.position.y;
+
+            // What the microphone is doing, drawn under the panel. Without this the grip is a
+            // button with no observable effect until the utterance ends.
+            panel.listening = voice != null && voice.IsRecording;
+            panel.micLevel = voice == null ? 0f : voice.Level;
+
+            // The ask form takes over the panel while it is open - it IS the stage's foreground,
+            // the way her popup covers the gallery.
+            if (_asking != null)
+            {
+                panel.Show(JourneyScript.AskDialogue(
+                    _asking, _focused == null ? null : _focused.title, _askQuestion, _askReplies));
+                HandleAskInput();
+                return;
+            }
+
+            var showing = JourneyScript.For(Journey, Roster(), _ending);
+
+            // A master's reply belongs where the masters are, and nowhere else. It used to be
+            // blitted onto the lede of EVERY stage, so an answer appeared on the question screen -
+            // a screen that has not chosen a master yet and never calls one.
+            if (_speech.Length > 0 && SpeaksHere(Journey.Current)) showing.Lede = _speech;
+            panel.Show(showing);
+
+            if (_buttons == null) return;
+
+            // The secondary face button steps back — and the left stick walks the spine backwards
+            // in the gallery, matching the right stick that walks it forwards.
+            if (_buttons.CancelPressed) OnBack();
+
+            // Push to DICTATE, and only where a text field exists to fill.
+            //
+            // The microphone replaces the keyboard. It does not talk to anyone: the words land in
+            // the question box and the visitor still presses the forward plate to submit them,
+            // exactly as typing works in her build. Stage 01 is the only screen in the opening act
+            // with a field, so it is the only screen where this does anything.
+            if (_buttons.GripPressed && Journey.Current == Stage.LifeQuestion) BeginDictation();
+
+            if (Journey.Current == Stage.WorldTransformation) TickTransformation();
+
+            UpdateCompass();
+
+            EditorShortcuts();
+        }
+
+        /// <summary>
+        /// Her keyboard shortcuts, same keys, Editor only.
+        ///
+        /// <c>app.js</c> binds 1-0 to the ten stages and R to reset, so a reviewer can jump
+        /// straight to the beat they want to look at. Comparing the two builds means being able to
+        /// do that in both; using DIFFERENT keys would make the comparison harder than it needs to
+        /// be, so these are hers exactly.
+        /// </summary>
+        void EditorShortcuts()
+        {
+#if UNITY_EDITOR
+            var keyboard = UnityEngine.InputSystem.Keyboard.current;
+            if (keyboard == null) return;
+
+            if (keyboard.rKey.wasPressedThisFrame) { Restart(); return; }
+
+            // Space and Enter take the stage's action on EVERY stage.
+            //
+            // The blind-trigger restriction above is about a controller: a trigger gets pulled by
+            // accident while pointing at nothing, and skipping a beat of the arc on that is bad. A
+            // keypress is never accidental, and with it restricted the desktop had no way forward
+            // at all from stage 01 — "I press space and nothing happens".
+            if (keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame)
+            {
+                panel.TakeAction();
+                return;
+            }
+
+            if (keyboard.backspaceKey.wasPressedThisFrame) { OnBack(); return; }
+
+            // "1".."9" then "0" -> stages 00..09, exactly as her `keys` map reads.
+            var digits = new[]
+            {
+                keyboard.digit1Key, keyboard.digit2Key, keyboard.digit3Key, keyboard.digit4Key,
+                keyboard.digit5Key, keyboard.digit6Key, keyboard.digit7Key, keyboard.digit8Key,
+                keyboard.digit9Key, keyboard.digit0Key,
+            };
+            for (var i = 0; i < digits.Length; i++)
+                if (digits[i].wasPressedThisFrame) { Journey.GoTo((Stage)i); return; }
+#endif
+        }
+
+        /// <summary>Her <c>setStage</c>: show this beat and only this beat.</summary>
+        void EnterStage(Stage stage)
+        {
+            foreach (var pair in _stageRoots) pair.Value.SetActive(pair.Key == stage);
+
+            var walks = Walks(stage);
+            if (companions != null)
+            {
+                companions.gameObject.SetActive(walks);
+                if (walks) MakeCompanionsPointable();
+            }
+            if (wall != null) wall.gameObject.SetActive(walks);
+
+            // The world stays up through the opening stages, showing the threshold conservatory.
+            // Only the companions and the hung wall are gallery-only.
+            if (worlds != null) worlds.gameObject.SetActive(true);
+
+            // Gravity stays off until there is something to stand on. It is switched back on by
+            // WorldChanged, once the chapter's floor actually exists.
+            _speech = string.Empty;
+            if (score != null) score.SetStage(stage);
+            SetWalking(false);
+            if (walks) OpenChapter();
+            else OpenHomeWorld();
+            if (stage == Stage.WorldTransformation) _transformationStarted = Time.time;
+            if (stage == Stage.Roundtable) RequestRoundtable();
+
+            panel.Reorient();
+            panel.Show(JourneyScript.For(Journey, Roster(), _ending));
+        }
+
+        // NOTE: adding `XRInteractionSimulator` in code does NOT work, though it compiles and the
+        // component is a plain MonoBehaviour in the XRI package Runtime. Measured: it throws a
+        // NullReferenceException from `ReadInputValues` every frame
+        // (XRInteractionSimulator.cs:2131), because it depends on serialized InputActionReferences
+        // that only the package SAMPLE's prefab carries. Import "XR Interaction Simulator" from the
+        // XR Interaction Toolkit samples and drop its prefab in the scene; there is no code path.
+
+        /// <summary>The stages the visitor walks. Hers: only <c>world_exploration</c>.</summary>
+        public static bool Walks(Stage stage) => stage == Stage.WorldExploration;
+
+        void SetWalking(bool on)
+        {
+            if (locomotionRoot != null) locomotionRoot.SetActive(on);
+            if (body != null) body.enabled = on;
+        }
+
+        // There is deliberately no "reset the rig" step between stages any more.
+        //
+        // It used to zero the rig's position AND rotation on every non-walking stage, which fought
+        // the world loader for the same transform: WorldCycler.Place puts the visitor at the
+        // world's measured spawn — the threshold faces yaw 180, the glass dome — and the reset
+        // then swung them to yaw 0, the balustrade, on the very next stage change. That is what
+        // "why are we moving when we hit Enter" was, and in a headset an uncommanded 180 degree
+        // snap is the single most nauseating thing this scene could do.
+        //
+        // The world owns the pose. Restart() reloads the world, which re-places the visitor.
+
+        void OpenChapter()
+        {
+            if (worlds == null) return;
+            var chapter = Journey.Spine.Current;
+            var key = chapter.EffectiveWorldKey + WorldCatalog.SmallSuffix;
+
+            if (_requestedWorldKey == key) return;
+
+            _requestedWorldKey = key;
+            if (_worldLoad != null) StopCoroutine(_worldLoad);
+            _worldLoad = StartCoroutine(worlds.ShowWorldByKey(key));
+        }
+
+        /// <summary>
+        /// Put the threshold world up behind the opening stages.
+        ///
+        /// Her web threshold is a photograph of a conservatory; this is that conservatory as a
+        /// place, generated from the same image. The visitor cannot walk in it — locomotion is off
+        /// until stage 04 — so it is scenery, and it loads once and stays up through 00 to 03
+        /// rather than being torn down and rebuilt between beats.
+        /// </summary>
+        void OpenHomeWorld()
+        {
+            if (worlds == null || string.IsNullOrEmpty(homeWorldKey)) return;
+            if (_requestedWorldKey == homeWorldKey) return;
+
+            _requestedWorldKey = homeWorldKey;
+            if (_worldLoad != null) StopCoroutine(_worldLoad);
+            _worldLoad = StartCoroutine(worlds.ShowWorldByKey(homeWorldKey));
+        }
+
+        /// <summary>
+        /// Her guided walk: point at the next stop, count the distance down, and say so on arrival.
+        ///
+        /// Only in the gallery — everywhere else the visitor is standing still being addressed, and
+        /// an arrow would be pointing at nothing.
+        /// </summary>
+        void UpdateCompass()
+        {
+            if (panel == null) return;
+
+            if (!Walks(Journey.Current) || wall == null || _tourOrder.Count == 0)
+            {
+                panel.ShowCompass(default);
+                return;
+            }
+
+            var head = rig != null ? rig : transform;
+            var eye = Camera.main != null ? Camera.main.transform : head;
+
+            var index = Mathf.Clamp(_tourIndex, 0, _tourOrder.Count - 1);
+            var target = wall.GetChild(_tourOrder[index]);
+
+            var wallIndex = _tourOrder[index];
+            var record = wallIndex < _hanging.Count ? _hanging[wallIndex] : null;
+
+            panel.ShowCompass(TourGuide.Describe(
+                eye.position, eye.eulerAngles.y, target.position, index, _tourOrder.Count,
+                record != null ? record.title : null,
+                record != null ? record.artist : null));
+        }
+
+        /// <summary>
+        /// Order the wall for the walk when a chapter opens: nearest first from the spawn, so the
+        /// route moves outward rather than doubling back. Her `advanceTour` steps through it as
+        /// each stop is discussed.
+        /// </summary>
+        void RebuildTour()
+        {
+            _tourOrder.Clear();
+            _tourIndex = 0;
+            if (wall == null || wall.childCount == 0) return;
+
+            var hung = new List<HungArtwork>();
+            for (var i = 0; i < wall.childCount; i++)
+            {
+                var t = wall.GetChild(i);
+                hung.Add(new HungArtwork(t.position, t.rotation, i));
+            }
+
+            var from = rig != null ? rig.position : Vector3.zero;
+            foreach (var i in GalleryWall.TourOrder(hung, from)) _tourOrder.Add(hung[i].Index);
+        }
+
+        /// <summary>
+        /// Her <c>syncSceneWall</c>: the chapter's own four works, hung in the room just loaded.
+        ///
+        /// <b>The wall is not one wall.</b> Eight chapters carry thirty-six different works, four
+        /// at a time, and swapping them is most of what makes the spine feel like a museum rather
+        /// than one room redecorated. Ours used to hang eight fixed quads placed against van-gogh's
+        /// geometry, so every other chapter showed the same eight pictures in the wrong places.
+        ///
+        /// Placement is <see cref="GalleryWall.LayInRoom"/> — the playtested walk box. That is a
+        /// weaker placement than the collider sweep <c>MuseumWallSetup</c> does in the Editor, and
+        /// deliberately so: the sweep needs the collider mesh loaded, which is an 85k-triangle
+        /// import per chapter at runtime. Baking the swept anchors per chapter is the upgrade.
+        /// </summary>
+        void HangChapterWall(MuseXR.Worlds.WorldDefinition world)
+        {
+            if (wall == null || world == null) return;
+
+            _hanging.Clear();
+            for (var i = wall.childCount - 1; i >= 0; i--) Destroy(wall.GetChild(i).gameObject);
+
+            var chapter = Journey.Spine.Current;
+            var works = ArtworkCatalog.For(_artworks, chapter.CollectionId);
+            if (works.Count == 0) return;
+
+            // Prefer the swept anchors: they put a work on a surface the visitor can see, where the
+            // walk box only says where the floor is. Baked in the Editor because the sweep needs an
+            // 85k-triangle collider import that a chapter change cannot afford.
+            var baked = wallAnchors != null ? wallAnchors.For(world.key) : null;
+            if (baked != null && baked.Length > 0)
+            {
+                for (var i = 0; i < works.Count && i < baked.Length; i++)
+                {
+                    _hanging.Add(works[i]);
+                    BuildArtwork(works[i], baked[i].position, baked[i].rotation);
+                }
+                return;
+            }
+
+            var box = world.ScaledWalkBounds;
+            var have = world.HasWalkBounds;
+
+            // Clamp the hang to a walkable radius around the spawn.
+            //
+            // Measured: the grand conservatory is a 345 m capture and her playtested walk box is
+            // sized to match, so laying four works across it put them EIGHTY METRES apart — a
+            // compass reading "WALK TO STOP 1 / 4 · 85 M" and a gallery nobody would cross. Her box
+            // gallery never had this problem because it hung works at fixed offsets in a small
+            // room. The walk box says where you MAY go; this says how far a visitor should have to
+            // go to see the next picture.
+            if (have)
+            {
+                var spawn = world.ScaledSpawn;
+                var reach = new Bounds(new Vector3(spawn.x, box.center.y, spawn.z),
+                                       new Vector3(GalleryReach * 2f, box.size.y + 1f, GalleryReach * 2f));
+                var min = Vector3.Max(box.min, reach.min);
+                var max = Vector3.Min(box.max, reach.max);
+                // Only if the intersection is still a room — a walk box entirely off to one side
+                // would otherwise collapse to nothing.
+                if (max.x - min.x > 4f && max.z - min.z > 4f) box = new Bounds((min + max) * 0.5f, max - min);
+            }
+            // With no measured room, fall back to a modest box around the spawn rather than the
+            // capture's bounds — those include sky, and that is how eight works ended up 28 m
+            // outside the van-gogh corridor the first time.
+            var fallback = new Bounds(world.ScaledSpawn, Vector3.one * 24f);
+            var groundY = world.groundY * world.worldScale;
+
+            var hung = GalleryWall.LayInRoom(
+                box.min, box.max, have, fallback.min, fallback.max, groundY, works.Count);
+
+            for (var i = 0; i < hung.Count && i < works.Count; i++)
+            {
+                _hanging.Add(works[i]);
+                BuildArtwork(works[i], hung[i].Position, hung[i].QuadRotation);
+            }
+        }
+
+        /// <summary>One hung work: a quad you can point at, keeping the picture's own proportions.</summary>
+        void BuildArtwork(ArtworkRecord record, Vector3 position, Quaternion quadRotation)
+        {
+            var texture = ArtworkImage(record.id);
+            var aspect = texture != null && texture.height > 0
+                ? texture.width / (float)texture.height
+                : 1.2f;
+
+            var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            go.name = record.id;
+            go.transform.SetParent(wall, false);
+            go.transform.position = position;
+            // Already the QUAD rotation, from whichever source placed it — a Unity Quad's normal is
+            // its own -Z, so the work faces the room only when its +Z points INTO the wall. Both
+            // the baker and the walk-box fallback store it that way so this cannot drift.
+            go.transform.rotation = quadRotation;
+            go.transform.localScale = new Vector3(artworkHeight * aspect, artworkHeight, 1f);
+
+            var material = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            if (texture != null) material.SetTexture("_BaseMap", texture);
+            go.GetComponent<MeshRenderer>().sharedMaterial = material;
+
+            var interactable = go.AddComponent<
+                UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
+            var stopped = record;
+            interactable.selectEntered.AddListener(_ => OnArtworkTaken(stopped));
+        }
+
+        Texture2D ArtworkImage(string id)
+        {
+            if (artworkImages == null || string.IsNullOrEmpty(id)) return null;
+            foreach (var t in artworkImages) if (t != null && t.name == id) return t;
+            return null;
+        }
+
+        /// <summary>
+        /// Her <c>focusArtwork</c>: stopping at a work records it and moves the guide on.
+        ///
+        /// "What the visitor actually walked past is the only ground the closing roundtable stands
+        /// on" — her words, and the reason this writes to the session before anything else.
+        /// </summary>
+        void OnArtworkTaken(ArtworkRecord record)
+        {
+            if (record == null) return;
+
+            _focused = record;
+            Journey.Session.RecordArtwork(record.title, record.artist);
+            _speech = record.title + " · " + record.artist +
+                      (string.IsNullOrEmpty(record.date) ? "" : " · " + record.date);
+            AdvanceTour();
+        }
+
+        /// <summary>
+        /// Give each invited companion a collider and an interactable, so pointing at one opens
+        /// her ask form.
+        ///
+        /// Without this the masters are scenery: they walk beside you and cannot be spoken to,
+        /// which is the state the gallery shipped in. The capsule is sized to a person rather than
+        /// to the mesh bounds, because a generated mesh has no agreed unit and a bounds-sized
+        /// collider on a 2 m statue swallows the room behind it.
+        /// </summary>
+        void MakeCompanionsPointable()
+        {
+            var party = companions == null ? null : companions.GetComponent<MusePico.Worlds.CompanionParty>();
+            if (party == null) return;
+
+            var invited = Journey.InvitedMasterIds;
+            var roster = Roster();
+
+            for (var i = 0; i < party.Count && i < invited.Count; i++)
+            {
+                var t = party.TransformOf(i);
+                if (t == null) continue;
+
+                MasterLens lens = null;
+                foreach (var m in roster) if (m.id == invited[i]) { lens = m; break; }
+                if (lens == null) continue;
+
+                var existing = t.Find("Ask Target");
+                if (existing != null) continue;             // already wired this world
+
+                var target = new GameObject("Ask Target");
+                target.transform.SetParent(t, false);
+                target.transform.localPosition = new Vector3(0f, 0.95f, 0f);
+
+                var capsule = target.AddComponent<CapsuleCollider>();
+                capsule.height = 1.9f;
+                capsule.radius = 0.38f;
+                capsule.isTrigger = true;
+
+                var chosen = lens;                          // capture, not the loop variable
+                var interactable = target.AddComponent<
+                    UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
+                interactable.selectEntered.AddListener(_ => OpenAsk(chosen));
+            }
+        }
+
+        /// <summary>
+        /// Her <c>selectCompanion</c>: clicking a master in the gallery opens the ask form.
+        /// The question box is pre-filled from the work you are standing at, as hers is.
+        /// </summary>
+        void OpenAsk(MasterLens companion)
+        {
+            if (companion == null || Journey.Current != Stage.WorldExploration) return;
+
+            _asking = companion;
+            _askReplies = string.Empty;
+            _askQuestion = _focused == null ? string.Empty : "What do you see in " + _focused.title + "?";
+        }
+
+        /// <summary>Close the ask form and go back to walking.</summary>
+        void CloseAsk()
+        {
+            _asking = null;
+            _askQuestion = string.Empty;
+            _askReplies = string.Empty;
+        }
+
+        /// <summary>
+        /// Input while the ask form is open. Only two controls exist here, and neither of them
+        /// sends anything by itself: the grip fills the box, and the back plate leaves.
+        /// The forward plate is what asks, and it is a press the visitor makes.
+        /// </summary>
+        void HandleAskInput()
+        {
+            if (_buttons == null) return;
+            if (_buttons.CancelPressed) { CloseAsk(); return; }
+            if (_buttons.GripPressed) BeginDictation();
+        }
+
+        /// <summary>
+        /// Send the question in the box to the three invited masters. The one paid call in the arc
+        /// that a visitor makes deliberately, and it happens here and nowhere else.
+        /// </summary>
+        async void AskTheMasters()
+        {
+            if (dialogue == null || _asking == null) return;
+            if (string.IsNullOrWhiteSpace(_askQuestion)) return;
+            if (dialogue.IsBusy) return;
+
+            Journey.Session.RecordQuestion(_askQuestion);
+            _askReplies = "THE MASTERS ARE READING YOUR QUESTION\u2026";
+
+            dialogue.invitedMasterIds.Clear();
+            foreach (var id in Journey.InvitedMasterIds) dialogue.invitedMasterIds.Add(id);
+            if (_focused != null)
+            {
+                dialogue.artworkTitle = _focused.title;
+                dialogue.artworkArtist = _focused.artist ?? string.Empty;
+                dialogue.artworkDate = _focused.date ?? string.Empty;
+            }
+
+            var result = await dialogue.AskAsync(_askQuestion);
+
+            // Honest failure, never invented prose. A salon that could not be reached says so;
+            // a canned line here would be indistinguishable from a real answer.
+            if (result == null || !result.Success)
+            {
+                _askReplies = "The masters could not be reached" +
+                              (result == null || string.IsNullOrEmpty(result.Error)
+                                  ? "." : ": " + result.Error);
+                return;
+            }
+
+            var sb = new System.Text.StringBuilder();
+            foreach (var reading in result.Perspectives)
+                sb.Append(reading.speaker).Append(" \u2014 ").Append(reading.text).Append("\n\n");
+            _askReplies = sb.ToString().TrimEnd();
+        }
+
+        /// <summary>Her <c>advanceTour</c>: the stop is done, move the guide on.</summary>
+        public void AdvanceTour()
+        {
+            if (_tourOrder.Count == 0) return;
+            _tourIndex = Mathf.Min(_tourIndex + 1, _tourOrder.Count - 1);
+        }
+
+        /// <summary>
+        /// Take a spoken question to the masters.
+        ///
+        /// The subject is whatever the walk is looking at: hers sets `state.focusedArtwork` when a
+        /// painting is clicked, and the lenses read it. Ours passes the chapter the visitor is
+        /// standing in, because in a splat capture the ROOM is the work — there is no single
+        /// painting the way her box gallery had one.
+        /// </summary>
+        /// <summary>
+        /// The stages where a master's words can legitimately appear on the panel.
+        ///
+        /// Her /api/dialogue is reachable from the GALLERY only, and /api/roundtable from the
+        /// summoning onwards. Everything before that is a form being filled in.
+        /// </summary>
+        static bool SpeaksHere(Stage stage) =>
+            stage == Stage.WorldExploration || stage == Stage.Summoning ||
+            stage == Stage.Roundtable || stage == Stage.Manifesto;
+
+        /// <summary>
+        /// Open the microphone to fill the question box. Transcription ends at a string; the
+        /// masters are not involved.
+        /// </summary>
+        void BeginDictation()
+        {
+            if (dialogue == null) { _speech = "No microphone wired in this scene."; return; }
+            if (dialogue.IsBusy) return;
+            dialogue.ListenForText();
+        }
+
+        void BeginListening()
+        {
+            if (dialogue == null)
+            {
+                // Say so rather than swallowing the press. The hint promises speech; if the scene
+                // has no salon in it, the visitor deserves to be told, not left pressing a button.
+                _speech = "No salon in this scene — dialogue is not wired here.";
+                return;
+            }
+            if (dialogue.IsBusy) return;
+
+            dialogue.invitedMasterIds.Clear();
+            foreach (var id in Journey.InvitedMasterIds) dialogue.invitedMasterIds.Add(id);
+
+            var chapter = Journey.Spine.Current;
+            dialogue.artworkTitle = chapter.Title;
+            dialogue.artworkArtist = chapter.Artist ?? string.Empty;
+            dialogue.artworkDate = chapter.Chapter ?? string.Empty;
+
+            _speech = "Listening…";
+            dialogue.Listen();
+        }
+
+        /// <summary>
+        /// The closing synthesis: the masters read back the walk that actually happened.
+        ///
+        /// <b>One call returning three threads, not a fan-out.</b> The threads synthesise a single
+        /// trajectory and have to be aware of the same one; asking three times would give three
+        /// readings of three different visits.
+        ///
+        /// A failure is reported as a failure. There is no canned closing anywhere in this path —
+        /// <see cref="JourneyScript.Ending"/> falls back to her generic ending and the manifesto
+        /// then LABELS itself generic, which is the honest outcome rather than a pleasant lie.
+        /// </summary>
+        async void RequestRoundtable()
+        {
+            if (_roundtableAsked) return;
+            _roundtableAsked = true;
+
+            if (_roster == null) { _speech = "No roster: the salon cannot be convened."; return; }
+
+            var key = await MusePico.Generation.FallbackKeySource.ForOpenAi().GetKeyAsync();
+            if (string.IsNullOrEmpty(key))
+            {
+                _speech = "No OpenAI key — the salon cannot read your walk back.";
+                return;
+            }
+
+            _speech = "The masters are reading your walk…";
+            var invited = MasterRoster.Select(_roster, Journey.InvitedMasterIds);
+            var client = new RoundtableClient(
+                new MusePico.Tripo.TripoWebRequestTransport(key, ResponsesCall.DefaultEndpoint), _roster);
+
+            var result = await client.AskAsync(Journey.Session, invited);
+
+            if (!result.Success)
+            {
+                _speech = "The salon did not answer: " + result.Error;
+                return;
+            }
+
+            SetEnding(result.worldTitle, result.synthesis, result.Live);
+            _speech = result.synthesis;
+        }
+
+        void NextChapter()
+        {
+            if (!Journey.Spine.Advance()) return;
+            OpenChapter();
+            panel.Show(JourneyScript.For(Journey, Roster(), _ending));
+        }
+
+        /// <summary>Her <c>choose</c> and her companion / question pickers, by stage.</summary>
+        void OnChoice(string id)
+        {
+            switch (Journey.Current)
+            {
+                case Stage.LifeQuestion:
+                    Journey.SetQuestion(id);          // the choice id IS her question text
+                    break;
+
+                case Stage.CompanionSelection:
+                    Journey.ToggleCompanion(id);      // a fourth is refused, not swapped
+                    break;
+
+                case Stage.Decision:
+                    foreach (var choice in JourneyScript.DecisionChoices)
+                        if (choice.Id == id)
+                        {
+                            Journey.Session.ApplyChoice(choice.Delta);
+                            Journey.GoTo(Stage.WorldTransformation);
+                            return;
+                        }
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Step back, keeping everything already chosen.
+        ///
+        /// In the gallery the same gesture means the PREVIOUS ROOM instead, which is her
+        /// `.scene-arrow` with `data-scene-direction="-1"` — walking the spine backwards is not
+        /// undoing anything, so it stays available where stepping back through the arc does not.
+        /// </summary>
+        void OnBack()
+        {
+            if (_asking != null) { CloseAsk(); return; }
+            if (Journey.Current == Stage.WorldExploration) { PreviousChapter(); return; }
+            Journey.Back();
+        }
+
+        /// <summary>
+        /// Her <c>goToExhibitionScene</c>: jump to a room by index, from an arrow or a dot.
+        /// Out-of-range is ignored rather than clamped, so a disabled arrow that somehow fires
+        /// cannot wrap the visitor round to the other end of the exhibition.
+        /// </summary>
+        void OnNav(int index)
+        {
+            if (Journey.Current != Stage.WorldExploration) return;
+            if (index < 0 || index >= Journey.Spine.Count) return;
+            if (index == Journey.Spine.Index) return;
+
+            Journey.Spine.GoTo(index);
+            OpenChapter();
+            panel.Show(JourneyScript.For(Journey, Roster(), _ending));
+        }
+
+        /// <summary>Her scene navigator's left arrow.</summary>
+        void PreviousChapter()
+        {
+            if (!Journey.Spine.Back()) return;
+            OpenChapter();
+            panel.Show(JourneyScript.For(Journey, Roster(), _ending));
+        }
+
+        /// <summary>Her <c>act()</c>: what the forward button does, stage by stage.</summary>
+        void OnAction()
+        {
+            if (_asking != null) { AskTheMasters(); return; }
+
+            switch (Journey.Current)
+            {
+                case Stage.LifeQuestion:
+                    // Her submit: an empty box takes the first suggestion rather than blocking.
+                    if (string.IsNullOrWhiteSpace(Journey.Question))
+                        Journey.SetQuestion(JourneyScript.LifeQuestions[0]);
+                    Journey.Advance();
+                    break;
+
+                case Stage.WorldExploration:
+                    // Her `summon`, and her `reset` once the visitor is standing in the final world.
+                    if (Journey.Spine.InFinalWorld) Restart();
+                    else Journey.GoTo(Stage.Summoning);
+                    break;
+
+                case Stage.Manifesto:
+                    // Her `enter-final-world`: back into the gallery, now showing the dream world.
+                    Journey.Spine.EnterFinalWorld();
+                    Journey.GoTo(Stage.WorldExploration);
+                    break;
+
+                case Stage.WorldTransformation:
+                    break;                            // it runs on its own clock
+
+                default:
+                    Journey.Advance();
+                    break;
+            }
+        }
+
+        /// <summary>Her <c>scheduleTransformation</c>: three writes, then the manifesto.</summary>
+        void TickTransformation()
+        {
+            var ratio = (Time.time - _transformationStarted) / JourneyScript.TransformationSeconds;
+            if (ratio >= 1f) { Journey.GoTo(Stage.Manifesto); return; }
+
+            var line = JourneyScript.TransformationBeats[0].Value;
+            foreach (var beat in JourneyScript.TransformationBeats)
+                if (ratio >= beat.Key) line = beat.Value;
+
+            var showing = JourneyScript.For(Journey, Roster(), _ending);
+            showing.Lede = line;
+            panel.Show(showing);
+        }
+
+        void Restart()
+        {
+            _requestedWorldKey = null;      // forces the threshold world to reload and re-place us
+            _roundtableAsked = false;
+            _speech = string.Empty;
+            Journey.Reset();
+            _ending = default;
+            EnterStage(Journey.Current);
+        }
+
+        /// <summary>
+        /// The closing synthesis, once the roundtable has produced one. Left unset it stays her
+        /// labelled fallback, so a manifesto that was never synthesised says so on the panel.
+        /// </summary>
+        public void SetEnding(string worldTitle, string synthesis, bool live) =>
+            _ending = JourneyScript.Ending(worldTitle, synthesis, live);
+
+        /// <summary>
+        /// The portrait for a master, matched on the name rather than on a hand-kept list.
+        ///
+        /// <c>masters.json</c> carries no portrait field — it is the product of an export from
+        /// muse-infinity and is not hand-edited — so the join is the one thing both sides already
+        /// agree on: the full name. "Claude Monet" finds "portrait-claude-monet". A master with no
+        /// portrait simply draws as a name, which is what the seventh would do if one went missing.
+        /// </summary>
+        Texture2D PortraitFor(string imageId)
+        {
+            if (string.IsNullOrEmpty(imageId)) return null;
+
+            // Chapters address themselves by position, masters by id. The prefix keeps the two
+            // namespaces from colliding on a master whose id ever looked like a number.
+            const string chapterPrefix = "chapter:";
+            if (imageId.StartsWith(chapterPrefix))
+            {
+                if (chapterImages == null) return null;
+                int index;
+                if (!int.TryParse(imageId.Substring(chapterPrefix.Length), out index)) return null;
+                return index >= 0 && index < chapterImages.Length ? chapterImages[index] : null;
+            }
+
+            if (portraits == null || portraits.Length == 0) return null;
+
+            var master = MasterRoster.Find(_roster, imageId);
+            if (master == null || string.IsNullOrEmpty(master.fullName)) return null;
+
+            var wanted = "portrait-" + Slug(master.fullName);
+            foreach (var texture in portraits)
+                if (texture != null && texture.name == wanted) return texture;
+
+            return null;
+        }
+
+        /// <summary>"Vincent van Gogh" -> "vincent-van-gogh".</summary>
+        public static string Slug(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return string.Empty;
+            var sb = new System.Text.StringBuilder(name.Length);
+            foreach (var c in name.ToLowerInvariant())
+            {
+                if (char.IsLetterOrDigit(c)) sb.Append(c);
+                else if (c == ' ' || c == '-') sb.Append('-');
+                // Anything else — an apostrophe, a comma — is dropped rather than transliterated.
+            }
+            return sb.ToString();
+        }
+
+        IReadOnlyList<MasterLens> Roster() =>
+            _roster?.masters != null ? (IReadOnlyList<MasterLens>)_roster.masters : null;
+
+        void IndexStageRoots()
+        {
+            _stageRoots.Clear();
+            if (journeyRoot == null) return;
+
+            foreach (Stage stage in System.Enum.GetValues(typeof(Stage)))
+            {
+                var child = journeyRoot.Find("Stage_" + stage);
+                if (child != null) _stageRoots[stage] = child.gameObject;
+                else Debug.LogWarning("[MuseumJourneyRunner] no Stage_" + stage + " under " +
+                                      journeyRoot.name + "; that beat will have no set dressing.");
+            }
+        }
+    }
+}

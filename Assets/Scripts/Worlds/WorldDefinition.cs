@@ -40,6 +40,37 @@ namespace MuseXR.Worlds
         /// the cycler places from the asset's own bounds instead of from data.</summary>
         public bool hasMeasuredSpawn = true;
 
+        /// <summary>
+        /// The playtested WALKABLE box, in pre-scale world units: her `profile.bounds` from
+        /// `muse-infinity/config/worlds.js`, tuned over 27 commits of walking these captures.
+        ///
+        /// <b>This is not the splat bounds, and the difference is large.</b> A capture's bounds
+        /// include sky, terrain and outlying noise: van-gogh measures about x +-18 raw, while the
+        /// room you can actually walk is x -2.47 to 10. Hanging artworks on the bounds put every
+        /// one of them roughly 28 m outside the room, floating in black void — verified by
+        /// screenshot before this field existed.
+        ///
+        /// Zero when unmeasured; callers should fall back to the splat bounds and accept the
+        /// consequences.
+        /// </summary>
+        public Vector4 walkBounds;   // (minX, maxX, minZ, maxZ)
+
+        public bool HasWalkBounds => walkBounds != Vector4.zero;
+
+        /// <summary>The walkable box in WORLD units, after <see cref="worldScale"/>.</summary>
+        public Bounds ScaledWalkBounds
+        {
+            get
+            {
+                var min = new Vector3(walkBounds.x, groundY, walkBounds.z) * worldScale;
+                var max = new Vector3(walkBounds.y, groundY, walkBounds.w) * worldScale;
+                var b = new Bounds();
+                b.SetMinMax(new Vector3(Mathf.Min(min.x, max.x), min.y, Mathf.Min(min.z, max.z)),
+                            new Vector3(Mathf.Max(min.x, max.x), max.y, Mathf.Max(min.z, max.z)));
+                return b;
+            }
+        }
+
         /// <summary>Addressables key. Set by AddressableWorldSetup to the asset's file name,
         /// which is the world key.</summary>
         public string Address => key;

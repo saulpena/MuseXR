@@ -55,6 +55,26 @@ namespace MuseXR.Worlds
         public Shader shaderDebugBoxes;
         public ComputeShader csSplatUtilities;
 
+        /// <summary>
+        /// True when something else decides which world is showing — the journey runner, walking
+        /// the exhibition spine. The cycler then loads only what it is told to and never advances
+        /// on its own, because a world swapping itself out mid-conversation pulls the ground from
+        /// under the visitor.
+        /// </summary>
+        public bool drivenExternally;
+
+        /// <summary>The world currently loaded, or null before the first one arrives.</summary>
+        public WorldDefinition Current { get; private set; }
+
+        /// <summary>
+        /// How long the last world took from request to standing in it. Measured rather than
+        /// guessed, because "there is a delay at startup" needs a number before it needs a fix.
+        /// </summary>
+        public float LastLoadSeconds { get; private set; }
+
+        /// <summary>Raised once a world is loaded and the visitor has been placed in it.</summary>
+        public event System.Action<WorldDefinition> WorldChanged;
+
         int _index = -1;
         GameObject _current;
         GameObject _bounds;
@@ -76,7 +96,7 @@ namespace MuseXR.Worlds
                                "Packages/org.nesnausk.gaussian-splatting/Shaders on this component.");
             }
 
-            StartCoroutine(Run());
+            if (!drivenExternally) StartCoroutine(Run());
         }
 
         IEnumerator Run()
@@ -94,9 +114,30 @@ namespace MuseXR.Worlds
             var list = WorldCatalog.Get(worldSet);
             if (list.Count == 0) { Debug.LogError("[WorldCycler] catalog empty"); yield break; }
             _index = (_index + 1) % list.Count;
-            var world = list[_index];
+            yield return ShowWorld(list[_index]);
+        }
 
-            SetLabel($"{_index + 1}/{list.Count}  {world.displayName}\nloading…");
+        /// <summary>
+        /// Load one named world and stand the visitor in it. The spine addresses worlds by key, so
+        /// this is the entry the journey runner uses. An unknown key is reported rather than
+        /// silently leaving the last world up, which reads as the chapter failing to change.
+        /// </summary>
+        public IEnumerator ShowWorldByKey(string key)
+        {
+            if (string.IsNullOrEmpty(key)) yield break;
+            foreach (var candidate in WorldCatalog.Get(worldSet))
+                if (candidate.key == key) { yield return ShowWorld(candidate); yield break; }
+
+            Debug.LogError($"[WorldCycler] no world '{key}' in {worldSet}. The chapter cannot open.");
+        }
+
+        /// <summary>Load a world, place the visitor in it, and announce it.</summary>
+        public IEnumerator ShowWorld(WorldDefinition world)
+        {
+            if (world == null) yield break;
+            var startedAt = Time.realtimeSinceStartup;
+
+            SetLabel($"{world.displayName}\nloading…");
             Unload();
 
             var handle = Addressables.LoadAssetAsync<GaussianSplatAsset>(world.Address);
@@ -128,8 +169,12 @@ namespace MuseXR.Worlds
             renderer.enabled = true;
 
             Place(world, asset);
-            SetLabel($"{_index + 1}/{list.Count}  {world.displayName}\n{asset.splatCount:N0} splats");
-            Debug.Log($"[WorldCycler] {world.displayName}: {asset.splatCount:N0} splats");
+            Current = world;
+            LastLoadSeconds = Time.realtimeSinceStartup - startedAt;
+            SetLabel($"{world.displayName}\n{asset.splatCount:N0} splats");
+            Debug.Log($"[WorldCycler] {world.displayName}: {asset.splatCount:N0} splats, " +
+                      $"ready in {LastLoadSeconds:F2}s");
+            WorldChanged?.Invoke(world);
         }
 
         /// <summary>In an XR rig the headset owns the camera pose, so the ORIGIN moves.</summary>

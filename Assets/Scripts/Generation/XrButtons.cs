@@ -29,9 +29,14 @@ namespace MusePico.Generation
 
         public XrButtons()
         {
+            // Keyboard bindings sit alongside the controllers, never instead of them. Without a
+            // headset attached, <XRController> resolves to nothing and the whole journey is
+            // undriveable in the Editor — which is where it gets compared against her web build.
             Trigger = new InputAction("xr-trigger", InputActionType.Button);
             Trigger.AddBinding("<XRController>{RightHand}/triggerPressed");
             Trigger.AddBinding("<XRController>{LeftHand}/triggerPressed");
+            Trigger.AddBinding("<Keyboard>/space");
+            Trigger.AddBinding("<Keyboard>/enter");
 
             Grip = new InputAction("xr-grip", InputActionType.Button);
             Grip.AddBinding("<XRController>{LeftHand}/gripPressed");
@@ -40,9 +45,16 @@ namespace MusePico.Generation
             Cancel = new InputAction("xr-cancel", InputActionType.Button);
             Cancel.AddBinding("<XRController>{RightHand}/secondaryButton");
             Cancel.AddBinding("<XRController>{LeftHand}/secondaryButton");
+            Cancel.AddBinding("<Keyboard>/escape");
 
             Next = new InputAction("xr-next", InputActionType.Value, expectedControlType: "Vector2");
-            Next.AddBinding("<XRController>{RightHand}/thumbstick");
+            // NOT the thumbstick. XRI's snap-turn lives on the right stick, so binding a second
+            // meaning to it meant every attempt to look round also changed the world. Her build
+            // has no stick path to this at all - rooms are changed by clicking the navigator - so
+            // the only bindings left are the Editor keyboard ones below.
+            // The right arrow reads as a full-right stick, so StickFlickedRight latches the same way.
+            Next.AddCompositeBinding("2DVector").With("Right", "<Keyboard>/rightArrow")
+                                               .With("Left", "<Keyboard>/leftArrow");
 
             Trigger.Enable(); Grip.Enable(); Cancel.Enable(); Next.Enable();
         }
@@ -63,7 +75,24 @@ namespace MusePico.Generation
             return fired;
         }
 
+        /// <summary>
+        /// The same latch in the other direction — one step per flick, not a scroll.
+        ///
+        /// A SEPARATE latch from the right one on purpose: sharing it would let a flick right
+        /// swallow the next flick left, because the stick passes through centre between them and
+        /// only one latch would have cleared.
+        /// </summary>
+        public bool StickFlickedLeft()
+        {
+            float x = Next.ReadValue<UnityEngine.Vector2>().x;
+            bool over = x < -0.7f;
+            bool fired = over && !_stickLatchedLeft;
+            _stickLatchedLeft = over;
+            return fired;
+        }
+
         bool _stickLatched;
+        bool _stickLatchedLeft;
 
         public void Dispose()
         {

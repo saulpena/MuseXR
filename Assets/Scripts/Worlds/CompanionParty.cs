@@ -125,6 +125,12 @@ namespace MusePico.Worlds
         public float SpeedOf(int i) => (i >= 0 && i < _party.Count) ? _party[i].smoothedSpeed : 0f;
         public bool IsAnimated(int i) => i >= 0 && i < _party.Count && _party[i].animator != null;
 
+        /// <summary>
+        /// The transform a companion is standing on, or null. Needed so something can be attached
+        /// to them - a name plate, a voice, or the collider that makes them pointable.
+        /// </summary>
+        public Transform TransformOf(int i) => (i >= 0 && i < _party.Count) ? _party[i].transform : null;
+
         /// <summary>Put every master into, or out of, the talking animation.</summary>
         public void SetTalking(bool talking)
         {

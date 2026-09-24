@@ -1,0 +1,10 @@
+HTTP/1.1 200 OK
+date: Thu, 24 Sep 2026 09:22:53 GMT
+server: uvicorn
+cache-control: no-cache, no-transform
+connection: keep-alive
+content-type: text/event-stream
+mcp-session-id: 32595b3cef5845c7aa83b46d04e49ed1
+x-accel-buffering: no
+Transfer-Encoding: chunked
+

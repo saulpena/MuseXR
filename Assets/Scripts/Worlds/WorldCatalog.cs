@@ -129,21 +129,67 @@ namespace MuseXR.Worlds
         public static readonly IReadOnlyList<WorldDefinition> Small = new List<WorldDefinition>
         {
             Small_("van-gogh-inspired-gallery-interior", "Van Gogh Gallery",
-                   1.7f, new Vector2(1.79f, 0.30f), 0.0f, 0f, 200f),
+                   1.7f, new Vector2(1.79f, 0.30f), 0.0f, 0f, 200f,
+                   new Vector4(-2.47f, 10.0f, -14.62f, 13.73f)),
             Small_("elegant-floral-palace-interior", "Floral Palace",
-                   1.7f, new Vector2(1.16f, -2.2f), 0.2f, 25f, 200f),
+                   1.7f, new Vector2(1.16f, -2.2f), 0.2f, 25f, 200f,
+                   new Vector4(-8.12f, 12.73f, -10.4f, 11.44f)),
             Small_("mexican-courtyard-bedroom-fantasy", "Mexican Courtyard",
-                   1.7f, new Vector2(2.21f, -1.23f), 0.1f, 0f, 400f),
+                   1.7f, new Vector2(2.21f, -1.23f), 0.1f, 0f, 400f,
+                   new Vector4(-21.02f, 23.04f, -22.3f, 17.39f)),
             Small_("grand-conservatory-with-lush-gardens", "Glass Conservatory",
-                   1.7f, new Vector2(-1.6f, -4.8f), 0.9f, 0f, 400f),
+                   1.7f, new Vector2(-1.6f, -4.8f), 0.9f, 0f, 400f,
+                   new Vector4(-47.15f, 41.28f, -56.41f, 39.15f)),
             Small_("enchanted-water-garden-sanctuary", "Water Garden",
-                   1.7f, new Vector2(0.8f, -19f), 1.1f, 180f, 400f),
+                   1.7f, new Vector2(0.8f, -19f), 1.1f, 180f, 400f,
+                   new Vector4(-6.36f, 23.3f, -41.25f, 16.21f)),
             Small_("dreamlike-coastal-villa-gardens", "Coastal Villa",
-                   1.7f, new Vector2(-1.6f, -2.8f), 5.6f, 0f, 400f),
+                   1.7f, new Vector2(-1.6f, -2.8f), 5.6f, 0f, 400f,
+                   new Vector4(-30.63f, 21.07f, -39.06f, 33.44f)),
 
-            // No measured spawn — see the remarks above.
-            SmallUnmeasured("enchanted-palace-garden", "Palace Garden", 400f),
-            SmallUnmeasured("fantasy-realm-of-shimmering-spheres", "Shimmering Spheres", 200f),
+            // Measured 22 Sep 2026 by screenshot, not by heuristic. Both were previously
+            // SmallUnmeasured, which fell through to the bounds fallback in WorldCycler.Place --
+            // and that fallback backs the camera off 45% of the LARGER horizontal extent, which
+            // for these two put the eye completely outside the capture:
+            //   palace garden  -> (0.3, -2.2, -44.3)  : 44 m behind it, below the origin
+            //   shimmering     -> (-0.9, 2.1, -24.2)  : just past the far z bound
+            // Standing outside a capture looking in is what got reported as "the splats look
+            // upside down". The worlds were never wrong; the fallback was.
+            //
+            // These exports are web-UI Marble downloads, already baked to the final world frame
+            // (y-up, metres, ground ~= 0), so groundY 0 and a spawn at the origin are correct --
+            // which matches the six playtested worlds above, whose groundY runs 0.0 to 1.1.
+            // Yaw was chosen by comparing 0 and 180 in Assets/Screenshots/probe-*.png:
+            //   palace garden  180 -> the glass dome, symmetric arches, pools both sides
+            //                    0 -> the back of the room
+            //   shimmering       0 -> a corridor with a vanishing point, somewhere to walk
+            //                  180 -> a cluttered alcove
+            Small_("enchanted-palace-garden", "Palace Garden",
+                   1.7f, Vector2.zero, 0f, 180f, 400f),
+            // NO walk bounds on purpose. worlds.js does carry a profile for this capture, but
+            // those bounds (x +-2.08, z -6.83..9.99) are in MESH space: it shipped as render:"mesh"
+            // with splatUrl:null, and this .spz measures about +-24 m — roughly 11x apart, and not
+            // its metric.scale of 1.5061 either. Using them would describe a room that does not
+            // exist. Falls back to splat bounds until someone measures the real walkable box.
+            Small_("fantasy-realm-of-shimmering-spheres", "Shimmering Spheres",
+                   1.7f, Vector2.zero, 0f, 0f, 200f),
+            // The THRESHOLD world — stage 00's backdrop, so the visitor is not addressed in a void.
+            //
+            // Generated in Marble 1.1 Plus on 23 Sep 2026 from her own hero image,
+            // `muse-infinity/assets/generated/muse-hero-conservatory-v3.png`, which is the still
+            // that sits behind her web threshold. So both builds open on the same conservatory;
+            // ours is simply standing in it. 500,000 splats, exported and converted at Medium like
+            // every other world here.
+            //
+            // Bounds run 327 x 220 x 231 m, which is sky and terrain rather than room — the same
+            // shape that threw the spawn heuristic for the outdoor captures. Hence a stated spawn
+            // at the origin rather than the bounds fallback. `cameraFar` is wide because the
+            // capture genuinely extends that far and the visitor is looking down a garden path.
+            // yaw 180 -> the glass dome at the end of the path, arch overhead, wisteria either
+            //            side: her hero image's own composition.
+            //        0 -> the back of the terrace, trees and a balustrade.
+            Small_("grand-conservatory-garden-path", "Threshold Conservatory",
+                   1.7f, Vector2.zero, 0f, 180f, 400f),
         };
 
         /// <summary>
@@ -154,12 +200,18 @@ namespace MuseXR.Worlds
         /// </summary>
         public const string SmallSuffix = "-500k";
 
+        /// <summary>
+        /// <paramref name="walk"/> is her playtested `profile.bounds` as (minX, maxX, minZ, maxZ),
+        /// pre-scale. It is the room, not the capture: see WorldDefinition.walkBounds for why the
+        /// two differ by tens of metres.
+        /// </summary>
         static WorldDefinition Small_(string baseKey, string name, float scale, Vector2 spawn,
-                                      float groundY, float yaw, float far) => new WorldDefinition
+                                      float groundY, float yaw, float far,
+                                      Vector4 walk = default) => new WorldDefinition
         {
             key = baseKey + SmallSuffix, displayName = name,
             worldScale = scale, spawn = spawn, groundY = groundY, yawDegrees = yaw,
-            cameraFar = far, hasMeasuredSpawn = true,
+            cameraFar = far, hasMeasuredSpawn = true, walkBounds = walk,
         };
 
         static WorldDefinition SmallUnmeasured(string baseKey, string name, float far) =>

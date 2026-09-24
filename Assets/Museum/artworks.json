@@ -1,0 +1,373 @@
+{
+  "chapters": [
+    {
+      "sceneId": "threshold-conservatory",
+      "works": [
+        {
+          "id": "aic-153799",
+          "title": "Woman Bathing Her Feet in a Brook",
+          "artist": "Camille Pissarro",
+          "date": "1895",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/153799",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-81551",
+          "title": "The Place du Havre, Paris",
+          "artist": "Camille Pissarro",
+          "date": "1893",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/81551",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-110541",
+          "title": "The Crystal Palace",
+          "artist": "Camille Pissarro",
+          "date": "1871",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/110541",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-81552",
+          "title": "Woman and Child at the Well",
+          "artist": "Camille Pissarro",
+          "date": "1882",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/81552",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        }
+      ]
+    },
+    {
+      "sceneId": "court-of-light",
+      "works": [
+        {
+          "id": "aic-14655",
+          "title": "Two Sisters (On the Terrace)",
+          "artist": "Pierre-Auguste Renoir",
+          "date": "1881",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/14655",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-81558",
+          "title": "Acrobats at the Cirque Fernando (Francisca and Angelina Wartenberg)",
+          "artist": "Pierre-Auguste Renoir",
+          "date": "1879",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/81558",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-25825",
+          "title": "Woman at the Piano",
+          "artist": "Pierre-Auguste Renoir",
+          "date": "1875–76",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/25825",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-81555",
+          "title": "Lunch at the Restaurant Fournaise (The Rowers' Lunch)",
+          "artist": "Pierre-Auguste Renoir",
+          "date": "1875",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/81555",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        }
+      ]
+    },
+    {
+      "sceneId": "water-and-light",
+      "works": [
+        {
+          "id": "aic-16568",
+          "title": "Water Lilies",
+          "artist": "Claude Monet",
+          "date": "1906",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/16568",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-16571",
+          "title": "Arrival of the Normandy Train, Gare Saint-Lazare",
+          "artist": "Claude Monet",
+          "date": "1877",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/16571",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-64818",
+          "title": "Stacks of Wheat (End of Summer)",
+          "artist": "Claude Monet",
+          "date": "1890–91",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/64818",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-14620",
+          "title": "Cliff Walk at Pourville",
+          "artist": "Claude Monet",
+          "date": "1882",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/14620",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        }
+      ]
+    },
+    {
+      "sceneId": "sunset-frames",
+      "works": [
+        {
+          "id": "aic-111436",
+          "title": "The Basket of Apples",
+          "artist": "Paul Cezanne",
+          "date": "c. 1893",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/111436",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-16487",
+          "title": "The Bay of Marseille, Seen from L'Estaque",
+          "artist": "Paul Cezanne",
+          "date": "c. 1885",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/16487",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-14556",
+          "title": "Auvers, Panoramic View",
+          "artist": "Paul Cezanne",
+          "date": "1873–75",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/14556",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-62371",
+          "title": "Madame Cezanne in a Yellow Chair",
+          "artist": "Paul Cezanne",
+          "date": "1888–90",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/62371",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        }
+      ]
+    },
+    {
+      "sceneId": "burning-sky",
+      "works": [
+        {
+          "id": "aic-28560",
+          "title": "The Bedroom",
+          "artist": "Vincent van Gogh",
+          "date": "1889",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/28560",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-80607",
+          "title": "Self-Portrait",
+          "artist": "Vincent van Gogh",
+          "date": "1887",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/80607",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-14586",
+          "title": "The Poet's Garden",
+          "artist": "Vincent van Gogh",
+          "date": "1888",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/14586",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-28862",
+          "title": "A Peasant Woman Digging in Front of Her Cottage",
+          "artist": "Vincent van Gogh",
+          "date": "c. 1885",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/28862",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        }
+      ]
+    },
+    {
+      "sceneId": "petal-transition",
+      "works": [
+        {
+          "id": "aic-27992",
+          "title": "A Sunday on La Grande Jatte — 1884",
+          "artist": "Georges Seurat",
+          "date": "1884–86, border added 1888–89",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/27992",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-61616",
+          "title": "Oil Sketch for \"A Sunday on La Grande Jatte — 1884\"",
+          "artist": "Georges Seurat",
+          "date": "1884",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/61616",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-20199",
+          "title": "Final Study for \"Bathers at Asnières\"",
+          "artist": "Georges Seurat",
+          "date": "1883",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/20199",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-150773",
+          "title": "Seated Woman with a Parasol (study for La Grande Jatte)",
+          "artist": "Georges Seurat",
+          "date": "1884/85",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/150773",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        }
+      ]
+    },
+    {
+      "sceneId": "living-memory",
+      "works": [
+        {
+          "id": "aic-111442",
+          "title": "The Child's Bath",
+          "artist": "Mary Cassatt",
+          "date": "1893",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/111442",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-13506",
+          "title": "Woman Bathing",
+          "artist": "Mary Cassatt",
+          "date": "1890–91",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/13506",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-26650",
+          "title": "On a Balcony",
+          "artist": "Mary Cassatt",
+          "date": "1878–79",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/26650",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-28826",
+          "title": "Sleepy Nicolle",
+          "artist": "Mary Cassatt",
+          "date": "c. 1900",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/28826",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        }
+      ]
+    },
+    {
+      "sceneId": "infinite-repetition",
+      "works": [
+        {
+          "id": "aic-8991",
+          "title": "Improvisation No. 30 (Cannons)",
+          "artist": "Vasily Kandinsky",
+          "date": "1913",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/8991",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-8980",
+          "title": "Landscape with Two Poplars",
+          "artist": "Vasily Kandinsky",
+          "date": "1912",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/8980",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-8987",
+          "title": "Painting with Green Center",
+          "artist": "Vasily Kandinsky",
+          "date": "1913",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/8987",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-8983",
+          "title": "Painting with Troika",
+          "artist": "Vasily Kandinsky",
+          "date": "January 18, 1911",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/8983",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        }
+      ]
+    },
+    {
+      "sceneId": "personal-dream-world",
+      "works": [
+        {
+          "id": "aic-76395",
+          "title": "Flower Clouds",
+          "artist": "Odilon Redon",
+          "date": "c. 1903",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/76395",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-90316",
+          "title": "Guardian Spirit of the Waters",
+          "artist": "Odilon Redon",
+          "date": "1878",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/90316",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-110982",
+          "title": "Still Life with Flowers",
+          "artist": "Odilon Redon",
+          "date": "1905",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/110982",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-94240",
+          "title": "Flowers: Poppies and Daisies",
+          "artist": "Odilon Redon",
+          "date": "c. 1867",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/94240",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        }
+      ]
+    }
+  ]
+}

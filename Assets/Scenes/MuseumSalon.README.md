@@ -1,3 +1,19 @@
+> **SUPERSEDED IN PART — 22 Sep 2026.** Two things on this page are now wrong:
+>
+> 1. **"Live dialogue — Never run"** is stale. The whole stack has since run live, twice: through
+>    `muse-infinity/server.mjs` (6.55 s artwork / 4.70 s world) and in Unity Play Mode here
+>    (6.26 s, three perspectives, MiniMax clip played). See `../../../chatplan.md` §3.
+> 2. **The model.** `gpt-5.6` is an ALIAS for GPT-5.6 Sol, the slowest and dearest tier — which is
+>    what the 13-14 s measurements below actually were. Pinned to **`gpt-5.6-luna`**, and the
+>    `dialogueModel` Inspector field was **deleted** so a scene can no longer override it.
+>
+> **This scene is now a harness, not the destination.** The conversation is being rebuilt inside the
+> full ten-stage journey in `Assets/Scenes/Museum.unity`, replicating muse-infinity's user flow
+> stage by stage. Plan: `chatplan.md` at the repo root. Keep this scene for isolated dialogue
+> testing; do not extend it.
+
+---
+
 # MuseumSalon
 
 **Skylar's dialogue, in a headset.** Monet, Van Gogh and Socrates stand in a shallow arc; you ask a
