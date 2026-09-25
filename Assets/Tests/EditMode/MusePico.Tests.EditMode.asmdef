@@ -8,6 +8,7 @@
         "MusePico.Gallery",
         "MusePico.Generation",
         "MusePico.Dialogue",
+        "MuseXR.Manifest.Editor",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
