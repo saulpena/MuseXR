@@ -39,11 +39,15 @@ namespace MuseXR.Worlds
 
         /// <summary>
         /// Resolution of the splat layer only, relative to the camera target (itself at URP
-        /// renderScale 0.8). Text, UI, characters and artworks are unaffected. Measured on Quest 3S:
-        /// a probe of renderScale 0.65 for EVERYTHING took the intro from 36 to 54-57 FPS; 0.8 here
-        /// gives the splats that same resolution (0.8 x 0.8 = 0.64) and leaves the rest sharp.
+        /// renderScale 0.8). Text, UI, characters and artworks are unaffected.
+        ///
+        /// Measured on Quest 3S, intro, 25 Sep 2026, cycling live with the X button:
+        ///   1.0  36-37 FPS, 20-22 ms   0.8  53-55 FPS, 15.4 ms
+        ///   0.7  59-65 FPS, 12.5-15.6  0.6  72-73 FPS, 11.5 ms (full rate)
+        /// 0.6 chosen by Saul. Cost seen in headset captures: softer fine detail (window bars,
+        /// petals) and the paving's tiny white specks turn into small squares.
         /// </summary>
-        public const float SplatResolutionScale = 0.8f;
+        public const float SplatResolutionScale = 0.6f;
 
         /// <summary>The steps the X button (F9 in the Editor) cycles through, for A/B in the headset.</summary>
         public static readonly float[] SplatScaleSteps = { 1.0f, 0.9f, 0.8f, 0.7f, 0.6f };
