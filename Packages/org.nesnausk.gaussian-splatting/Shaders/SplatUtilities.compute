@@ -193,7 +193,7 @@ void CSCalcViewData (uint3 id : SV_DispatchThreadID)
     if (idx >= _SplatCount)
         return;
 
-    SplatData splat = LoadSplatData(idx);
+    SplatData splat = LoadSplatData(idx, _SHOrder > 0);
     SplatViewData view = (SplatViewData)0;
     
     float3 centerWorldPos = mul(_MatrixObjectToWorld, float4(splat.pos,1)).xyz;

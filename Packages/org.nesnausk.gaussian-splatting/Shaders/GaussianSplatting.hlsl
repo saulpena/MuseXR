@@ -425,7 +425,11 @@ half4 LoadSplatColTex(uint3 coord)
     return _SplatColor.Load(coord);
 }
 
-SplatData LoadSplatData(uint idx)
+// loadSH = false skips the spherical-harmonics fetch and decode entirely (sh1..sh15 stay 0).
+// MuseXR: every world here is SH degree 0, so that buffer is all zeros, yet it was 32 of the
+// 48 bytes read per splat per eye. CSCalcViewData passes _SHOrder > 0; all other callers
+// keep the default and are unchanged.
+SplatData LoadSplatData(uint idx, bool loadSH = true)
 {
     SplatData s = (SplatData)0;
 
@@ -465,6 +469,8 @@ SplatData LoadSplatData(uint idx)
     s.scale     = LoadAndDecodeVector(_SplatOther, otherAddr + 4, scaleFmt);
     half4 col   = LoadSplatColTex(coord);
 
+    if (loadSH)
+    {
     uint shIndex = idx;
     if (shFormat > VECTOR_FMT_6)
         shIndex = LoadUShort(_SplatOther, otherAddr + otherStride - 2);
@@ -560,6 +566,7 @@ SplatData LoadSplatData(uint idx)
         s.sh.sh14 = DecodePacked_5_6_5(shRaw1.z >> 16);
         s.sh.sh15 = DecodePacked_5_6_5(shRaw1.w);
     }
+    } // loadSH
 
     // if raw data is chunk-relative, convert to final values by interpolating between chunk min/max
     uint chunkIdx = idx / kChunkSize;
@@ -582,7 +589,7 @@ SplatData LoadSplatData(uint idx)
         col   = lerp(colMin, colMax, col);
         col.a = InvSquareCentered01(col.a);
 
-        if (shFormat > VECTOR_FMT_32F && shFormat <= VECTOR_FMT_6)
+        if (loadSH && shFormat > VECTOR_FMT_32F && shFormat <= VECTOR_FMT_6)
         {
             s.sh.sh1    = lerp(shMin, shMax, s.sh.sh1 );
             s.sh.sh2    = lerp(shMin, shMax, s.sh.sh2 );

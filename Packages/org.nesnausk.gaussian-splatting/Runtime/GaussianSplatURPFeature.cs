@@ -36,6 +36,8 @@ namespace GaussianSplatting.Runtime
                 internal TextureHandle GaussianSplatRT;
             }
 
+            static int s_DiagPasses;
+
             public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
             {
                 using var builder = renderGraph.AddUnsafePass(ProfilerTag, out PassData passData);
@@ -47,6 +49,16 @@ namespace GaussianSplatting.Runtime
                 rtDesc.depthBufferBits = 0;
                 rtDesc.msaaSamples = 1;
                 rtDesc.graphicsFormat = GraphicsFormat.R16G16B16A16_SFloat;
+                // MuseXR diagnostic, render-neutral. CalcViewData sizes every splat from
+                // XRSettings.eyeTextureWidth, but the splats are drawn into THIS target, whose
+                // width is scaled by renderScale. If the two differ, every splat covers
+                // (eyeW / rtW)^2 times the pixels it should. Logged on passes 1, 100, 1000.
+                s_DiagPasses++;
+                if (s_DiagPasses == 1 || s_DiagPasses == 100 || s_DiagPasses == 1000)
+                    Debug.Log($"[SplatDiag] pass {s_DiagPasses}: splatRT {rtDesc.width}x{rtDesc.height} " +
+                              $"eyeTexture {UnityEngine.XR.XRSettings.eyeTextureWidth}x{UnityEngine.XR.XRSettings.eyeTextureHeight} " +
+                              $"camPixel {cameraData.camera.pixelWidth}x{cameraData.camera.pixelHeight} " +
+                              $"renderScale {cameraData.renderScale} xrEnabled {cameraData.xrRendering}");
                 var textureHandle = UniversalRenderer.CreateRenderGraphTexture(renderGraph, rtDesc, GaussianSplatRTName, true);
 
                 passData.CameraData = cameraData;

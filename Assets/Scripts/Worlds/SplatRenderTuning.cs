@@ -24,11 +24,12 @@ namespace MuseXR.Worlds
 
         /// <summary>
         /// Spherical-harmonics order evaluated per splat. Every Marble <c>.spz</c> in this project
-        /// is <c>shDegree 0</c> (read from the headers of all eight 500k sources), so bands 1-3
-        /// carry no data. Note the SH buffer is still LOADED by <c>LoadSplatData</c> whatever
-        /// this says; lowering it saves the shading maths only.
+        /// is <c>shDegree 0</c> (read from the headers of all nine 500k sources), so bands 1-3
+        /// carry no data. At 0 the embedded package's <c>CSCalcViewData</c> also skips fetching the
+        /// SH buffer (a local patch to <c>LoadSplatData</c>), which was 32 of the 48 bytes read per
+        /// splat per eye. Raise it only for content that genuinely carries SH.
         /// </summary>
-        public const int SHOrder = 3;
+        public const int SHOrder = 0;
 
         public static void Apply(GaussianSplatRenderer renderer)
         {
