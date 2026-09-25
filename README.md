@@ -14,6 +14,11 @@ Pre-Unity. The project scaffold is being prepared; the Unity project is created 
 Open questions, setup tasks and findings live on the project worklist rather than here —
 see `../CLAUDE.md` for the link.
 
+## Performance
+
+Splat worlds on standalone headsets, and how the intro reached 72 FPS on a Quest 3S:
+see [`PERFORMANCE.md`](PERFORMANCE.md).
+
 ## Layout
 
 This repo expects to sit beside the original:

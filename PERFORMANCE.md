@@ -1,0 +1,105 @@
+# Splat performance on standalone headsets
+
+How the intro went from **24 to 72 FPS on a Quest 3S** (25 Sep 2026), what each change costs,
+how it was measured, and how to take it further. Branch `perf/splat-framerate`.
+
+## Result
+
+Intro stage (Threshold Conservatory), release builds, Quest 3S, 72 Hz display.
+
+| Build | FPS | GPU ms/frame | Commit |
+|---|---|---|---|
+| Original (500k splats) | 24-25 | ~30 | `ee2943e` |
+| Visibility-pruned world (339,578) | 24-36, oscillating | 20.7-26.1 | `2cfe4ec` |
+| + one splat sort per frame | 36-37 | 17.9-24.6 | `2cfe4ec` |
+| + SH order 0, SH fetch skipped | 36-37 | 21.1-23.5 | `5852849` |
+| + splat layer at 0.8 of the target | 53-55 | 15.4 | `60d5cbf` |
+| + splat layer at 0.7 | 59-65 | 12.5-15.6 | `60d5cbf` |
+| **+ splat layer at 0.6 (default)** | **72-73** | **11.5** | `90409ed` |
+
+The last four rows were measured in one session by cycling the splat scale live, and 1.0 in that
+same session read 36-37 FPS / 20-22 ms, matching the build before the change.
+
+PICO 4 with the same build: 30 FPS of 90, ~30 ms GPU (22-23 FPS before). Not yet broken down.
+
+Reported in the headset after the change: the distortion under head movement that had been
+causing headaches has eased. An observation, not a measurement.
+
+## What each change does, and costs
+
+| Change | Where | Visible cost |
+|---|---|---|
+| **Visibility pruning.** Delete splats that never add 1/255 to any pixel from anywhere the head can be | `Tools/splat/prune.py`, world `grand-conservatory-garden-path-cut-500k` | None found: 0.000% of pixels move >8/255 on 40 held-out views; a random cut of the same size moves 13% |
+| **One sort per frame.** The package counts render *passes*; Multi Pass runs two a frame, so `SortNthPass = 2` sorts on the left eye and reuses it for the right | `SplatRenderTuning.SortNthPass` | None seen on fast head turns |
+| **SH order 0.** Every world here is SH degree 0, so the SH buffer is zeros; its fetch is now skipped | `SplatRenderTuning.SHOrder`, `LoadSplatData(idx, loadSH)` | None: Editor A/B max pixel difference 0 |
+| **Splat layer at reduced resolution.** Only the splats render smaller; text, UI and meshes keep full resolution | `GaussianSplatSettings.ResolutionScale`, `SplatRenderTuning.SplatResolutionScale` | At 0.6 fine splat detail is softer and the paving's tiny white specks become small squares |
+
+Everything else in the render pipeline is unchanged: URP `renderScale` stays 0.8, MSAA 1, HDR on.
+See `../CLAUDE.md`, "The render pipeline settings are load-bearing for splats".
+
+### The splat layer, in detail
+
+Changes are in the embedded package `Packages/org.nesnausk.gaussian-splatting` and all marked
+`MuseXR`. At scale 1.0 the package's original path runs unchanged.
+
+- The splat render target is sized by the scale; splat footprints stay in full-resolution pixel
+  units, so splats are the same size on screen.
+- Composite **pass 1** copies the camera depth to the splat target's size, keeping the
+  **farthest** depth of each 2x2 block. Geometry still hides the world behind it; at silhouettes
+  the world overlaps an object by about a pixel rather than leaving a gap.
+- Composite **pass 0** samples bilinearly and restores colour to the strongest of the four taps'
+  coverage. Without that, the premultiplied target blended twice drew a dark line along every
+  object edge.
+- Only Multi Pass (2D targets). Anything else falls back to the original path.
+
+## Controls for testing
+
+| Control | What it does | Log tag |
+|---|---|---|
+| Left **X** (F9 in the Editor) | Cycles the splat scale 1.0 / 0.9 / 0.8 / 0.7 / 0.6 live | `[SplatScale]` |
+| Launch flag `--ez musexr.capturePose true` (F10 in the Editor) | Capture mode: head tracking paused, camera fixed at the stage origin, 1.6 m, level. Two builds then give pixel-identical screenshots. Not for wearing | `[CapturePose]` |
+| always on | Splat target vs eye texture size, on passes 1 / 100 / 1000 | `[SplatDiag]` |
+
+The app also launches with the controllers asleep now: the manifest declares hand support
+(`Assets/Editor/Manifest/HandsLaunchManifest.cs`), which stops Quest's "Controller required"
+dialog and PICO's hand dialog. Verified on PICO 4. It only declares hands; input still comes from
+the controllers.
+
+## Measuring
+
+```bash
+# Quest: FPS and GPU time per second ("App=" is GPU ms)
+adb logcat -s VrApi:I | grep -o "FPS=[^,]*\|App=[^,]*"
+# Quest: GPU time split (fragments / vertices / compute) and bus load
+adb shell "ovrgpuprofiler -r=\"3,24,31,42\""
+# PICO: FPS and GPU time
+adb logcat -s PxrMetric:I
+# Both: a screenshot of both eyes
+adb exec-out screencap -p > shot.png          # from bash, never PowerShell
+# Capture mode for pixel-identical comparisons between builds
+adb shell am start -n com.musexr.impossiblemuseum/com.unity3d.player.UnityPlayerActivity --ez musexr.capturePose true
+```
+
+Before trusting any number, check the app is in front
+(`adb shell dumpsys activity activities | grep topResumedActivity`). With a system dialog up
+(controller required, tracking lost) the counters read the system shell, not the app.
+
+Traps met on the way:
+- **Editor captures misplace the splat layer** (bottom-left, the renderScale fraction). Judge
+  splat framing only from headset captures.
+- **An alignment check dominated by a static element proves nothing.** The lens border and the
+  OVR Metrics overlay made two headset captures look aligned when the head had moved. Match
+  scene features instead, or use capture mode.
+
+## Taking it further
+
+- **Prune the other worlds.** Each needs its movement area decided first: head-only stages cut
+  hard, walkable ones less. Same tools; validate at random positions inside the area, not just
+  the sampled ones.
+- **Measure the other stages.** Only the intro is measured. Walkable stages need a range and the
+  worst spot, not one number.
+- **PICO.** 30 FPS of 90 with GPU time pinned near 30 ms; find out whether that is real work or
+  the 90 Hz display. 72 Hz is a cheap test.
+- **Before building anything lossy**, model it in `Tools/splat` first (`pixel_options.py`
+  measures fragments saved against image change). A per-splat size cap was ruled out that way:
+  2-13% saved for visible damage.
