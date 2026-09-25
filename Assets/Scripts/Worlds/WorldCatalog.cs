@@ -190,6 +190,12 @@ namespace MuseXR.Worlds
             //        0 -> the back of the terrace, trees and a balustrade.
             Small_("grand-conservatory-garden-path", "Threshold Conservatory",
                    1.7f, Vector2.zero, 0f, 180f, 400f),
+            // The same capture, visibility-pruned for a visitor who does not walk: 339,578 of
+            // 500,000 splats kept, every one of which adds at least 1/255 to some pixel from a
+            // head anywhere within 0.3 m of the spawn at 1.2-1.9 m. Built by Tools/splat/prune.py
+            // and checked on held-out views by validate.py. Same frame, so the same spawn.
+            Small_("grand-conservatory-garden-path-cut", "Threshold Conservatory (pruned)",
+                   1.7f, Vector2.zero, 0f, 180f, 400f),
         };
 
         /// <summary>

@@ -163,6 +163,7 @@ namespace MuseXR.Worlds
             renderer.m_ShaderDebugPoints = shaderDebugPoints;
             renderer.m_ShaderDebugBoxes = shaderDebugBoxes;
             renderer.m_CSSplatUtilities = csSplatUtilities;
+            SplatRenderTuning.Apply(renderer);
             // Resources are built in OnEnable, which ran before the asset and shaders were
             // assigned — without this toggle the renderer draws nothing at all, silently.
             renderer.enabled = false;
@@ -173,7 +174,8 @@ namespace MuseXR.Worlds
             LastLoadSeconds = Time.realtimeSinceStartup - startedAt;
             SetLabel($"{world.displayName}\n{asset.splatCount:N0} splats");
             Debug.Log($"[WorldCycler] {world.displayName}: {asset.splatCount:N0} splats, " +
-                      $"ready in {LastLoadSeconds:F2}s");
+                      $"ready in {LastLoadSeconds:F2}s, sortNthPass={renderer.m_SortNthFrame} " +
+                      $"shOrder={renderer.m_SHOrder}");
             WorldChanged?.Invoke(world);
         }
 

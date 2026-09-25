@@ -55,6 +55,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: bae897d712cf5b34c84cc67ad3712f63
+    m_Address: grand-conservatory-garden-path-cut-500k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ed4271df558724a48bab5837b06311b3
     m_Address: fantasy-realm-of-shimmering-spheres-500k
     m_ReadOnly: 0

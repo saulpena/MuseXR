@@ -122,3 +122,9 @@ sysinfo.txt
 # Verification screenshots. *.png is LFS-tracked here; these must not eat the quota.
 /[Aa]ssets/Screenshots/
 /[Aa]ssets/Screenshots.meta
+
+# Python venvs for Tools/ scripts (splat pruning etc.) — recreated from each folder's README
+.venv/
+__pycache__/
+/Captures/
+/Tools/splat/out/
