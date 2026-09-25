@@ -90,7 +90,7 @@ class Renderer:
 
     @torch.no_grad()
     def render(self, eye, yaw, pitch, fov_v, width, height, image=False, tile=256,
-               pair_budget=40_000_000):
+               pair_budget=40_000_000, max_axis_px=None):
         g = self.g
         basis = torch.tensor(camera_basis(yaw, pitch), dtype=torch.float32, device=DEV)
         eye_t = torch.tensor(eye, dtype=torch.float32, device=DEV)
@@ -128,6 +128,10 @@ class Renderer:
                          torch.tensor([1.0, 0.0], device=DEV).expand_as(e1))
         e2 = torch.stack([-e1[:, 1], e1[:, 0]], 1)
         s1, s2 = torch.sqrt(2 * l1), torch.sqrt(2 * l2)
+        if max_axis_px is not None:
+            # Candidate pixel-cost fix, NOT in the package: cap each axis's 1-sigma*sqrt(2)
+            # length in pixels (the package caps at 4096, i.e. never).
+            s1, s2 = s1.clamp(max=max_axis_px), s2.clamp(max=max_axis_px)
 
         u = width / 2 + f * pc[:, 0] / z
         v = height / 2 - f * pc[:, 1] / z
