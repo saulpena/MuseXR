@@ -32,6 +32,46 @@ namespace MusePico.Tests.EditMode
         }
 
         [Test]
+        public void SplatScale_CyclesThroughEveryStepAndWraps()
+        {
+            float s = SplatRenderTuning.SplatScaleSteps[0];
+            var seen = new System.Collections.Generic.List<float> { s };
+            for (int i = 1; i < SplatRenderTuning.SplatScaleSteps.Length; i++)
+                seen.Add(s = SplatRenderTuning.NextSplatScale(s));
+            CollectionAssert.AreEqual(SplatRenderTuning.SplatScaleSteps, seen);
+            Assert.AreEqual(SplatRenderTuning.SplatScaleSteps[0], SplatRenderTuning.NextSplatScale(s), "must wrap");
+        }
+
+        [Test]
+        public void SplatScale_UnknownValueRestartsTheCycle()
+        {
+            Assert.AreEqual(SplatRenderTuning.SplatScaleSteps[0], SplatRenderTuning.NextSplatScale(0.123f));
+        }
+
+        [Test]
+        public void SplatScale_DefaultIsAStep_AndEveryStepIsWithinTheSupportedRange()
+        {
+            CollectionAssert.Contains(SplatRenderTuning.SplatScaleSteps, SplatRenderTuning.SplatResolutionScale);
+            foreach (var s in SplatRenderTuning.SplatScaleSteps)
+                Assert.That(s, Is.InRange(GaussianSplatSettings.MinScale, 1f));
+            CollectionAssert.Contains(SplatRenderTuning.SplatScaleSteps, 1f, "1.0 must stay reachable for A/B");
+        }
+
+        [Test]
+        public void Settings_ClampOutOfRangeScales()
+        {
+            float keep = GaussianSplatSettings.ResolutionScale;
+            try
+            {
+                GaussianSplatSettings.ResolutionScale = 0.1f;
+                Assert.AreEqual(GaussianSplatSettings.MinScale, GaussianSplatSettings.ResolutionScale);
+                GaussianSplatSettings.ResolutionScale = 3f;
+                Assert.AreEqual(1f, GaussianSplatSettings.ResolutionScale);
+            }
+            finally { GaussianSplatSettings.ResolutionScale = keep; }
+        }
+
+        [Test]
         public void SHOrderIsAValidBand()
         {
             Assert.That(SplatRenderTuning.SHOrder, Is.InRange(0, 3));

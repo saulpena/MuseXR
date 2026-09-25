@@ -36,5 +36,25 @@ namespace MuseXR.Worlds
             renderer.m_SortNthFrame = SortNthPass;
             renderer.m_SHOrder = SHOrder;
         }
+
+        /// <summary>
+        /// Resolution of the splat layer only, relative to the camera target (itself at URP
+        /// renderScale 0.8). Text, UI, characters and artworks are unaffected. Measured on Quest 3S:
+        /// a probe of renderScale 0.65 for EVERYTHING took the intro from 36 to 54-57 FPS; 0.8 here
+        /// gives the splats that same resolution (0.8 x 0.8 = 0.64) and leaves the rest sharp.
+        /// </summary>
+        public const float SplatResolutionScale = 0.8f;
+
+        /// <summary>The steps the X button (F9 in the Editor) cycles through, for A/B in the headset.</summary>
+        public static readonly float[] SplatScaleSteps = { 1.0f, 0.9f, 0.8f, 0.7f, 0.6f };
+
+        /// <summary>The step after <paramref name="current"/>, wrapping; the first step if it is not one.</summary>
+        public static float NextSplatScale(float current)
+        {
+            for (int i = 0; i < SplatScaleSteps.Length; i++)
+                if (UnityEngine.Mathf.Abs(SplatScaleSteps[i] - current) < 0.001f)
+                    return SplatScaleSteps[(i + 1) % SplatScaleSteps.Length];
+            return SplatScaleSteps[0];
+        }
     }
 }

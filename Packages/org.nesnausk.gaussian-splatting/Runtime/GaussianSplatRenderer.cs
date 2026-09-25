@@ -25,6 +25,19 @@ namespace GaussianSplatting.Runtime
         public static GaussianSplatRenderSystem instance => ms_Instance ??= new GaussianSplatRenderSystem();
         static GaussianSplatRenderSystem ms_Instance;
 
+        // MuseXR: the reduced-resolution path needs the composite material (its depth-copy pass)
+        // BEFORE the splats are drawn; SortAndRenderSplats only hands it back afterwards.
+        internal Material CompositeMaterialForActiveSplats()
+        {
+            foreach (var kvp in m_ActiveSplats)
+            {
+                kvp.Item1.EnsureMaterials();
+                if (kvp.Item1.m_MatComposite != null)
+                    return kvp.Item1.m_MatComposite;
+            }
+            return null;
+        }
+
         readonly Dictionary<GaussianSplatRenderer, MaterialPropertyBlock> m_Splats = new();
         readonly HashSet<Camera> m_CameraCommandBuffersDone = new();
         readonly List<(GaussianSplatRenderer, MaterialPropertyBlock)> m_ActiveSplats = new();

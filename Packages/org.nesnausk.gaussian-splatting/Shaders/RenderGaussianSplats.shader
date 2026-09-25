@@ -31,6 +31,10 @@ struct v2f
 StructuredBuffer<SplatViewData> _SplatViewData;
 ByteAddressBuffer _SplatSelectedBits;
 uint _SplatBitsValid;
+// MuseXR reduced-resolution splat layer: splat footprints stay in full-resolution pixel units
+// (the units CalcViewData computed them in) whatever size the target they land in.
+float4 _GaussianSplatScreenSize;
+float _GaussianSplatScaled;
 
 v2f vert (uint vtxID : SV_VertexID, uint instID : SV_InstanceID)
 {
@@ -56,7 +60,8 @@ v2f vert (uint vtxID : SV_VertexID, uint instID : SV_InstanceID)
 
 		o.pos = quadPos;
 
-		float2 deltaScreenPos = (quadPos.x * view.axis1 + quadPos.y * view.axis2) * 2 / _ScreenParams.xy;
+		float2 screenSize = _GaussianSplatScaled > 0 ? _GaussianSplatScreenSize.xy : _ScreenParams.xy;
+		float2 deltaScreenPos = (quadPos.x * view.axis1 + quadPos.y * view.axis2) * 2 / screenSize;
 		o.vertex = centerClipPos;
 		o.vertex.xy += deltaScreenPos * centerClipPos.w;
 
