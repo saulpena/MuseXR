@@ -42,8 +42,13 @@ KEYCODE_F9` with nobody touching the headset. Test builds: branches `probe/peach
 | **0.6 (default)** | **56-58 FPS, 15.1 ms** | **36-48 FPS, 17.5 ms** |
 
 - **The props cost 1.4-2.4 ms per frame** at every scale — about 2 ms at the default, enough to
-  fall off the 57 FPS step. Their textures ship uncompressed (the build report lists 93 MB for the
-  four), so compressing them is the first thing to try.
+  fall off the 57 FPS step.
+- **Compressing their textures did NOT change that** (tested, `probe/peach-objects-astc`): 17.5 ms
+  at 0.6 either way, and every scale within 0.2 ms. Moving the textures out of the .glb so Unity
+  compresses them (ASTC 6x6) cut textures in the build from 158 to 86.5 MB and the APK by 32 MB,
+  with no visible difference in headset crops — worth keeping for memory, but it is not where the
+  frame time goes. The GPU split points at pixel shading instead: fragments rose from 44% to 51%
+  of GPU time with the props, i.e. glTFast's full PBR material on large objects.
 - **The world misses 72 FPS on its own** because it is not pruned yet: compute is 41% of GPU time
   against 21% on the pruned intro. The first scan says about half its splats are invisible from
   the spawn. Waiting on the Marble collider and a real spawn.
