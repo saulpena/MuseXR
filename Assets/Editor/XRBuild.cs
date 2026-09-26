@@ -231,9 +231,50 @@ namespace MuseXR.EditorTools
             return false;
         }
 
+        /// <summary>
+        /// Addressables' content build calls <c>BuildUtility.CheckModifiedScenesAndAskToSave</c>,
+        /// which raises a modal "Unsaved Scenes — Save and Continue" dialog if ANY open scene is
+        /// flagged dirty. Driven from the MCP bridge with nobody at the Editor, the build then waits
+        /// forever with no log line (measured twice, 25-26 Sep 2026).
+        ///
+        /// The flag is often spurious: Museum.unity was flagged dirty minutes after a save, and a
+        /// save-as-copy of it diffed to ZERO lines against the file on disk. So: a dirty scene whose
+        /// serialized content matches disk is saved (writes nothing new, clears the flag); a dirty
+        /// scene with real changes stops the build with an error instead of saving unknown edits.
+        /// </summary>
+        static bool GuardScenes()
+        {
+            var realChanges = new List<string>();
+            for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; i++)
+            {
+                var scene = UnityEngine.SceneManagement.SceneManager.GetSceneAt(i);
+                if (!scene.isDirty) continue;
+                if (string.IsNullOrEmpty(scene.path)) { realChanges.Add("(untitled scene)"); continue; }
+
+                string copy = Path.Combine("Temp", "XRBuild_scenecheck.unity");
+                UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene, copy, true);
+                bool same = NormalisedText(copy) == NormalisedText(scene.path);
+                File.Delete(copy);
+
+                if (same)
+                {
+                    UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene);
+                    Debug.Log($"[XRBuild] {scene.path} was flagged modified but matches disk; saved to clear the flag");
+                }
+                else realChanges.Add(scene.path);
+            }
+            if (realChanges.Count == 0) return true;
+            Debug.LogError("[XRBuild] unsaved changes in " + string.Join(", ", realChanges) + ". Save or revert " +
+                           "them first. Refusing to build: Addressables would block on a modal save dialog, and " +
+                           "this build will not save edits nobody has looked at.");
+            return false;
+        }
+
+        static string NormalisedText(string path) => File.ReadAllText(path).Replace("\r\n", "\n");
+
         static void BuildOne(Vendor vendor, Target target)
         {
-            if (!GuardProfile(vendor)) return;
+            if (!GuardProfile(vendor) || !GuardScenes()) return;
             Build(vendor, target);
         }
 
@@ -242,7 +283,7 @@ namespace MuseXR.EditorTools
         /// that kills the batch. Switch vendor, let the reload finish, then run this.</summary>
         static void BuildAllFor(Vendor vendor)
         {
-            if (!GuardProfile(vendor)) return;
+            if (!GuardProfile(vendor) || !GuardScenes()) return;
 
             var results = new List<string>();
             foreach (var t in CoreTargets)
