@@ -22,7 +22,7 @@ namespace MuseXR.Worlds
     public sealed class CapturePose : MonoBehaviour
     {
         public const float EyeHeight = 1.6f;
-        public const string IntentExtra = "musexr.capturePose";
+        public const string IntentExtra = LaunchOptions.CapturePoseExtra;
 
         InputAction _toggle;
         XROrigin _origin;
@@ -83,24 +83,6 @@ namespace MuseXR.Worlds
             return true;
         }
 
-        static bool LaunchedWithCaptureFlag()
-        {
-#if UNITY_ANDROID && !UNITY_EDITOR
-            try
-            {
-                using var player = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
-                using var activity = player.GetStatic<AndroidJavaObject>("currentActivity");
-                using var intent = activity.Call<AndroidJavaObject>("getIntent");
-                return intent.Call<bool>("getBooleanExtra", IntentExtra, false);
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogWarning("[CapturePose] could not read the launch intent: " + e.Message);
-                return false;
-            }
-#else
-            return false;
-#endif
-        }
+        static bool LaunchedWithCaptureFlag() => LaunchOptions.CapturePose;
     }
 }

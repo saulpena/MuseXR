@@ -468,14 +468,19 @@ namespace MusePico.Journey
         /// until stage 04 — so it is scenery, and it loads once and stays up through 00 to 03
         /// rather than being torn down and rebuilt between beats.
         /// </summary>
+        /// <summary>The scene's homeWorldKey unless the launch intent names another world
+        /// (<c>--es musexr.homeWorld &lt;key&gt;</c>), so test builds need no scene edits.</summary>
+        string HomeWorldKey => MuseXR.Worlds.LaunchOptions.HomeWorldOverride ?? homeWorldKey;
+
         void OpenHomeWorld()
         {
-            if (worlds == null || string.IsNullOrEmpty(homeWorldKey)) return;
-            if (_requestedWorldKey == homeWorldKey) return;
+            var home = HomeWorldKey;
+            if (worlds == null || string.IsNullOrEmpty(home)) return;
+            if (_requestedWorldKey == home) return;
 
-            _requestedWorldKey = homeWorldKey;
+            _requestedWorldKey = home;
             if (_worldLoad != null) StopCoroutine(_worldLoad);
-            _worldLoad = StartCoroutine(worlds.ShowWorldByKey(homeWorldKey));
+            _worldLoad = StartCoroutine(worlds.ShowWorldByKey(home));
         }
 
         /// <summary>
