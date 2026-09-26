@@ -197,12 +197,16 @@ namespace MuseXR.Worlds
             Small_("grand-conservatory-garden-path-cut", "Threshold Conservatory (pruned)",
                    1.7f, Vector2.zero, 0f, 180f, 400f),
             // Chapter 01's chosen world (see ExhibitionSpine). Downloaded by Saul 25 Sep 2026,
-            // SPZ v2, 500,000 splats, sh 0. PROVISIONAL spawn: the origin, where the splats under
-            // the eye are the LAKE SURFACE (y ~ 0) — the visitor stands on water until the Marble
-            // collider arrives and a spot on land is chosen. yaw 0 faces the temple on its hill.
+            // SPZ v2, 500,000 splats, sh 0. Spawn on the white stone plaza south of the lake
+            // (26 Sep 2026): white splats form a flat surface at y 2.3 m (p10-p90 within 0.3 m)
+            // from z -4 to -18 m; at z -11 m the view is open all round — lake, temple, waterfalls
+            // and the props ahead over the balustrade, pavilions behind, a blossom tree to the
+            // left. Chosen from offline renders (Tools/splat/splatvis). The origin, used before,
+            // put the eye on the lake surface. Still no Marble collider, so the floor is the flat
+            // fallback at groundY. yaw 0 faces the temple on its hill.
             // cameraFar 1000: the sky sits beyond 400 m and a 400 m clip left black holes in it.
             Small_("celestial-peach-blossom-paradise", "Celestial Peach Blossom Paradise",
-                   1.7f, Vector2.zero, 0f, 0f, 1000f),
+                   1.7f, new Vector2(1f / 1.7f, -11f / 1.7f), 2.3f / 1.7f, 0f, 1000f),
         };
 
         /// <summary>
