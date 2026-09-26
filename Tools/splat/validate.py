@@ -34,6 +34,7 @@ def main():
     ap.add_argument("--heights", default="1.2,1.9")
     ap.add_argument("--seed", type=int, default=12345)
     ap.add_argument("--bad-cut", action="store_true")
+    ap.add_argument("--far", type=float, default=400.0)
     a = ap.parse_args()
     os.makedirs(a.out_dir, exist_ok=True)
 
@@ -47,7 +48,7 @@ def main():
             gp[k] = gp[k][~drop]
         gp["n"] = int((~drop).sum())
         label += "-BADCUT"
-    ro, rp = splatvis.Renderer(go), splatvis.Renderer(gp)
+    ro, rp = splatvis.Renderer(go, far=a.far), splatvis.Renderer(gp, far=a.far)
 
     rng = np.random.default_rng(a.seed)
     lo, hi = [float(h) for h in a.heights.split(",")]

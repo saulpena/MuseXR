@@ -62,11 +62,12 @@ def main():
     ap.add_argument("--radius", type=float, default=0.3)
     ap.add_argument("--heights", default="1.2,1.6,1.9")
     ap.add_argument("--yaw-step", type=int, default=30)
+    ap.add_argument("--far", type=float, default=400.0, help="the world's cameraFar in WorldCatalog")
     a = ap.parse_args()
     os.makedirs(a.out_dir, exist_ok=True)
 
     g = splatvis.load_spz(a.src)
-    r = splatvis.Renderer(g)
+    r = splatvis.Renderer(g, far=a.far)
     eyes = head_positions(a.radius, [float(h) for h in a.heights.split(",")])
     dirs = directions(a.yaw_step)
     t0, done = time.time(), 0
