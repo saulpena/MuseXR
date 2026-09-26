@@ -203,7 +203,7 @@ namespace MusePico.Journey
                 // Only once the world is up does the visitor have a floor; only then may they walk.
                 worlds.WorldChanged += loaded =>
                 {
-                    SetWalking(Walks(Journey.Current));
+                    SetWalking(WalkingAllowed(Journey.Current, FreeWalk, floorReady: true));
                     HangChapterWall(loaded); // her syncSceneWall: four new works per chapter
                     RebuildTour();           // the spawn moved, so the walk order did too
                 };
@@ -413,6 +413,8 @@ namespace MusePico.Journey
             SetWalking(false);
             if (walks) OpenChapter();
             else OpenHomeWorld();
+            // A stage that keeps the world already loaded gets no WorldChanged, so decide here too.
+            SetWalking(WalkingAllowed(stage, FreeWalk, FloorReady));
             if (stage == Stage.WorldTransformation) _transformationStarted = Time.time;
             if (stage == Stage.Roundtable) RequestRoundtable();
 
@@ -428,7 +430,16 @@ namespace MusePico.Journey
         // XR Interaction Toolkit samples and drop its prefab in the scene; there is no code path.
 
         /// <summary>The stages the visitor walks. Hers: only <c>world_exploration</c>.</summary>
-        public static bool Walks(Stage stage) => stage == Stage.WorldExploration;
+        public static bool Walks(Stage stage) => WalkingRule.Walks(stage);
+
+        static bool WalkingAllowed(Stage stage, bool freeWalk, bool floorReady) =>
+            WalkingRule.Allowed(stage, freeWalk, floorReady);
+
+        static bool FreeWalk => MuseXR.Worlds.LaunchOptions.FreeWalk;
+
+        /// <summary>The world we asked for has arrived, so its floor exists.</summary>
+        bool FloorReady => worlds != null && worlds.Current != null &&
+                           worlds.Current.key == _requestedWorldKey;
 
         void SetWalking(bool on)
         {

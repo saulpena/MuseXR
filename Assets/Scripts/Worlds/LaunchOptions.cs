@@ -16,11 +16,18 @@ namespace MuseXR.Worlds
     {
         public const string CapturePoseExtra = "musexr.capturePose";
         public const string HomeWorldExtra = "musexr.homeWorld";
+        public const string FreeWalkExtra = "musexr.freeWalk";
 
         /// <summary>World to open in the opening stages instead of the scene's homeWorldKey; null = no override.</summary>
         public static string HomeWorldOverride => Validated(StringExtra(HomeWorldExtra));
 
         public static bool CapturePose => BoolExtra(CapturePoseExtra);
+
+        /// <summary>
+        /// Walk in every stage once the world's floor exists, not only in the gallery stage. For
+        /// recording and testing a world on foot without playing through the journey first.
+        /// </summary>
+        public static bool FreeWalk => BoolExtra(FreeWalkExtra);
 
         /// <summary>
         /// Only a key the catalog knows is honoured: a typo on the command line would otherwise load
