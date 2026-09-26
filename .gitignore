@@ -131,3 +131,6 @@ __pycache__/
 
 # Raw Tripo downloads (~80 MB each); the decimated copies in Assets/Props are committed
 /Tools/props/src/
+/Tools/props/node_modules/
+/Tools/props/glb_backup/
+/Tools/props/out/

@@ -1,0 +1,10 @@
+{
+  "name": "musexr-props-tools",
+  "private": true,
+  "type": "module",
+  "description": "Unpack decimated .glb props into .gltf + external images so Unity compresses the textures",
+  "dependencies": {
+    "@gltf-transform/core": "^4.1.0",
+    "@gltf-transform/extensions": "^4.1.0"
+  }
+}
