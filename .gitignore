@@ -128,3 +128,6 @@ sysinfo.txt
 __pycache__/
 /Captures/
 /Tools/splat/out/
+
+# Raw Tripo downloads (~80 MB each); the decimated copies in Assets/Props are committed
+/Tools/props/src/
