@@ -347,6 +347,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -2153486308593863364, guid: 2f523fa0f47a8a5498bb7dcf5fcf4c90, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: ad5fed44add29bb4cad9d8707c147ab1, type: 2}
     - target: {fileID: -137202181586228256, guid: 2f523fa0f47a8a5498bb7dcf5fcf4c90, type: 3}
       propertyPath: m_Name
       value: golden-buddha-statues
@@ -579,6 +583,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7692789500901429431, guid: c454b997e99031746ae31917769290d2, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 149c60c82e319e94ea1c67cb49f33017, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1054,6 +1062,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6775652590764811158, guid: ef28b8731b26f8047ba241752bcc4193, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 6a273760c586f5d479ba50f0c5b3627e, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1438,6 +1450,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -8082165456026367168, guid: 5a3ca4985acf5ae47bf6c1433215ad15, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 4db2e5276583b1741a588f8e655aa1e7, type: 2}
     - target: {fileID: 4114772495404126876, guid: 5a3ca4985acf5ae47bf6c1433215ad15, type: 3}
       propertyPath: m_Name
       value: chinese-temple
