@@ -43,6 +43,9 @@ echo "$LOG" | grep -aq "CapturePose\] ON" || die "capture mode did not engage"
 LOADED=$(echo "$LOG" | grep -a "\[WorldCycler\]" | tail -1 | sed 's/.*\[WorldCycler\] //')
 PROPS=$(echo "$LOG" | grep -a "\[WorldProps\]" | tail -1 | sed 's/.*\[WorldProps\] //')
 echo "world: $LOADED"; [ -n "$PROPS" ] && echo "props: $PROPS"
+TRADE=$(adb logcat -d | grep -a -m1 -o "tradeCpuForGpu is [-0-9]*")
+echo "cpu/gpu trade: ${TRADE:-not reported (0)}"
+levels() { adb logcat -d -s VrApi:I | grep -a "FPS=" | tail -1 | grep -ao "CPU4/GPU=[^,]*,[^,]*\|CPU%=[^(,]*\|GPU%=[^,]*" | paste -sd' '; }
 
 scale() { adb logcat -d -s Unity:I | grep -a "\[SplatScale\]" | tail -1 | grep -ao "layer [0-9.]*" | awk '{print $2}'; }
 sample() {  # prints: fps_avg fps_min fps_max gpu_ms
@@ -64,7 +67,7 @@ for i in 1 2 3 4 5 6; do
   if [ -z "${SEEN[$S]:-}" ]; then
     SEEN[$S]=1
     read FA FL FH G < <(sample)
-    printf "  splat %-5s FPS %s (%s-%s)  GPU %s ms\n" "$S" "$FA" "$FL" "$FH" "$G"
+    printf "  splat %-5s FPS %s (%s-%s)  GPU %s ms   [%s]\n" "$S" "$FA" "$FL" "$FH" "$G" "$(levels)"
     echo "$ID,$DATE,$COMMIT,$LOCAL_MD5,$MODEL,${WORLD:-default},$S,$FA,$FL,$FH,$G,\"$VAR\"" >> "$CSV"
   fi
   adb shell input keyevent KEYCODE_F9; sleep 3

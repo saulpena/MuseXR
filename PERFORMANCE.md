@@ -52,6 +52,8 @@ more than 0.7 ms worse (the run-to-run noise measured by T10 vs T11).
 | T13 | `9dc7221` (tag `perf-baseline/T13`) | *Baseline* before the sort test: T12 build re-measured on both worlds | peach / intro | 48-49 FPS, 15.9 ms / 72-73 FPS, 11.7 ms | 36-37, 24.0 ms / 35-37, 22.7 ms | reproduces T12 (≤0.3 ms) and T07 | **baseline** — `compare.sh` checks later runs against it |
 | T14 | `b007009` | Sort splats every other frame (`SortNthPass` 2 → 4) | peach | **62 FPS steady, 14.3 ms** (−1.6) | 35-37 FPS, 22.4 ms (−1.6) | static view identical (0.4% px >8/255, overlay only); compute 43 → 32% | pending Saul's head-turn check |
 | T14 | `b007009` | same build | intro | 72-73 FPS, **10.5 ms** (−1.2); 0.7 now also holds 72 | 37 FPS, 21.1 ms (−1.6) | static view identical (1.7% px, overlay only) | pending Saul's head-turn check |
+| T15 | `9f25b63` | Quest trades one CPU level for one GPU level (`com.oculus.trade_cpu_for_gpu_amount=1`), on top of T14 | peach | **69-70 FPS, 13.2 ms** (−1.1 vs T14, −2.7 vs baseline) | 36-37 FPS, 20.7 ms | GPU level 4 → **5**, 545 → **599 MHz**; CPU stays level 2-3, <30% busy. Capture differs only by a sub-pixel shift (whole-frame edge outlines) | **kept** pending the T14 head-turn check; thermals over a long session unmeasured |
+| T15 | `9f25b63` | same build | intro | 72-73 FPS, **9.7 ms** (−0.8 vs T14, −2.0 vs baseline) | 36-37 FPS, 21.0 ms | same levels; capture 0.03% px changed | as above |
 
 ¹ Built from an uncommitted one-line state (sort change held back), so it cannot be checked out
 exactly. From T11 on every test is committed before it is built.
@@ -140,6 +142,9 @@ adb exec-out screencap -p > shot.png          # from bash, never PowerShell
 # Capture mode for pixel-identical comparisons between builds
 adb shell am start -n com.musexr.impossiblemuseum/com.unity3d.player.UnityPlayerActivity --ez musexr.capturePose true
 ```
+
+The script also prints the CPU/GPU clock levels per scale (`CPU4/GPU=cpu/gpu,MHz`) and whether the
+CPU-for-GPU trade is active (`tradeCpuForGpu is 1`).
 
 Before trusting any number, check the app is in front
 (`adb shell dumpsys activity activities | grep topResumedActivity`). With a system dialog up
