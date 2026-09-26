@@ -23,12 +23,13 @@ namespace MusePico.Tests.EditMode
             finally { Object.DestroyImmediate(go); }
         }
 
-        /// The package counts render passes, and Multi Pass runs two a frame. Only 1 and 2 keep
-        /// the same eye doing the sorting every frame; 3+ alternates it.
+        /// The package counts render passes, and Multi Pass runs two a frame. 1 sorts for each
+        /// eye; an even value always lands on the left eye; an odd value above 1 alternates eyes.
         [Test]
         public void SortIntervalNeverAlternatesTheSortingEye()
         {
-            Assert.That(SplatRenderTuning.SortNthPass, Is.InRange(1, 2));
+            int n = SplatRenderTuning.SortNthPass;
+            Assert.That(n == 1 || (n > 0 && n % 2 == 0), $"SortNthPass {n} alternates the sorting eye");
         }
 
         [Test]

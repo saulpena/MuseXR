@@ -17,10 +17,12 @@ namespace MuseXR.Worlds
         /// per pass, and Multi Pass renders the camera twice per frame, so:
         /// 1 = sort for each eye (package default, two 500k sorts a frame);
         /// 2 = sort for the left eye and reuse that order for the right â€” once per frame;
-        /// 3+ = which eye sorts alternates frame to frame.
-        /// The eyes are ~63 mm apart, so one shared order is visually equivalent.
+        /// 4 = the left eye of every other frame — one sort per two frames (test T14);
+        /// odd values above 1 alternate which eye sorts, so they are never used.
+        /// The eyes are ~63 mm apart, so one shared order is visually equivalent. Across frames
+        /// the order goes stale as the head turns; that is what T14 measures and looks for.
         /// </summary>
-        public const int SortNthPass = 2;
+        public const int SortNthPass = 4;
 
         /// <summary>
         /// Spherical-harmonics order evaluated per splat. Every Marble <c>.spz</c> in this project
