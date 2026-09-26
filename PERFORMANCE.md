@@ -46,7 +46,7 @@ are in `Tools/perf/results.csv`.
 | T09 | `99d9c24` | + 4 Tripo props (210k tris, textures uncompressed) | peach | 36-48 FPS, 17.5 ms | 30-32 FPS, 25.9 ms | props read well, float on the lake | content kept |
 | T10 | `ae13fb8` | Props' textures compressed (ASTC 6x6) | peach | 36-48 FPS, 17.5 ms | 30 FPS, 25.8 ms | no visible difference; APK −32 MB | **kept** (memory, not speed) |
 | T11 | `2d1c335` | *Pipeline check:* committed code + launch-option world, no scene edit | peach | 36-49 FPS, 17.3 ms | 30-33 FPS, 25.2 ms | fixed view identical to T10 (0.52/255) | **method validated** — every scale within 0.6 ms of T10 |
-| T12 | `384592d` | Props material: glTF PBR → URP Simple Lit | peach | **48-49 FPS, 16.0 ms** | 36-37 FPS, 24.0 ms | headset crops: the big buddha loses its metallic highlights and reads flatter, more orange; the golden-buddha group and temple near-identical | **pending Saul's look** — 0.9-1.3 ms saved at every scale |
+| T12 | `384592d` | Props material: glTF PBR → URP Simple Lit | peach | **48-49 FPS, 16.0 ms** | 36-37 FPS, 24.0 ms | headset crops: the big buddha loses its metallic highlights and reads flatter, more orange; the golden-buddha group and temple near-identical | **research** — kept as the comparison point for the replacement props (due 27 Sep); 0.9-1.3 ms saved at every scale |
 
 ¹ Built from an uncommitted one-line state (sort change held back), so it cannot be checked out
 exactly. From T11 on every test is committed before it is built.
