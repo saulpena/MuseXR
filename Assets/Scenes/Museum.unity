@@ -1302,7 +1302,7 @@ MonoBehaviour:
   artworkHeight: 1.4
   GalleryReach: 14
   wallAnchors: {fileID: 11400000, guid: cc44c1f4027fa294286fa267fa524441, type: 2}
-  homeWorldKey: grand-conservatory-garden-path-cut-500k
+  homeWorldKey: celestial-peach-blossom-paradise-500k
   dialogue: {fileID: 40427850}
   voice: {fileID: 40427852}
   score: {fileID: 455511207}
