@@ -25,6 +25,31 @@ PICO 4 with the same build: 30 FPS of 90, ~30 ms GPU (22-23 FPS before). Not yet
 Reported in the headset after the change: the distortion under head movement that had been
 causing headaches has eased. An observation, not a measurement.
 
+## Celestial Peach Blossom Paradise, 26 Sep 2026
+
+Chapter 01's world, unpruned (500,000 splats), with and without the four Tripo props
+(`Assets/Props/Peach`, 210k triangles). Quest 3S, both builds launched in **capture mode** so the
+view is identical (the screenshots line up exactly), splat scale stepped by `adb shell input keyevent
+KEYCODE_F9` with nobody touching the headset. Test builds: branches `probe/peach-home` and
+`probe/peach-objects`.
+
+| Splat scale | World alone | + 4 props |
+|---|---|---|
+| 1.0 | 28-37 FPS, 24.5 ms | 30-32 FPS, 25.9 ms |
+| 0.9 | 36 FPS, 21.2 ms | 36-37 FPS, 22.9 ms |
+| 0.8 | 36-37 FPS, 18.5 ms | 36-37 FPS, 20.3 ms |
+| 0.7 | 39-49 FPS, 16.7 ms | 36-37 FPS, 18.4 ms |
+| **0.6 (default)** | **56-58 FPS, 15.1 ms** | **36-48 FPS, 17.5 ms** |
+
+- **The props cost 1.4-2.4 ms per frame** at every scale — about 2 ms at the default, enough to
+  fall off the 57 FPS step. Their textures ship uncompressed (the build report lists 93 MB for the
+  four), so compressing them is the first thing to try.
+- **The world misses 72 FPS on its own** because it is not pruned yet: compute is 41% of GPU time
+  against 21% on the pruned intro. The first scan says about half its splats are invisible from
+  the spawn. Waiting on the Marble collider and a real spawn.
+- Capture mode is for the desk only. Worn, it looks like the whole world is stuck to your head,
+  which it is: head tracking is paused.
+
 ## What each change does, and costs
 
 | Change | Where | Visible cost |
