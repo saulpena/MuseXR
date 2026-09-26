@@ -334,6 +334,30 @@ namespace MusePico.Tests
         }
 
         [Test]
+        public void ChapterOne_LoadsTheChosenPeachBlossomWorld_AndKeepsHersOnRecord()
+        {
+            // Saul's choice for the first world after the question and the philosopher. Her
+            // conservatory stays in WorldKey so clearing ChosenWorldKey is the whole revert.
+            var ch01 = ExhibitionSpine.Chapters[0];
+            Assert.AreEqual("grand-conservatory-with-lush-gardens", ch01.WorldKey, "her world, preserved");
+            Assert.IsTrue(ch01.IsChosen);
+            Assert.IsFalse(ch01.IsPlaceholder, "a choice is not a stand-in for a missing export");
+            Assert.AreEqual("celestial-peach-blossom-paradise", ch01.EffectiveWorldKey, "what actually loads");
+            Assert.AreSame(ch01, ExhibitionSpine.ByWorldKey("celestial-peach-blossom-paradise"));
+            Assert.AreSame(ch01, ExhibitionSpine.ByWorldKey("grand-conservatory-with-lush-gardens"));
+        }
+
+        [Test]
+        public void EveryWorldTheSpineLoadsIsInTheCatalog()
+        {
+            // An effective key with no catalog entry fails only on the headset, at stage 04.
+            foreach (var c in ExhibitionSpine.Chapters)
+                Assert.IsNotNull(MuseXR.Worlds.WorldCatalog.Small.FirstOrDefault(
+                        w => w.key == c.EffectiveWorldKey + MuseXR.Worlds.WorldCatalog.SmallSuffix),
+                    c.Chapter + " loads '" + c.EffectiveWorldKey + "', which is not in WorldCatalog.Small");
+        }
+
+        [Test]
         public void AChapterWithItsOwnWorldLoadsThatWorld()
         {
             var ch05 = ExhibitionSpine.Chapters[4];

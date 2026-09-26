@@ -20,6 +20,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 13adb82f6dd0a8c47a93efb92e663f4d
+    m_Address: celestial-peach-blossom-paradise-500k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 16d45b1b4bbbb1c4cb89efa9c30d787f
     m_Address: van-gogh-inspired-gallery-interior-500k
     m_ReadOnly: 0

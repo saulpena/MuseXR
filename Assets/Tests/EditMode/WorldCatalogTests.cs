@@ -54,9 +54,10 @@ namespace MusePico.Tests
             // Eight 500k re-exports of her captures, plus the threshold conservatory generated from
             // her hero image on 23 Sep 2026 to give stage 00 somewhere to stand. A ninth entry is
             // therefore expected. The TENTH is the same threshold capture visibility-pruned
-            // (`grand-conservatory-garden-path-cut`, 25 Sep 2026, Tools/splat/prune.py) — an
-            // eleventh means something was added without a note here.
-            Assert.AreEqual(10, WorldCatalog.Small.Count);
+            // (`grand-conservatory-garden-path-cut`, 25 Sep 2026, Tools/splat/prune.py). The
+            // ELEVENTH is `celestial-peach-blossom-paradise`, chapter 01's chosen world (same day)
+            // — a twelfth means something was added without a note here.
+            Assert.AreEqual(11, WorldCatalog.Small.Count);
 
             var threshold = WorldCatalog.Small
                 .FirstOrDefault(w => w.key.StartsWith("grand-conservatory-garden-path"));

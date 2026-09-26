@@ -196,6 +196,13 @@ namespace MuseXR.Worlds
             // and checked on held-out views by validate.py. Same frame, so the same spawn.
             Small_("grand-conservatory-garden-path-cut", "Threshold Conservatory (pruned)",
                    1.7f, Vector2.zero, 0f, 180f, 400f),
+            // Chapter 01's chosen world (see ExhibitionSpine). Downloaded by Saul 25 Sep 2026,
+            // SPZ v2, 500,000 splats, sh 0. PROVISIONAL spawn: the origin, where the splats under
+            // the eye are the LAKE SURFACE (y ~ 0) — the visitor stands on water until the Marble
+            // collider arrives and a spot on land is chosen. yaw 0 faces the temple on its hill.
+            // cameraFar 1000: the sky sits beyond 400 m and a 400 m clip left black holes in it.
+            Small_("celestial-peach-blossom-paradise", "Celestial Peach Blossom Paradise",
+                   1.7f, Vector2.zero, 0f, 0f, 1000f),
         };
 
         /// <summary>

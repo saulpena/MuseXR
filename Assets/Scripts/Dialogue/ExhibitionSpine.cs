@@ -42,8 +42,19 @@ namespace MusePico.Dialogue
 
         public bool IsPlaceholder => !string.IsNullOrEmpty(PlaceholderWorldKey);
 
-        /// <summary>What to actually load: the placeholder when there is one, otherwise the real world.</summary>
-        public string EffectiveWorldKey => IsPlaceholder ? PlaceholderWorldKey : WorldKey;
+        /// <summary>
+        /// A world MuseXR has chosen for this chapter in place of hers — a design decision, not a
+        /// stand-in for a missing export (that is <see cref="PlaceholderWorldKey"/>). Her key stays
+        /// in <see cref="WorldKey"/> as the record of what her spine says; clearing this one line
+        /// restores it. Null when the chapter uses her world.
+        /// </summary>
+        public string ChosenWorldKey;
+
+        public bool IsChosen => !string.IsNullOrEmpty(ChosenWorldKey);
+
+        /// <summary>What to actually load: our chosen world, else the placeholder, else hers.</summary>
+        public string EffectiveWorldKey =>
+            IsChosen ? ChosenWorldKey : IsPlaceholder ? PlaceholderWorldKey : WorldKey;
 
         public override string ToString() =>
             Chapter + " " + Title + (IsPlaceholder ? "  [placeholder: " + PlaceholderWorldKey + "]" : "");
@@ -70,8 +81,13 @@ namespace MusePico.Dialogue
         /// <summary>The eight chapters, in her order. Copied from <c>config/exhibitionScenes.js</c>.</summary>
         public static readonly IReadOnlyList<ExhibitionChapter> Chapters = new List<ExhibitionChapter>
         {
+            // CHOSEN (Saul, 25 Sep 2026): the first world after the question and the philosopher is
+            // Celestial Peach Blossom Paradise, not her conservatory. Title, prompt and artworks are
+            // still hers and still conservatory-themed. No collider yet, so stage 04 stands on the
+            // flat fallback floor and hangs the wall around the spawn.
             new ExhibitionChapter { Id = "threshold-conservatory", Chapter = "01 / ARRIVAL",
-                Title = "The Threshold Conservatory", WorldKey = "grand-conservatory-with-lush-gardens", Artist = "A cross-temporal salon",
+                Title = "The Threshold Conservatory", WorldKey = "grand-conservatory-with-lush-gardens",
+                ChosenWorldKey = "celestial-peach-blossom-paradise", Artist = "A cross-temporal salon",
                 Prompt = "What must become visible before an answer can begin?" , CollectionId = "threshold-conservatory" },
             new ExhibitionChapter { Id = "court-of-light", Chapter = "02 / QUESTION",
                 Title = "The Court of Light", WorldKey = "elegant-floral-palace-interior", Artist = "Sigmund Freud",
@@ -203,7 +219,9 @@ namespace MusePico.Dialogue
             if (string.IsNullOrEmpty(worldKey)) return null;
             if (string.Equals(Final.WorldKey, worldKey, StringComparison.OrdinalIgnoreCase)) return Final;
             foreach (var c in Chapters)
-                if (string.Equals(c.WorldKey, worldKey, StringComparison.OrdinalIgnoreCase)) return c;
+                if (string.Equals(c.WorldKey, worldKey, StringComparison.OrdinalIgnoreCase) ||
+                    (c.IsChosen && string.Equals(c.ChosenWorldKey, worldKey, StringComparison.OrdinalIgnoreCase)))
+                    return c;
             return null;
         }
     }
