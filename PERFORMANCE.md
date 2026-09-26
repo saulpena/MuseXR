@@ -25,6 +25,31 @@ PICO 4 with the same build: 30 FPS of 90, ~30 ms GPU (22-23 FPS before). Not yet
 Reported in the headset after the change: the distortion under head movement that had been
 causing headaches has eased. An observation, not a measurement.
 
+## Test log — one variable per test
+
+Every test changes ONE thing, is built from a commit, and that commit is tagged `perf-test/Txx`
+(`git checkout perf-test/T07` rebuilds exactly what was measured). A rejected test is reverted with
+a new commit, never erased. Quest 3S unless noted. From T11 on, every row is measured by
+`Tools/perf/measure_quest.sh` (capture mode, fixed view, F9 splat-scale sweep) and its raw numbers
+are in `Tools/perf/results.csv`.
+
+| Test | Tag / commit | The one variable | World | Default (splat 0.6) | At splat 1.0 | What it looked like | Verdict |
+|---|---|---|---|---|---|---|---|
+| T01 | `ee2943e` | Starting point, no changes | intro | 24-25 FPS, 26-30 ms | (no splat layer yet) | reference | baseline |
+| T02 | *none* ¹ | Intro world visibility-pruned 500k → 340k | intro | 24-36 FPS (oscillating), 21-26 ms | — | nothing missing (0.000% of pixels >8/255 on 40 unseen views) | **kept** |
+| T03 | `2cfe4ec` | One splat sort per frame (`SortNthPass 2`) | intro | 36-37 FPS, 18-25 ms | — | no shimmer on fast turns | **kept** |
+| T04 | `5852849` | SH order 0 + skip the all-zero SH fetch | intro | 36-37 FPS, 21-24 ms; compute 29→21% | — | pixel-identical in Editor A/B | **kept** |
+| T05 | `eac166d` | URP renderScale 0.8 → 0.65 for everything | intro | 54-57 FPS, 15.0 ms | — | text and meshes visibly softer | **rejected** (probe only) |
+| T06 | `60d5cbf` | Splat layer at its own resolution, 0.8 | intro | 53-55 FPS, 15.4 ms | 36-37 FPS, 20-22 ms | text sharp; fine splat detail slightly soft | **kept** |
+| T07 | `90409ed` | Splat layer default 0.8 → 0.6 | intro | **72-73 FPS, 11.5 ms** | 36-37 FPS, 20-22 ms | softer fine detail, blocky paving specks | **kept** |
+| T08 | `6dbdb1f` | World: intro → Celestial Peach Blossom (unpruned) | peach | 56-58 FPS, 15.1 ms | 28-37 FPS, 24.5 ms | — (content change, not an optimisation) | reference |
+| T09 | `99d9c24` | + 4 Tripo props (210k tris, textures uncompressed) | peach | 36-48 FPS, 17.5 ms | 30-32 FPS, 25.9 ms | props read well, float on the lake | content kept |
+| T10 | `ae13fb8` | Props' textures compressed (ASTC 6x6) | peach | 36-48 FPS, 17.5 ms | 30 FPS, 25.8 ms | no visible difference; APK −32 MB | **kept** (memory, not speed) |
+| T11 | `2d1c335` | *Pipeline check:* committed code + launch-option world, no scene edit | peach | 36-49 FPS, 17.3 ms | 30-33 FPS, 25.2 ms | fixed view identical to T10 (0.52/255) | **method validated** — every scale within 0.6 ms of T10 |
+
+¹ Built from an uncommitted one-line state (sort change held back), so it cannot be checked out
+exactly. From T11 on every test is committed before it is built.
+
 ## Celestial Peach Blossom Paradise, 26 Sep 2026
 
 Chapter 01's world, unpruned (500,000 splats), with and without the four Tripo props

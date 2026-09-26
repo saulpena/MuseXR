@@ -1,0 +1,6 @@
+test,date,commit,apk_md5,device,world,splat_scale,fps_avg,fps_min,fps_max,gpu_ms,variable
+T11,2026-09-26T13:44,2d1c335,ee1b804d743177ec0dcdf8e5dcc01323,Quest 3S,celestial-peach-blossom-paradise-500k,0.60,44,36,49,17.3,"Pipeline check: committed code + launch-option world (should match T10)"
+T11,2026-09-26T13:44,2d1c335,ee1b804d743177ec0dcdf8e5dcc01323,Quest 3S,celestial-peach-blossom-paradise-500k,1.00,31,30,33,25.2,"Pipeline check: committed code + launch-option world (should match T10)"
+T11,2026-09-26T13:44,2d1c335,ee1b804d743177ec0dcdf8e5dcc01323,Quest 3S,celestial-peach-blossom-paradise-500k,0.90,36,36,37,22.8,"Pipeline check: committed code + launch-option world (should match T10)"
+T11,2026-09-26T13:44,2d1c335,ee1b804d743177ec0dcdf8e5dcc01323,Quest 3S,celestial-peach-blossom-paradise-500k,0.80,36,36,37,20.2,"Pipeline check: committed code + launch-option world (should match T10)"
+T11,2026-09-26T13:44,2d1c335,ee1b804d743177ec0dcdf8e5dcc01323,Quest 3S,celestial-peach-blossom-paradise-500k,0.70,36,36,37,18.4,"Pipeline check: committed code + launch-option world (should match T10)"
