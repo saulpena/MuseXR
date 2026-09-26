@@ -17,6 +17,7 @@ namespace MuseXR.Worlds
         public const string CapturePoseExtra = "musexr.capturePose";
         public const string HomeWorldExtra = "musexr.homeWorld";
         public const string FreeWalkExtra = "musexr.freeWalk";
+        public const string CaptureYawExtra = "musexr.captureYaw";
 
         /// <summary>World to open in the opening stages instead of the scene's homeWorldKey; null = no override.</summary>
         public static string HomeWorldOverride => Validated(StringExtra(HomeWorldExtra));
@@ -28,6 +29,9 @@ namespace MuseXR.Worlds
         /// recording and testing a world on foot without playing through the journey first.
         /// </summary>
         public static bool FreeWalk => BoolExtra(FreeWalkExtra);
+
+        /// <summary>Capture mode only: degrees added to the fixed view's yaw, to look at what is beside or behind the spawn.</summary>
+        public static float CaptureYaw => FloatExtra(CaptureYawExtra);
 
         /// <summary>
         /// Only a key the catalog knows is honoured: a typo on the command line would otherwise load
@@ -53,6 +57,20 @@ namespace MuseXR.Worlds
             catch (System.Exception e) { Debug.LogWarning($"[LaunchOptions] {name}: {e.Message}"); return null; }
 #else
             return null;
+#endif
+        }
+
+        static float FloatExtra(string name)
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            try
+            {
+                using var intent = Intent();
+                return intent.Call<float>("getFloatExtra", name, 0f);
+            }
+            catch (System.Exception e) { Debug.LogWarning($"[LaunchOptions] {name}: {e.Message}"); return 0f; }
+#else
+            return 0f;
 #endif
         }
 

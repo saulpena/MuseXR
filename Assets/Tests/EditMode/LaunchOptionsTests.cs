@@ -34,6 +34,7 @@ namespace MusePico.Tests.EditMode
             Assert.IsNull(LaunchOptions.HomeWorldOverride);
             Assert.IsFalse(LaunchOptions.CapturePose);
             Assert.IsFalse(LaunchOptions.FreeWalk);
+            Assert.AreEqual(0f, LaunchOptions.CaptureYaw);
         }
     }
 }

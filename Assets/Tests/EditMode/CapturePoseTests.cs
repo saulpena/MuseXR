@@ -33,5 +33,15 @@ namespace MusePico.Tests.EditMode
             Assert.AreEqual(a.position, b.position);
             Assert.AreEqual(a.rotation, b.rotation);
         }
+
+        [Test]
+        public void ExtraYawTurnsTheViewButNotThePosition()
+        {
+            var a = CapturePose.For(new Vector3(1, 2, -11), Quaternion.Euler(0, 10, 0));
+            var b = CapturePose.For(new Vector3(1, 2, -11), Quaternion.Euler(0, 10, 0), 90f);
+            Assert.AreEqual(a.position, b.position);
+            Assert.AreEqual(100f, b.rotation.eulerAngles.y, 0.01f);
+            Assert.AreEqual(0f, Quaternion.Angle(Quaternion.Euler(0, 100, 0), b.rotation), 0.01f, "still level");
+        }
     }
 }

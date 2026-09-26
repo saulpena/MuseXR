@@ -28,6 +28,7 @@ namespace MuseXR.Worlds
         XROrigin _origin;
         TrackedPoseDriver _driver;
         bool _on;
+        float _extraYaw;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
@@ -35,13 +36,14 @@ namespace MuseXR.Worlds
             var go = new GameObject(nameof(CapturePose));
             DontDestroyOnLoad(go);
             var c = go.AddComponent<CapturePose>();
+            c._extraYaw = LaunchOptions.CaptureYaw;
             if (LaunchedWithCaptureFlag()) c.Set(true, "launch flag");
         }
 
         /// <summary>The fixed camera pose for a rig origin: pure, so it can be tested.</summary>
-        public static Pose For(Vector3 originPosition, Quaternion originRotation)
+        public static Pose For(Vector3 originPosition, Quaternion originRotation, float extraYaw = 0f)
         {
-            float yaw = originRotation.eulerAngles.y;
+            float yaw = originRotation.eulerAngles.y + extraYaw;
             return new Pose(originPosition + Vector3.up * EyeHeight, Quaternion.Euler(0f, yaw, 0f));
         }
 
@@ -62,7 +64,7 @@ namespace MuseXR.Worlds
         void LateUpdate()
         {
             if (!_on || !Resolve()) return;
-            var p = For(_origin.transform.position, _origin.transform.rotation);
+            var p = For(_origin.transform.position, _origin.transform.rotation, _extraYaw);
             _origin.Camera.transform.SetPositionAndRotation(p.position, p.rotation);
         }
 
@@ -71,7 +73,7 @@ namespace MuseXR.Worlds
             _on = on;
             if (Resolve()) _driver.enabled = !on;
             Debug.Log($"[CapturePose] {(on ? "ON" : "off")} ({why}): eye {EyeHeight} m above the stage origin, " +
-                      "level, facing the origin's forward; head tracking " + (on ? "paused" : "restored"));
+                      $"level, facing the origin's forward + {_extraYaw:0} deg; head tracking " + (on ? "paused" : "restored"));
         }
 
         bool Resolve()
