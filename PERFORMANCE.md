@@ -32,6 +32,8 @@ Every test changes ONE thing, is built from a commit, and that commit is tagged 
 a new commit, never erased. Quest 3S unless noted. From T11 on, every row is measured by
 `Tools/perf/measure_quest.sh` (capture mode, fixed view, F9 splat-scale sweep) and its raw numbers
 are in `Tools/perf/results.csv`.
+`Tools/perf/compare.sh <baseline> <test>` diffs two runs scale by scale and flags any GPU time
+more than 0.7 ms worse (the run-to-run noise measured by T10 vs T11).
 
 | Test | Tag / commit | The one variable | World | Default (splat 0.6) | At splat 1.0 | What it looked like | Verdict |
 |---|---|---|---|---|---|---|---|
@@ -47,6 +49,9 @@ are in `Tools/perf/results.csv`.
 | T10 | `ae13fb8` | Props' textures compressed (ASTC 6x6) | peach | 36-48 FPS, 17.5 ms | 30 FPS, 25.8 ms | no visible difference; APK −32 MB | **kept** (memory, not speed) |
 | T11 | `2d1c335` | *Pipeline check:* committed code + launch-option world, no scene edit | peach | 36-49 FPS, 17.3 ms | 30-33 FPS, 25.2 ms | fixed view identical to T10 (0.52/255) | **method validated** — every scale within 0.6 ms of T10 |
 | T12 | `384592d` | Props material: glTF PBR → URP Simple Lit | peach | **48-49 FPS, 16.0 ms** | 36-37 FPS, 24.0 ms | headset crops: the big buddha loses its metallic highlights and reads flatter, more orange; the golden-buddha group and temple near-identical | **research** — kept as the comparison point for the replacement props (due 27 Sep); 0.9-1.3 ms saved at every scale |
+| T13 | `9dc7221` (tag `perf-baseline/T13`) | *Baseline* before the sort test: T12 build re-measured on both worlds | peach / intro | 48-49 FPS, 15.9 ms / 72-73 FPS, 11.7 ms | 36-37, 24.0 ms / 35-37, 22.7 ms | reproduces T12 (≤0.3 ms) and T07 | **baseline** — `compare.sh` checks later runs against it |
+| T14 | `b007009` | Sort splats every other frame (`SortNthPass` 2 → 4) | peach | **62 FPS steady, 14.3 ms** (−1.6) | 35-37 FPS, 22.4 ms (−1.6) | static view identical (0.4% px >8/255, overlay only); compute 43 → 32% | pending Saul's head-turn check |
+| T14 | `b007009` | same build | intro | 72-73 FPS, **10.5 ms** (−1.2); 0.7 now also holds 72 | 37 FPS, 21.1 ms (−1.6) | static view identical (1.7% px, overlay only) | pending Saul's head-turn check |
 
 ¹ Built from an uncommitted one-line state (sort change held back), so it cannot be checked out
 exactly. From T11 on every test is committed before it is built.
