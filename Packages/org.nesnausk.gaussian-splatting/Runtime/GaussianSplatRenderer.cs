@@ -130,8 +130,16 @@ namespace GaussianSplatting.Runtime
 
                 // sort
                 var matrix = gs.transform.localToWorldMatrix;
-                if (gs.m_FrameCounter % gs.m_SortNthFrame == 0)
+                // MuseXR patch: the order buffer belongs to whichever camera sorted last. Upstream
+                // counts renders across ALL cameras, so in the Editor the Scene view took every
+                // sort and the Game view drew with its order (measured: 201 of 201 frames), and a
+                // click flipped which camera owned it — the world "doubled" for a moment. On a
+                // headset there is one camera (both Multi Pass eyes share it), so nothing changes.
+                if (SortSchedule.ShouldSort(gs.m_FrameCounter, gs.m_SortNthFrame, gs.m_LastSortCamera == cam))
+                {
                     gs.SortPoints(cmb, cam, matrix);
+                    gs.m_LastSortCamera = cam;
+                }
                 ++gs.m_FrameCounter;
 
                 // cache view
@@ -293,6 +301,7 @@ namespace GaussianSplatting.Runtime
         internal Material m_MatDebugBoxes;
 
         internal int m_FrameCounter;
+        internal Camera m_LastSortCamera;   // MuseXR patch: the camera the current order was sorted for
         GaussianSplatAsset m_PrevAsset;
         Hash128 m_PrevHash;
         bool m_Registered;
@@ -435,6 +444,8 @@ namespace GaussianSplatting.Runtime
 
         void InitSortBuffers(int count)
         {
+            m_LastSortCamera = null;        // MuseXR patch: fresh keys are unsorted, whoever renders next
+
             m_GpuSortDistances?.Dispose();
             m_GpuSortKeys?.Dispose();
             m_SorterArgs.resources.Dispose();
@@ -488,6 +499,7 @@ namespace GaussianSplatting.Runtime
         public void OnEnable()
         {
             m_FrameCounter = 0;
+            m_LastSortCamera = null;
             if (!resourcesAreSetUp)
                 return;
 

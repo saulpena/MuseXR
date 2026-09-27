@@ -976,16 +976,24 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8293539273036085412, guid: a23267c443842e04b9f9ab2f76fcde11, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1217119856}
     - targetCorrespondingSourceObject: {fileID: 7264293645217260024, guid: a23267c443842e04b9f9ab2f76fcde11, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2120283133}
   m_SourcePrefab: {fileID: 100100000, guid: a23267c443842e04b9f9ab2f76fcde11, type: 3}
+--- !u!1 &583622549 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8293539273036085412, guid: a23267c443842e04b9f9ab2f76fcde11, type: 3}
+  m_PrefabInstance: {fileID: 583622548}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &583622550 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8400369996942637349, guid: a23267c443842e04b9f9ab2f76fcde11, type: 3}
   m_PrefabInstance: {fileID: 583622548}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 583622549}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e0cb9aa70a22847b5925ee5f067c10a9, type: 3}
@@ -1250,6 +1258,23 @@ CharacterController:
   m_CorrespondingSourceObject: {fileID: 3652661666383428115, guid: a23267c443842e04b9f9ab2f76fcde11, type: 3}
   m_PrefabInstance: {fileID: 583622548}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1217119856
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 583622549}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0dc0e6fb0b0ed57448d242445c7e7925, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Worlds::MuseXR.Worlds.DesktopMove
+  rig: {fileID: 0}
+  head: {fileID: 0}
+  walkSpeed: 2
+  fastSpeed: 5
+  lookSensitivity: 0.15
 --- !u!1001 &1230627448
 PrefabInstance:
   m_ObjectHideFlags: 0
