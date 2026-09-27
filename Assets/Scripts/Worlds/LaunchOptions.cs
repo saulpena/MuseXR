@@ -18,6 +18,15 @@ namespace MuseXR.Worlds
         public const string HomeWorldExtra = "musexr.homeWorld";
         public const string FreeWalkExtra = "musexr.freeWalk";
         public const string CaptureYawExtra = "musexr.captureYaw";
+        public const string SelfTestExtra = "musexr.selfTest";
+
+        /// <summary>
+        /// Walk the gallery's dialogue path unattended and log each step: invite three masters,
+        /// open a work (live readings), answer it, ask a master a question (live). For verifying a
+        /// build on a headset from the desk, where no controller is in anyone's hand. It makes
+        /// real paid calls, which is its point.
+        /// </summary>
+        public static bool SelfTest => BoolExtra(SelfTestExtra);
 
         /// <summary>World to open in the opening stages instead of the scene's homeWorldKey; null = no override.</summary>
         public static string HomeWorldOverride => Validated(StringExtra(HomeWorldExtra));

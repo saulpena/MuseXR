@@ -35,6 +35,7 @@ namespace MusePico.Tests.EditMode
             Assert.IsFalse(LaunchOptions.CapturePose);
             Assert.IsFalse(LaunchOptions.FreeWalk);
             Assert.AreEqual(0f, LaunchOptions.CaptureYaw);
+            Assert.IsFalse(LaunchOptions.SelfTest, "the paid self-test must never run without the launch extra");
         }
     }
 }

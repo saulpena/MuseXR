@@ -353,6 +353,70 @@ namespace MusePico.Journey
             Journey.StageChanged += (_, to) => EnterStage(to);
             EnterStage(Journey.Current);
             MakeObjectsPointable();
+            if (LaunchOptions.SelfTest) StartCoroutine(SelfTest());
+        }
+
+        /// <summary>
+        /// The <c>musexr.selfTest</c> launch switch: the gallery's dialogue path, driven through
+        /// the same methods a ray or a click reaches, logged as <c>[SelfTest]</c> lines. Each step
+        /// waits on the state it needs rather than on a clock, and gives up loudly after a limit.
+        /// </summary>
+        IEnumerator SelfTest()
+        {
+            void Log(string s) => Debug.Log("[SelfTest] " + s);
+            Log("start");
+
+            Journey.GoTo(Stage.CompanionSelection);
+            foreach (var id in new[] { "monet", "van_gogh", "socrates" })
+                if (!Journey.IsInvited(id)) Journey.ToggleCompanion(id);
+            Journey.GoTo(Stage.WorldExploration);
+            Log("invited " + string.Join(",", Journey.InvitedMasterIds));
+
+            var t = 0f;
+            while ((wall == null || wall.childCount == 0) && t < 60f) { t += Time.deltaTime; yield return null; }
+            if (wall == null || wall.childCount == 0) { Log("FAIL no artworks hung after 60 s"); yield break; }
+            yield return new WaitForSeconds(3f);
+            Log("gallery ready: " + wall.childCount + " works, world " +
+                (worlds != null && worlds.Current != null ? worlds.Current.key : "?"));
+
+            var work = wall.GetChild(0).GetComponent<DesktopPointable>();
+            work.Pick();
+            Log("artwork opened: " + (_artOpen != null ? _artOpen.title : "NOT OPENED") + " · opener " + _artSpeakerId);
+            yield return WaitForDialogue(Log, "artwork readings");
+            Log("artwork live: " + _artLive);
+
+            OnArtChoice("emotion");
+            Log("answered emotion -> reactor " + _artSpeakerId + " · score P" + Journey.Session.Philosophy.Perception +
+                " E" + Journey.Session.Philosophy.Emotion + " I" + Journey.Session.Philosophy.Invention);
+            yield return new WaitForSeconds(4f);
+            CloseArt();
+
+            var roster = Roster();
+            MasterLens first = null;
+            foreach (var m in roster) if (m.id == Journey.InvitedMasterIds[0]) first = m;
+            OpenAsk(first);
+            _askQuestion = "What should I carry out of this garden?";
+            _askIsSuggestion = false;
+            Log("ask open: " + (_asking != null ? _asking.fullName : "NOT OPENED"));
+            AskTheMasters();
+            yield return WaitForDialogue(Log, "ask replies");
+            Log("ask live: " + _askReplies);
+            Log("done");
+        }
+
+        IEnumerator WaitForDialogue(System.Action<string> log, string what)
+        {
+            var t = 0f;
+            while ((dialogue == null || !dialogue.IsBusy) && t < 5f) { t += Time.deltaTime; yield return null; }
+            var seen = -1;
+            t = 0f;
+            while (dialogue != null && dialogue.IsBusy && t < 180f)
+            {
+                if (_liveIndex != seen) { seen = _liveIndex; log(what + ": reading " + seen + " showing at " + t.ToString("0.0") + " s"); }
+                t += Time.deltaTime;
+                yield return null;
+            }
+            log(what + (t >= 180f ? ": TIMEOUT after 180 s" : ": finished after " + t.ToString("0.0") + " s"));
         }
 
         void Update()
