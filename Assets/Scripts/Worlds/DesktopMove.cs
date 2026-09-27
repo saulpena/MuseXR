@@ -31,6 +31,12 @@ namespace MuseXR.Worlds
 
         float _pitch;
 
+        /// <summary>
+        /// True while a text box has the keyboard (the masters' ask form): WASD then types a
+        /// question instead of walking. Looking with the mouse still works.
+        /// </summary>
+        public static bool Suspended { get; set; }
+
         void Awake()
         {
             if (rig == null) rig = transform;
@@ -42,7 +48,7 @@ namespace MuseXR.Worlds
             if (head == null) { var cam = Camera.main; if (cam == null) return; head = cam.transform; }
 
             Look(Mouse.current);
-            Move(Keyboard.current);
+            if (!Suspended) Move(Keyboard.current);
         }
 
         void Look(Mouse mouse)

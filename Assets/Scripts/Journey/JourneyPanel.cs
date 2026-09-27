@@ -146,16 +146,20 @@ namespace MusePico.Journey
         }
 
         /// <summary>
-        /// Click a plate with the mouse, in the Editor only.
+        /// Click anything pointable with the mouse, whenever there is no headset.
         ///
         /// Her build says "CLICK TO CROSS" and that is exactly what this restores: without a
-        /// headset the XR ray interactors have no controller to ride on, so the pointable plates
-        /// are unpointable and the journey cannot be compared side by side with hers. On device
-        /// this compiles away entirely and the ray is the only way in.
+        /// headset the XR ray interactors have no controller to ride on, so plates, masters and
+        /// artworks are unpointable. With a headset (device or Link) the ray is the only way in.
+        ///
+        /// The nearest <see cref="DesktopPointable"/> wins, but a solid collider in front of it
+        /// (a wall, a statue) blocks the click, so nothing is clicked through the world. Triggers
+        /// are passed through unless pointable — a master's ask target is a trigger.
         /// </summary>
-        void EditorMousePick()
+        void DesktopMousePick()
         {
-#if UNITY_EDITOR
+            if (UnityEngine.XR.XRSettings.isDeviceActive) return;
+
             var mouse = UnityEngine.InputSystem.Mouse.current;
             if (mouse == null || !mouse.leftButton.wasPressedThisFrame) return;
 
@@ -163,20 +167,32 @@ namespace MusePico.Journey
             if (cam == null) return;
 
             var ray = cam.ScreenPointToRay(mouse.position.ReadValue());
-            if (!Physics.Raycast(ray, out var hit, 20f)) return;
+            var hits = Physics.RaycastAll(ray, 60f, ~0, QueryTriggerInteraction.Collide);
+            Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
-            var plate = hit.collider.transform;
-            if (plate.parent != _plates) return;      // the world has colliders too; only plates act
+            foreach (var hit in hits)
+            {
+                var pointable = hit.collider.GetComponentInParent<DesktopPointable>();
+                if (pointable != null) { pointable.Pick(); return; }
+                if (!hit.collider.isTrigger) return;
+            }
+        }
 
-            var index = plate.GetSiblingIndex();
-            if (index < ChoiceIds.Count) Pick(index);
-            else TakeAction();                        // the action plate is always the last child
-#endif
+        /// <summary>
+        /// The ray and the mouse, from one call: anything pointable gets both, running the same
+        /// callback, so the two input paths cannot drift apart.
+        /// </summary>
+        static XRSimpleInteractable Pointable(GameObject go, Action onPick)
+        {
+            var interactable = go.AddComponent<XRSimpleInteractable>();
+            interactable.selectEntered.AddListener(_ => onPick());
+            go.AddComponent<DesktopPointable>().Picked = onPick;
+            return interactable;
         }
 
         void LateUpdate()
         {
-            EditorMousePick();
+            DesktopMousePick();
             DrawMic();
             DrawFps();
 
@@ -588,6 +604,7 @@ namespace MusePico.Journey
                     ? top - Mathf.Max(rows - 1, 0) * RowSpacing
                     : ActionY(top, rows, panel.Choices.Count);
 
+            if (!float.IsNaN(_controlsLowest)) lowest = _controlsLowest;
             var bottom = lowest - 0.18f;
 
             // Remembered so the microphone can sit clear of whatever this stage actually drew,
@@ -651,6 +668,74 @@ namespace MusePico.Journey
         /// <summary>The room last drawn, so the navigator's dot moves with it.</summary>
         int _shownNavIndex = -1;
 
+        /// <summary>Whether the finish menu (the action behind <see cref="StagePanel.MenuLabel"/>) is open.</summary>
+        bool _menuOpen;
+
+        /// <summary>The heading the menu was opened under; any other heading closes it.</summary>
+        string _menuHeading;
+
+        /// <summary>The lowest control the gallery layout drew, or NaN for every other layout.</summary>
+        float _controlsLowest = float.NaN;
+
+        /// <summary>Redraw on the next Show, for state the panel owns (the menu) rather than the stage.</summary>
+        void Rebuild() => _panel = null;
+
+        /// <summary>
+        /// The gallery: changing world is the main control, and ending the walk is a menu away.
+        ///
+        /// Saul, 27 Sep 2026, after comparing both builds: "FORM MY ANSWER" is meant for the END of
+        /// the experience, after exploring and asking more questions, so it must not be the most
+        /// prominent thing on the panel. The navigator it used to sit above was two 22 cm arrows
+        /// and 18 mm dots. Now the arrows are full plates that NAME the world they go to, and the
+        /// action sits behind a small "FINISH THE WALK…" toggle with one line saying what it does.
+        ///
+        /// Returns the centre height of the lowest row drawn, for the scrim.
+        /// </summary>
+        float BuildGalleryControls(StagePanel panel, float y)
+        {
+            var row = y;
+
+            if (panel.NavTotal > 0)
+            {
+                var i = panel.NavIndex;
+                var n = panel.NavTotal;
+                var half = width * 0.485f;
+
+                Plate(i > 0 ? "← " + panel.NavPrevLabel : "←", false, half,
+                    new Vector3(-width * 0.2575f, row, 0f), () => NavTaken?.Invoke(i - 1), i > 0, 0.34f);
+                Plate(i < n - 1 ? panel.NavNextLabel + " →" : "→", false, half,
+                    new Vector3(width * 0.2575f, row, 0f), () => NavTaken?.Invoke(i + 1), i < n - 1, 0.34f);
+
+                row -= 0.20f;
+                BuildRoomDots(i, n, row);
+                row -= 0.20f;
+            }
+
+            if (!_menuOpen)
+            {
+                Plate(panel.MenuLabel, false, width * 0.34f, new Vector3(width * 0.31f, row, 0f),
+                    () => { _menuOpen = true; Rebuild(); }, true, 0.28f, pillHeight: 0.085f, maxFont: 0.40f);
+                return row;
+            }
+
+            var note = new GameObject("Menu Note").AddComponent<TextMeshPro>();
+            note.transform.SetParent(_plates, false);
+            note.transform.localPosition = new Vector3(0f, row, 0f);
+            note.fontSize = 0.44f;
+            note.alignment = TextAlignmentOptions.Center;
+            note.enableWordWrapping = true;
+            note.rectTransform.sizeDelta = new Vector2(width * 0.92f, 0.14f);
+            note.text = "<color=" + Ivory + "CC>" + panel.MenuNote + "</color>";
+
+            row -= 0.17f;
+            Plate("NOT YET", false, width * 0.30f, new Vector3(-width * 0.33f, row, 0f),
+                () => { _menuOpen = false; Rebuild(); }, true, 0.34f);
+            Plate(panel.Action, false, width * 0.58f, new Vector3(width * 0.19f, row, 0f),
+                () => { if (panel.ActionEnabled) { _menuOpen = false; ActionTaken?.Invoke(); } },
+                panel.ActionEnabled, 0.38f);
+            return row;
+        }
+
         void BuildPlates(StagePanel panel, float copyHeight)
         {
             for (var i = _plates.childCount - 1; i >= 0; i--) Destroy(_plates.GetChild(i).gameObject);
@@ -666,7 +751,18 @@ namespace MusePico.Journey
             if (portraits) BuildPortraitRow(panel, top, ids);
             else BuildTextRows(panel, top, ids);
 
-            if (!string.IsNullOrEmpty(panel.Action))
+            // A new stage or room closes the finish menu; it only ever opens on purpose.
+            if (panel.Heading != _menuHeading) { _menuOpen = false; _menuHeading = panel.Heading; }
+            _controlsLowest = float.NaN;
+
+            if (!string.IsNullOrEmpty(panel.Action) && panel.ActionInMenu)
+            {
+                var y = portraits
+                    ? top - _cardHeight - 0.14f
+                    : ActionY(top, Rows(count), count);
+                _controlsLowest = BuildGalleryControls(panel, y);
+            }
+            else if (!string.IsNullOrEmpty(panel.Action))
             {
                 var y = portraits
                     ? top - _cardHeight - 0.14f
@@ -873,8 +969,12 @@ namespace MusePico.Journey
                 var row = i % Mathf.Max(rows, 1);
                 var x = columns == 1 ? 0f : (column - (columns - 1) * 0.5f) * (width / columns);
 
+                // Her artwork answers run to 66 characters and ellipsised at the one-line floor
+                // (seen 27 Sep: "…I will see different…"). A long label gets two lines instead.
+                var wrap = choice.Label.Length > WrapAbove;
                 Plate(choice.Label, choice.Selected, plateWidth,
-                    new Vector3(x, top - row * RowSpacing, 0f), () => ChoiceTaken?.Invoke(id));
+                    new Vector3(x, top - row * RowSpacing, 0f), () => ChoiceTaken?.Invoke(id),
+                    true, wrap ? 0.42f : 0.54f, wrap ? 0.20f : 0.135f, wrap ? 0.56f : 0.72f, wrap);
             }
         }
 
@@ -947,7 +1047,12 @@ namespace MusePico.Journey
                 () => NavTaken?.Invoke(i - 1), i > 0);
             Plate("→", false, 0.22f, new Vector3(width * 0.40f, y, 0f),
                 () => NavTaken?.Invoke(i + 1), i < n - 1);
+            BuildRoomDots(i, n, y);
+        }
 
+        /// <summary>"03 / 09" above one pointable dot per room.</summary>
+        void BuildRoomDots(int i, int n, float y)
+        {
             var counter = new GameObject("Room Counter").AddComponent<TextMeshPro>();
             counter.transform.SetParent(_plates, false);
             counter.transform.localPosition = new Vector3(0f, y + 0.105f, 0f);
@@ -993,8 +1098,7 @@ namespace MusePico.Journey
                 mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent - 5;
                 quad.GetComponent<MeshRenderer>().sharedMaterial = mat;
 
-                var interactable = dot.AddComponent<XRSimpleInteractable>();
-                interactable.selectEntered.AddListener(_ => NavTaken?.Invoke(here));
+                Pointable(dot, () => NavTaken?.Invoke(here));
             }
         }
 
@@ -1082,13 +1186,16 @@ namespace MusePico.Journey
                 ? "<color=" + Gold + "><b>" + choice.Label + "</b></color>"
                 : "<color=" + Ivory + "DD>" + choice.Label + "</color>";
 
-            var interactable = go.AddComponent<XRSimpleInteractable>();
-            interactable.selectEntered.AddListener(_ => onPick());
+            var interactable = Pointable(go, onPick);
             Highlight(interactable, frame.GetComponent<MeshRenderer>(), frameMat.GetColor("_BaseColor"));
         }
 
+        /// <summary>Choice labels longer than this wrap onto two lines rather than shrink or ellipsise.</summary>
+        const int WrapAbove = 48;
+
         void Plate(string label, bool selected, float plateWidth, Vector3 at, Action onPick,
-                   bool enabled = true, float minFont = 0.54f)
+                   bool enabled = true, float minFont = 0.54f, float pillHeight = 0.135f, float maxFont = 0.72f,
+                   bool wrap = false)
         {
             var go = new GameObject("Plate " + label);
             go.transform.SetParent(_plates, false);
@@ -1107,7 +1214,7 @@ namespace MusePico.Journey
             // The pill is WIDER than the text box it backs, not narrower. It was 0.86 of a text
             // rect of 1.0, so any label that filled its rect - "What should I keep, and what
             // should I let go?" - hung out over both ends of its own backdrop.
-            pill.transform.localScale = new Vector3(plateWidth, 0.135f, 1f);
+            pill.transform.localScale = new Vector3(plateWidth, pillHeight, 1f);
             var pillMat = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
             pillMat.SetColor("_BaseColor",
                 !enabled ? new Color(0.12f, 0.12f, 0.12f, 0.35f)
@@ -1125,16 +1232,16 @@ namespace MusePico.Journey
             text.transform.SetParent(go.transform, false);
             text.fontSize = 0.60f;
             text.alignment = TextAlignmentOptions.Center;
-            text.enableWordWrapping = false;
+            text.enableWordWrapping = wrap;
             text.overflowMode = TextOverflowModes.Ellipsis;
-            text.rectTransform.sizeDelta = new Vector2(plateWidth * 0.90f, 0.22f);
+            text.rectTransform.sizeDelta = new Vector2(plateWidth * 0.90f, wrap ? pillHeight : 0.22f);
 
             // Shrink to fit before ellipsising. "CHOOSE WHO WALKS WITH ME" became
             // "CHOOSE WHO WALKS WITH..." the moment the type grew, and a truncated label on a
             // button you are meant to aim at is worse than a slightly smaller one. The floor is
             // still above the legibility threshold measured for this distance.
             text.enableAutoSizing = true;
-            text.fontSizeMax = 0.72f;
+            text.fontSizeMax = maxFont;
             text.fontSizeMin = minFont;
             text.text = "<cspace=0.18em>"
                       // NO <b> on the selected label. Bold is wider, so autosizing shrank the
@@ -1145,8 +1252,7 @@ namespace MusePico.Journey
                       + "</cspace>";
 
             // Pointable with the ray the rig already carries — no Canvas, no XRUIInputModule.
-            var interactable = go.AddComponent<XRSimpleInteractable>();
-            interactable.selectEntered.AddListener(_ => onPick());
+            var interactable = Pointable(go, onPick);
             Highlight(interactable, pill.GetComponent<MeshRenderer>(), pillMat.GetColor("_BaseColor"));
         }
 
@@ -1165,8 +1271,11 @@ namespace MusePico.Journey
                 Mathf.Min(rest.b + 0.14f, 1f),
                 Mathf.Min(rest.a + 0.12f, 1f));
 
-            interactable.hoverEntered.AddListener(_ => target.sharedMaterial.SetColor("_BaseColor", hot));
-            interactable.hoverExited.AddListener(_ => target.sharedMaterial.SetColor("_BaseColor", rest));
+            // Null-checked inside the callbacks: a plate is destroyed when the panel rebuilds, often
+            // while the ray is still on it, and the hover-exit then arrives for a dead renderer.
+            // Measured on Quest 27 Sep: 12 NullReferenceExceptions in the first minute.
+            interactable.hoverEntered.AddListener(_ => { if (target != null) target.sharedMaterial.SetColor("_BaseColor", hot); });
+            interactable.hoverExited.AddListener(_ => { if (target != null) target.sharedMaterial.SetColor("_BaseColor", rest); });
         }
 
         /// <summary>Pick by index, for the keyboard and stick paths that exist for the Editor.</summary>
@@ -1179,7 +1288,13 @@ namespace MusePico.Journey
         /// <summary>Take the stage's forward action, whatever it is.</summary>
         public void TakeAction()
         {
-            if (_panel != null && _panel.ActionEnabled) ActionTaken?.Invoke();
+            if (_panel == null || !_panel.ActionEnabled) return;
+
+            // An action kept in a menu is reached through the menu, from the keyboard too: the
+            // first Enter opens it, the second takes it. Otherwise one key would end the walk.
+            if (_panel.ActionInMenu && !_menuOpen) { _menuOpen = true; Rebuild(); return; }
+            _menuOpen = false;
+            ActionTaken?.Invoke();
         }
 
         /// <summary>Step back a stage, where the stage offers it.</summary>

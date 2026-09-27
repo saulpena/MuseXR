@@ -93,6 +93,26 @@ namespace MusePico.Dialogue
         /// </summary>
         public bool ActionIsPrimary = true;
 
+        /// <summary>
+        /// The action lives behind a small toggle instead of on the panel. The gallery's
+        /// "FORM MY ANSWER" ends the walk, so it is kept out of the way until the visitor has
+        /// explored and asked their questions (Saul, 27 Sep 2026): pressing
+        /// <see cref="MenuLabel"/> reveals <see cref="MenuNote"/> and the action.
+        /// </summary>
+        public bool ActionInMenu;
+
+        /// <summary>The quiet toggle that opens the menu holding the action.</summary>
+        public string MenuLabel = string.Empty;
+
+        /// <summary>One line shown above the action once the menu is open.</summary>
+        public string MenuNote = string.Empty;
+
+        /// <summary>The room the navigator's back arrow goes to, or empty at the first room.</summary>
+        public string NavPrevLabel = string.Empty;
+
+        /// <summary>The room the navigator's forward arrow goes to, or empty at the last room.</summary>
+        public string NavNextLabel = string.Empty;
+
         /// <summary>The control line. Hers says what the mouse does; ours says what the hands do.</summary>
         public string Hint = string.Empty;
 
@@ -309,6 +329,66 @@ namespace MusePico.Dialogue
         /// what sends it, exactly as her form needs a submit.
         /// </summary>
         public static StagePanel AskDialogue(
+            MasterLens companion, string artworkTitle, string question, string replies) =>
+            AskDialogue(companion, artworkTitle, question, replies, typing: false);
+
+        /// <summary>
+        /// The same popup with a keyboard. <paramref name="typing"/> is true when there is no
+        /// headset, so the question is typed rather than dictated: the box shows a caret and the
+        /// hint names the keys instead of the grip.
+        /// </summary>
+        public static StagePanel AskDialogue(
+            MasterLens companion, string artworkTitle, string question, string replies, bool typing)
+        {
+            var panel = AskDialogueFor(companion, artworkTitle, question, replies);
+            if (!typing) return panel;
+
+            var hasQuestion = !string.IsNullOrWhiteSpace(question);
+            panel.Heading = "“" + (question ?? string.Empty) + "|”";
+            panel.Hint = hasQuestion
+                ? "TYPE TO CHANGE IT · ENTER TO ASK · ESC TO GO BACK"
+                : "TYPE YOUR QUESTION · ENTER TO ASK · ESC TO GO BACK";
+            return panel;
+        }
+
+        /// <summary>
+        /// Her artwork popup: clicking a work (or an object standing in the world) opens it. One
+        /// master speaks to you about the work, the live readings of all three arrive under that
+        /// line, and you answer with one of her three fixed choices. After answering, the master
+        /// who champions that answer reacts and the only way on is back to the walk.
+        /// </summary>
+        /// <param name="line">The scripted line being shown: the opening, or the reaction once answered.</param>
+        /// <param name="live">The three live readings, a status while they load, or empty.</param>
+        public static StagePanel ArtDialogue(
+            MasterLens speaker, string title, string line, string live, bool answered)
+        {
+            var name = speaker == null ? "YOUR COMPANION" : speaker.fullName.ToUpperInvariant();
+
+            var choices = new List<StageChoice>();
+            if (!answered)
+                for (var i = 0; i < ArtworkDialogue.Choices.Count; i++)
+                {
+                    var c = ArtworkDialogue.Choices[i];
+                    choices.Add(new StageChoice(c.Id, "0" + (i + 1) + "  " + c.Label));
+                }
+
+            return new StagePanel
+            {
+                Marker = "SPEAKS TO YOU",
+                Eyebrow = name,
+                Heading = string.IsNullOrEmpty(title) ? "This work" : title,
+                Lede = string.IsNullOrEmpty(live) ? line ?? string.Empty : (line ?? string.Empty) + "\n\n" + live,
+                Choices = choices,
+                // Her × closes it unanswered; the panel draws a back plate only beside an action,
+                // so the way out before answering IS the action, kept quiet.
+                Action = answered ? "CONTINUE THE WALK →" : "NOT NOW",
+                ActionIsPrimary = answered,
+                Hint = answered ? string.Empty : "HOW DOES IT LEAVE YOU? POINT AT AN ANSWER",
+                Notice = ArtworkDialogue.Disclaimer,
+            };
+        }
+
+        static StagePanel AskDialogueFor(
             MasterLens companion, string artworkTitle, string question, string replies)
         {
             var name = companion == null ? "your companion" : companion.fullName;
@@ -330,7 +410,8 @@ namespace MusePico.Dialogue
                 Action = "ASK",
                 ActionEnabled = hasQuestion,
                 ActionIsPrimary = true,
-                Back = "\u2190 BACK TO THE GALLERY",
+                // "\u2190 BACK TO THE GALLERY" ellipsised on its 0.315-width plate (seen 27 Sep).
+                Back = "\u2190 GALLERY",
                 Hint = hasQuestion
                     ? "HOLD GRIP TO SAY IT AGAIN \u00b7 TRIGGER TO ASK"
                     : "HOLD GRIP AND SPEAK YOUR QUESTION",
@@ -458,6 +539,14 @@ namespace MusePico.Dialogue
             };
         }
 
+        /// <summary>The title of room <paramref name="index"/>, or empty when there is no such room.</summary>
+        static string RoomTitle(MuseumJourney journey, int index)
+        {
+            if (journey.Spine.InFinalWorld) return string.Empty;
+            if (index < 0 || index >= ExhibitionSpine.Chapters.Count) return string.Empty;
+            return ExhibitionSpine.Chapters[index].Title ?? string.Empty;
+        }
+
         static StagePanel WorldExploration(MuseumJourney journey)
         {
             var chapter = journey.Spine.Current;
@@ -474,9 +563,17 @@ namespace MusePico.Dialogue
                 Lede = chapter.Prompt ?? string.Empty,
                 Action = journey.Spine.InFinalWorld ? "BEGIN AGAIN →" : "FORM MY ANSWER →",
                 ActionIsPrimary = false,
+                // Changing world is the gallery's main control; ending the walk is a menu away.
+                ActionInMenu = true,
+                MenuLabel = journey.Spine.InFinalWorld ? "LEAVE…" : "FINISH THE WALK…",
+                MenuNote = journey.Spine.InFinalWorld
+                    ? "Start the museum again from the threshold."
+                    : "Explored enough, and asked the masters? They will read your walk back to you.",
                 NavIndex = journey.Spine.InFinalWorld ? -1 : journey.Spine.Index,
                 NavTotal = journey.Spine.InFinalWorld ? 0 : total,
-                Hint = "WALK WITH THE STICK · POINT AT AN ARTWORK OR A MASTER · ARROWS BELOW CHANGE ROOM",
+                NavPrevLabel = RoomTitle(journey, journey.Spine.Index - 1),
+                NavNextLabel = RoomTitle(journey, journey.Spine.Index + 1),
+                Hint = "POINT AT A MASTER TO ASK THEM A QUESTION · WALK WITH THE STICK · ARROWS CHANGE WORLD",
                 Notice = "OPEN ACCESS COLLECTION · LOCAL CURATION",
             };
         }

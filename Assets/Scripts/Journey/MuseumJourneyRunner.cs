@@ -146,6 +146,39 @@ namespace MusePico.Journey
         /// <summary>The three readings, once they arrive.</summary>
         string _askReplies = string.Empty;
 
+        /// <summary>
+        /// True while the box holds a question the visitor did not type — the pre-fill, or the
+        /// question already answered — so the first key replaces it (<see cref="AskTyping"/>).
+        /// </summary>
+        bool _askIsSuggestion;
+
+        /// <summary>Characters typed since the last frame, from the keyboard's text event.</summary>
+        readonly System.Text.StringBuilder _typed = new System.Text.StringBuilder();
+
+        UnityEngine.InputSystem.Keyboard _keyboard;
+
+        void OnTextInput(char c) { if (_asking != null) _typed.Append(c); }
+
+        /// <summary>The work or object whose popup is open, or null when none is.</summary>
+        ArtworkRecord _artOpen;
+
+        /// <summary>The master currently speaking in that popup — the opener, then the reactor.</summary>
+        string _artSpeakerId;
+
+        /// <summary>The scripted line shown: the opening, then the reaction once answered.</summary>
+        string _artLine = string.Empty;
+
+        /// <summary>The three live readings of the work, or a status while they load.</summary>
+        string _artLive = string.Empty;
+
+        bool _artAnswered;
+
+        /// <summary>Her <c>artDialogueTurn</c>: the invited masters take turns opening.</summary>
+        int _artTurn;
+
+        /// <summary>Her <c>dialogueToken</c>: a reply for a popup since closed is dropped.</summary>
+        int _artToken;
+
         /// <summary>The work last stopped at, which seeds the question exactly as hers does.</summary>
         ArtworkRecord _focused;
 
@@ -210,9 +243,20 @@ namespace MusePico.Journey
             }
         }
 
-        void OnEnable() { _buttons = new XrButtons(); }
+        void OnEnable()
+        {
+            _buttons = new XrButtons();
+            _keyboard = UnityEngine.InputSystem.Keyboard.current;
+            if (_keyboard != null) _keyboard.onTextInput += OnTextInput;
+        }
 
-        void OnDisable() { _buttons?.Dispose(); _buttons = null; }
+        void OnDisable()
+        {
+            _buttons?.Dispose(); _buttons = null;
+            if (_keyboard != null) _keyboard.onTextInput -= OnTextInput;
+            _keyboard = null;
+            DesktopMove.Suspended = false;
+        }
 
         void OnDestroy()
         {
@@ -241,7 +285,7 @@ namespace MusePico.Journey
             if (string.IsNullOrWhiteSpace(text)) return;
 
             // Whichever box asked for the words gets them. Neither one sends anything.
-            if (_asking != null) _askQuestion = text.Trim();
+            if (_asking != null) { _askQuestion = text.Trim(); _askIsSuggestion = false; }
             else Journey.SetQuestion(text.Trim());
 
             _speech = string.Empty;
@@ -295,6 +339,7 @@ namespace MusePico.Journey
 
             Journey.StageChanged += (_, to) => EnterStage(to);
             EnterStage(Journey.Current);
+            MakeObjectsPointable();
         }
 
         void Update()
@@ -312,9 +357,29 @@ namespace MusePico.Journey
             // the way her popup covers the gallery.
             if (_asking != null)
             {
+                // No headset: the question is typed, and WASD must type rather than walk.
+                var typing = !UnityEngine.XR.XRSettings.isDeviceActive;
+                DesktopMove.Suspended = typing;
+                if (typing && HandleAskTyping()) return;     // Esc closed the form
+
                 panel.Show(JourneyScript.AskDialogue(
-                    _asking, _focused == null ? null : _focused.title, _askQuestion, _askReplies));
+                    _asking, _focused == null ? null : _focused.title, _askQuestion, _askReplies, typing));
                 HandleAskInput();
+                return;
+            }
+            DesktopMove.Suspended = false;
+            _typed.Clear();
+
+            // The artwork popup, the same way: it covers the gallery while it is open.
+            if (_artOpen != null)
+            {
+                var keyboard = UnityEngine.InputSystem.Keyboard.current;
+                var escape = !UnityEngine.XR.XRSettings.isDeviceActive && keyboard != null &&
+                             keyboard.escapeKey.wasPressedThisFrame;
+                if (escape || (_buttons != null && _buttons.CancelPressed)) { CloseArt(); return; }
+
+                panel.Show(JourneyScript.ArtDialogue(
+                    Master(_artSpeakerId), _artOpen.title, _artLine, _artLive, _artAnswered));
                 return;
             }
 
@@ -392,6 +457,7 @@ namespace MusePico.Journey
         /// <summary>Her <c>setStage</c>: show this beat and only this beat.</summary>
         void EnterStage(Stage stage)
         {
+            CloseArt();
             foreach (var pair in _stageRoots) pair.Value.SetActive(pair.Key == stage);
 
             var walks = Walks(stage);
@@ -562,6 +628,7 @@ namespace MusePico.Journey
         /// </summary>
         void HangChapterWall(MuseXR.Worlds.WorldDefinition world)
         {
+            CloseArt();                 // the work it was about has just come off the wall
             if (wall == null || world == null) return;
 
             _hanging.Clear();
@@ -645,10 +712,8 @@ namespace MusePico.Journey
             if (texture != null) material.SetTexture("_BaseMap", texture);
             go.GetComponent<MeshRenderer>().sharedMaterial = material;
 
-            var interactable = go.AddComponent<
-                UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
             var stopped = record;
-            interactable.selectEntered.AddListener(_ => OnArtworkTaken(stopped));
+            MakePointable(go, () => OnArtworkTaken(stopped));
         }
 
         Texture2D ArtworkImage(string id)
@@ -673,6 +738,133 @@ namespace MusePico.Journey
             _speech = record.title + " · " + record.artist +
                       (string.IsNullOrEmpty(record.date) ? "" : " · " + record.date);
             AdvanceTour();
+            OpenArt(record);
+        }
+
+        /// <summary>
+        /// An object standing in the world — a statue, a temple — taken the way a painting is.
+        /// Not a tour stop, so the guide does not move on; everything else is her artwork popup.
+        /// </summary>
+        void OnObjectTaken(ArtworkRecord record)
+        {
+            if (record == null) return;
+            _focused = record;
+            Journey.Session.RecordArtwork(record.title, record.artist);
+            OpenArt(record);
+        }
+
+        /// <summary>
+        /// Her <c>openArtDialogue</c>: the next invited master opens with a scripted line about the
+        /// work, and all three are asked for a live reading of it.
+        /// </summary>
+        void OpenArt(ArtworkRecord record)
+        {
+            if (record == null || Journey.Current != Stage.WorldExploration || _asking != null) return;
+
+            _artOpen = record;
+            _artAnswered = false;
+            _artToken++;
+            _artSpeakerId = ArtworkDialogue.PickOpening(Journey.InvitedMasterIds, _artTurn++);
+            _artLine = ArtworkDialogue.Format(
+                ArtworkDialogue.VoiceFor(_artSpeakerId).Opening, record.title, record.artist);
+            _artLive = string.Empty;
+            FetchArtReadings(record, _artToken);
+        }
+
+        /// <summary>
+        /// Her <c>fetchLivePerspectives("Tell me how you see …")</c>: three live readings of the work,
+        /// spoken in each master's voice. Like hers, this is a paid call on every work opened.
+        /// The machine-made question is deliberately NOT recorded as the visitor's own.
+        /// </summary>
+        async void FetchArtReadings(ArtworkRecord record, int token)
+        {
+            if (dialogue == null || dialogue.IsBusy) return;
+
+            _artLive = "THE MASTERS ARE LOOKING…";
+            dialogue.invitedMasterIds.Clear();
+            foreach (var id in Journey.InvitedMasterIds) dialogue.invitedMasterIds.Add(id);
+            dialogue.artworkTitle = record.title ?? string.Empty;
+            dialogue.artworkArtist = record.artist ?? string.Empty;
+            dialogue.artworkDate = record.date ?? string.Empty;
+
+            var result = await dialogue.AskAsync("Tell me how you see “" + record.title + "”.");
+            if (token != _artToken) return;            // that popup has closed
+
+            if (result == null || !result.Success)
+            {
+                _artLive = "The masters could not be reached" +
+                           (result == null || string.IsNullOrEmpty(result.Error) ? "." : ": " + result.Error);
+                return;
+            }
+
+            var sb = new System.Text.StringBuilder();
+            foreach (var reading in result.Perspectives)
+                sb.Append(reading.speaker).Append(" — ").Append(reading.text).Append("\n\n");
+            _artLive = sb.ToString().TrimEnd();
+        }
+
+        /// <summary>
+        /// Her <c>onArtChoice</c>: the answer moves the philosophy score the closing world is
+        /// built from, and the master who champions that answer replies to it.
+        /// </summary>
+        void OnArtChoice(string choiceId)
+        {
+            var choice = ArtworkDialogue.ChoiceById(choiceId);
+            if (choice == null || _artAnswered) return;
+
+            Journey.Session.ApplyChoice(choice.Delta);
+            _artAnswered = true;
+            _artSpeakerId = ArtworkDialogue.PickReaction(choiceId, _artSpeakerId, Journey.InvitedMasterIds);
+            var voice = ArtworkDialogue.VoiceFor(_artSpeakerId);
+            _artLine = voice.Reactions.TryGetValue(choiceId, out var line) ? line : string.Empty;
+        }
+
+        void CloseArt()
+        {
+            _artOpen = null;
+            _artToken++;
+        }
+
+        MasterLens Master(string id)
+        {
+            foreach (var m in Roster()) if (m.id == id) return m;
+            return null;
+        }
+
+        /// <summary>
+        /// Pointable by the ray and by the mouse, running the same callback — the runner's twin of
+        /// JourneyPanel.Pointable, for things that live in the world rather than on the panel.
+        /// </summary>
+        static UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable MakePointable(
+            GameObject go, System.Action onPick)
+        {
+            var interactable = go.AddComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
+            interactable.selectEntered.AddListener(_ => onPick());
+            go.AddComponent<DesktopPointable>().Picked = onPick;
+            return interactable;
+        }
+
+        /// <summary>
+        /// Every prop in every world's props root becomes something you can ask about. Only things
+        /// with a renderer: the invisible walls fencing the peach plaza live under the same root.
+        /// </summary>
+        void MakeObjectsPointable()
+        {
+            foreach (var props in FindObjectsByType<WorldProps>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                foreach (Transform prop in props.transform)
+                {
+                    if (prop.GetComponent<DesktopPointable>() != null) continue;
+                    if (prop.GetComponentInChildren<Renderer>(true) == null) continue;
+                    if (prop.GetComponentInChildren<Collider>(true) == null) continue;
+
+                    var record = new ArtworkRecord
+                    {
+                        id = prop.name, title = ArtworkDialogue.TitleFromName(prop.name), artist = string.Empty,
+                    };
+                    MakePointable(prop.gameObject, () => OnObjectTaken(record));
+                }
+            }
         }
 
         /// <summary>
@@ -704,19 +896,104 @@ namespace MusePico.Journey
                 var existing = t.Find("Ask Target");
                 if (existing != null) continue;             // already wired this world
 
+                // Sized from the figure as RENDERED, in world units. The companion transforms carry
+                // the world's scale (~1.8x in the peach world), so fixed local offsets put the
+                // capsule at 3.4 m for a 1.5 m figure and the name plate 2 m over its head (seen
+                // 27 Sep). Bounds are taken before anything of ours is added under the figure.
+                var figure = FigureBounds(t);
+                var scale = Mathf.Max(t.lossyScale.y, 1e-3f);
+
                 var target = new GameObject("Ask Target");
                 target.transform.SetParent(t, false);
-                target.transform.localPosition = new Vector3(0f, 0.95f, 0f);
+                target.transform.position = figure.center;
 
                 var capsule = target.AddComponent<CapsuleCollider>();
-                capsule.height = 1.9f;
-                capsule.radius = 0.38f;
+                capsule.height = figure.size.y / scale;
+                capsule.radius = 0.38f / scale;
                 capsule.isTrigger = true;
 
                 var chosen = lens;                          // capture, not the loop variable
-                var interactable = target.AddComponent<
-                    UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
-                interactable.selectEntered.AddListener(_ => OpenAsk(chosen));
+                var body = MakePointable(target, () => OpenAsk(chosen));
+                var tag = BuildAskTag(t, lens, figure.max.y + 0.22f, () => OpenAsk(chosen));
+                Glow(body, tag);
+            }
+        }
+
+        /// <summary>The world bounds of everything rendered under a figure, or a 1.8 m box at its feet.</summary>
+        static Bounds FigureBounds(Transform figure)
+        {
+            var renderers = figure.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0)
+                return new Bounds(figure.position + Vector3.up * 0.9f, new Vector3(0.6f, 1.8f, 0.6f));
+            var b = renderers[0].bounds;
+            for (var i = 1; i < renderers.Length; i++) b.Encapsulate(renderers[i].bounds);
+            return b;
+        }
+
+        /// <summary>
+        /// A name plate floating over a master's head: their name and "ASK A QUESTION".
+        ///
+        /// Her masters are clickable, and the web says so with a cursor. A headset has no cursor,
+        /// and an invisible trigger capsule gave no sign that a figure could be spoken to at all —
+        /// "we need a way to start the interaction with the philosophers" (Saul, 27 Sep). The
+        /// plate is itself pointable, so aiming at the words works as well as aiming at the body.
+        /// </summary>
+        MeshRenderer BuildAskTag(Transform master, MasterLens lens, float worldY, System.Action onPick)
+        {
+            var tag = new GameObject("Ask Tag");
+            tag.transform.SetParent(master, false);
+            // World height and world size: undo the figure's scale so the plate is 0.62 m wide
+            // whatever the world's scale is.
+            tag.transform.position = new Vector3(master.position.x, worldY, master.position.z);
+            tag.transform.localScale = Vector3.one / Mathf.Max(master.lossyScale.y, 1e-3f);
+            tag.AddComponent<FaceViewer>();
+
+            var box = tag.AddComponent<BoxCollider>();
+            box.isTrigger = true;
+            box.size = new Vector3(0.62f, 0.20f, 0.04f);
+
+            var pill = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            pill.name = "Pill";
+            Destroy(pill.GetComponent<Collider>());
+            pill.transform.SetParent(tag.transform, false);
+            pill.transform.localPosition = new Vector3(0f, 0f, 0.01f);
+            pill.transform.localScale = new Vector3(0.62f, 0.19f, 1f);
+            var mat = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            mat.SetColor("_BaseColor", TagRest);
+            mat.SetFloat("_Surface", 1f);
+            mat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            mat.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            mat.SetFloat("_ZWrite", 0f);
+            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent - 5;
+            var renderer = pill.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = mat;
+
+            var text = new GameObject("Label").AddComponent<TMPro.TextMeshPro>();
+            text.transform.SetParent(tag.transform, false);
+            text.fontSize = 0.62f;
+            text.alignment = TMPro.TextAlignmentOptions.Center;
+            text.enableWordWrapping = false;
+            text.rectTransform.sizeDelta = new Vector2(0.60f, 0.19f);
+            text.text = "<b>" + (string.IsNullOrEmpty(lens.name) ? lens.fullName : lens.name) + "</b>\n" +
+                        "<size=62%><color=#C9AA72><cspace=0.18em>ASK A QUESTION</cspace></color></size>";
+
+            MakePointable(tag, onPick);
+            return renderer;
+        }
+
+        static readonly Color TagRest = new Color(0.165f, 0.129f, 0.094f, 0.72f);
+        static readonly Color TagHot = new Color(0.60f, 0.49f, 0.30f, 0.90f);
+
+        /// <summary>Light the plate while either the body or the plate is pointed at.</summary>
+        static void Glow(UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable body, MeshRenderer tag)
+        {
+            var tagInteractable = tag.GetComponentInParent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
+            foreach (var i in new[] { body, tagInteractable })
+            {
+                if (i == null) continue;
+                i.hoverEntered.AddListener(_ => { if (tag != null) tag.sharedMaterial.SetColor("_BaseColor", TagHot); });
+                i.hoverExited.AddListener(_ => { if (tag != null) tag.sharedMaterial.SetColor("_BaseColor", TagRest); });
             }
         }
 
@@ -728,9 +1005,39 @@ namespace MusePico.Journey
         {
             if (companion == null || Journey.Current != Stage.WorldExploration) return;
 
+            CloseArt();                                 // one popup at a time, as hers
             _asking = companion;
             _askReplies = string.Empty;
             _askQuestion = _focused == null ? string.Empty : "What do you see in " + _focused.title + "?";
+            _askIsSuggestion = true;
+            _typed.Clear();
+        }
+
+        /// <summary>
+        /// The keyboard while the ask form is open on desktop — her <c>#artAskForm</c>: type,
+        /// Enter submits, Escape leaves. Returns true when the form was closed.
+        /// </summary>
+        bool HandleAskTyping()
+        {
+            var keyboard = UnityEngine.InputSystem.Keyboard.current;
+            if (keyboard == null) return false;
+
+            if (keyboard.escapeKey.wasPressedThisFrame) { CloseAsk(); _typed.Clear(); return true; }
+
+            // Windows delivers Backspace through the text event too, with key repeat; count those,
+            // and fall back to the key itself on platforms that do not.
+            var typed = _typed.ToString();
+            _typed.Clear();
+            var backspaces = 0;
+            foreach (var c in typed) if (c == '\b') backspaces++;
+            if (backspaces == 0 && keyboard.backspaceKey.wasPressedThisFrame) backspaces = 1;
+
+            if (dialogue == null || !dialogue.IsBusy)
+                _askQuestion = AskTyping.Apply(_askQuestion, ref _askIsSuggestion, typed, backspaces);
+
+            if (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame)
+                AskTheMasters();
+            return false;
         }
 
         /// <summary>Close the ask form and go back to walking.</summary>
@@ -739,6 +1046,7 @@ namespace MusePico.Journey
             _asking = null;
             _askQuestion = string.Empty;
             _askReplies = string.Empty;
+            DesktopMove.Suspended = false;
         }
 
         /// <summary>
@@ -776,6 +1084,9 @@ namespace MusePico.Journey
             }
 
             var result = await dialogue.AskAsync(_askQuestion);
+
+            // Whatever came back, the next thing typed is a NEW question, not an edit of this one.
+            _askIsSuggestion = true;
 
             // Honest failure, never invented prose. A salon that could not be reached says so;
             // a canned line here would be indistinguishable from a real answer.
@@ -904,6 +1215,8 @@ namespace MusePico.Journey
         /// <summary>Her <c>choose</c> and her companion / question pickers, by stage.</summary>
         void OnChoice(string id)
         {
+            if (_artOpen != null) { OnArtChoice(id); return; }
+
             switch (Journey.Current)
             {
                 case Stage.LifeQuestion:
@@ -935,6 +1248,7 @@ namespace MusePico.Journey
         /// </summary>
         void OnBack()
         {
+            if (_artOpen != null) { CloseArt(); return; }
             if (_asking != null) { CloseAsk(); return; }
             if (Journey.Current == Stage.WorldExploration) { PreviousChapter(); return; }
             Journey.Back();
@@ -967,6 +1281,7 @@ namespace MusePico.Journey
         /// <summary>Her <c>act()</c>: what the forward button does, stage by stage.</summary>
         void OnAction()
         {
+            if (_artOpen != null) { CloseArt(); return; }     // NOT NOW, or CONTINUE THE WALK
             if (_asking != null) { AskTheMasters(); return; }
 
             switch (Journey.Current)
