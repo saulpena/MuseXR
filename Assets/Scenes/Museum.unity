@@ -592,7 +592,10 @@ MonoBehaviour:
   walkController: {fileID: 0}
   clipGroundSpeed: 1.055
   speedSmoothing: 8
-  slots: []
+  slots:
+  - {x: -2.7, y: -2}
+  - {x: -2.7, y: 2}
+  - {x: -3.3, y: 3.4}
   followDamping: 0.08
   repositionDistance: 1.6
   repositionAngle: 70

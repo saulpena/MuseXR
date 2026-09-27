@@ -344,7 +344,9 @@ namespace MusePico.Dialogue
             if (!typing) return panel;
 
             var hasQuestion = !string.IsNullOrWhiteSpace(question);
-            panel.Heading = "“" + (question ?? string.Empty) + "|”";
+            // No quotes while typing: a caret drawn inside the closing quote read as a stray glyph
+            // (independent review, 27 Sep).
+            panel.Heading = (question ?? string.Empty) + "|";
             panel.Hint = hasQuestion
                 ? "TYPE TO CHANGE IT · ENTER TO ASK · ESC TO GO BACK"
                 : "TYPE YOUR QUESTION · ENTER TO ASK · ESC TO GO BACK";
@@ -374,8 +376,11 @@ namespace MusePico.Dialogue
 
             return new StagePanel
             {
-                Marker = "SPEAKS TO YOU",
-                Eyebrow = name,
+                // The eyebrow names whose SCRIPTED line is shown, and what they are doing — the live
+                // readings under it carry their own speaker. A bare name over another master's
+                // reading read as a contradiction, and the switch to the reactor looked unexplained.
+                Marker = answered ? "IN REPLY TO YOUR ANSWER" : "ABOUT THIS WORK",
+                Eyebrow = name + (answered ? " REPLIES" : " SPEAKS TO YOU"),
                 Heading = string.IsNullOrEmpty(title) ? "This work" : title,
                 Lede = string.IsNullOrEmpty(live) ? line ?? string.Empty : (line ?? string.Empty) + "\n\n" + live,
                 Choices = choices,
@@ -396,8 +401,10 @@ namespace MusePico.Dialogue
 
             return new StagePanel
             {
-                Marker = "ASK - ALL THREE MASTERS ANSWER",
-                Eyebrow = "04 / " + name.ToUpperInvariant(),
+                // Says who was asked AND that all three answer. "04 / SOCRATES" over an answer
+                // labelled "1 / 3 · Claude Monet" read as a contradiction (independent review, 27 Sep).
+                Marker = "ALL THREE MASTERS ANSWER",
+                Eyebrow = "YOU ASKED " + name.ToUpperInvariant(),
 
                 // REVERTED with the question field, for the same reason. See LifeQuestion.
                 Heading = hasQuestion ? "“" + question + "”" : "What do you want to ask?",
@@ -565,7 +572,8 @@ namespace MusePico.Dialogue
                 ActionIsPrimary = false,
                 // Changing world is the gallery's main control; ending the walk is a menu away.
                 ActionInMenu = true,
-                MenuLabel = journey.Spine.InFinalWorld ? "LEAVE…" : "FINISH THE WALK…",
+                // No trailing ellipsis: on a small plate it read as truncated text (review, 27 Sep).
+                MenuLabel = journey.Spine.InFinalWorld ? "LEAVE" : "FINISH THE WALK",
                 MenuNote = journey.Spine.InFinalWorld
                     ? "Start the museum again from the threshold."
                     : "Explored enough, and asked the masters? They will read your walk back to you.",

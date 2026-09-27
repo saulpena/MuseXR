@@ -72,6 +72,7 @@ namespace MusePico.Tests
         {
             var panel = JourneyScript.AskDialogue(Monet, "Water Lilies", "Why light?", string.Empty, typing: true);
             StringAssert.Contains("Why light?|", panel.Heading);
+            StringAssert.DoesNotContain("”", panel.Heading, "no closing quote around the caret");
             StringAssert.Contains("ENTER TO ASK", panel.Hint);
             StringAssert.DoesNotContain("GRIP", panel.Hint);
         }
@@ -197,9 +198,11 @@ namespace MusePico.Tests
             Assert.AreEqual("perception", open.Choices[0].Id);
             Assert.AreEqual("NOT NOW", open.Action);
             Assert.AreEqual(ArtworkDialogue.Disclaimer, open.Notice);
+            Assert.AreEqual("CLAUDE MONET SPEAKS TO YOU", open.Eyebrow);
 
             var done = JourneyScript.ArtDialogue(Monet, "Water Lilies", "reaction", "MONET — reading", answered: true);
             Assert.IsEmpty(done.Choices);
+            Assert.AreEqual("CLAUDE MONET REPLIES", done.Eyebrow);
             StringAssert.Contains("CONTINUE THE WALK", done.Action);
             StringAssert.Contains("reaction", done.Lede);
             StringAssert.Contains("MONET — reading", done.Lede);

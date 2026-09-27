@@ -706,9 +706,11 @@ namespace MusePico.Journey
                 Plate(i < n - 1 ? panel.NavNextLabel + " →" : "→", false, half,
                     new Vector3(width * 0.2575f, row, 0f), () => NavTaken?.Invoke(i + 1), i < n - 1, 0.34f);
 
-                row -= 0.20f;
-                BuildRoomDots(i, n, row);
-                row -= 0.20f;
+                row -= 0.17f;
+                // No counter here: the panel's marker already says "01 / 08", and drawing it
+                // twice was flagged by the independent review (27 Sep).
+                BuildRoomDots(i, n, row, counter: false);
+                row -= 0.17f;
             }
 
             if (!_menuOpen)
@@ -1051,7 +1053,13 @@ namespace MusePico.Journey
         }
 
         /// <summary>"03 / 09" above one pointable dot per room.</summary>
-        void BuildRoomDots(int i, int n, float y)
+        void BuildRoomDots(int i, int n, float y, bool counter = true)
+        {
+            if (counter) BuildRoomCounter(i, n, y);
+            BuildDots(i, n, y);
+        }
+
+        void BuildRoomCounter(int i, int n, float y)
         {
             var counter = new GameObject("Room Counter").AddComponent<TextMeshPro>();
             counter.transform.SetParent(_plates, false);
@@ -1062,7 +1070,10 @@ namespace MusePico.Journey
             counter.rectTransform.sizeDelta = new Vector2(width * 0.5f, 0.14f);
             counter.text = "<cspace=0.22em><color=" + Gold + ">" +
                            (i + 1).ToString("00") + " / " + n.ToString("00") + "</color></cspace>";
+        }
 
+        void BuildDots(int i, int n, float y)
+        {
             // One dot per room. Tiny, so they are given a collider far larger than they look -
             // a 6 mm target is unhittable with a ray from two and a half metres.
             var pitch = Mathf.Min(0.085f, width * 0.55f / Mathf.Max(n, 1));
