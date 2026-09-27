@@ -305,7 +305,20 @@ namespace MusePico.Journey
             _speech = p.speaker + " — " + p.text;
             Journey.Session.RecordPerspective(p.speakerId, p.speaker, p.text);
             SetTalkingMaster(p.speakerId, true);
+
+            // The popup shows the reading being SPOKEN, one at a time, as it starts. All three at
+            // once ran the panel off its own bottom and pushed the answers out of reach (seen live
+            // 27 Sep); waiting for the full set left "THE MASTERS ARE LOOKING…" up for 87 s while
+            // the masters were audibly talking.
+            _liveIndex++;
+            var reading = _liveIndex + " / " + Mathf.Max(Journey.InvitedMasterIds.Count, _liveIndex) +
+                          " · " + p.speaker + " — " + p.text;
+            if (_artOpen != null) _artLive = reading;
+            else if (_asking != null) _askReplies = reading;
         }
+
+        /// <summary>How many readings of the current question have been shown.</summary>
+        int _liveIndex;
 
         /// <summary>
         /// Drive the walk animation for whichever companion is speaking.
@@ -364,6 +377,7 @@ namespace MusePico.Journey
 
                 panel.Show(JourneyScript.AskDialogue(
                     _asking, _focused == null ? null : _focused.title, _askQuestion, _askReplies, typing));
+                panel.ShowCompass(default);      // the tour caption drew over the replies
                 HandleAskInput();
                 return;
             }
@@ -380,6 +394,7 @@ namespace MusePico.Journey
 
                 panel.Show(JourneyScript.ArtDialogue(
                     Master(_artSpeakerId), _artOpen.title, _artLine, _artLive, _artAnswered));
+                panel.ShowCompass(default);      // the tour caption drew over the readings
                 return;
             }
 
@@ -781,6 +796,7 @@ namespace MusePico.Journey
             if (dialogue == null || dialogue.IsBusy) return;
 
             _artLive = "THE MASTERS ARE LOOKING…";
+            _liveIndex = 0;
             dialogue.invitedMasterIds.Clear();
             foreach (var id in Journey.InvitedMasterIds) dialogue.invitedMasterIds.Add(id);
             dialogue.artworkTitle = record.title ?? string.Empty;
@@ -796,11 +812,7 @@ namespace MusePico.Journey
                            (result == null || string.IsNullOrEmpty(result.Error) ? "." : ": " + result.Error);
                 return;
             }
-
-            var sb = new System.Text.StringBuilder();
-            foreach (var reading in result.Perspectives)
-                sb.Append(reading.speaker).Append(" — ").Append(reading.text).Append("\n\n");
-            _artLive = sb.ToString().TrimEnd();
+            // Success leaves the last reading showing; each one was put up as it was spoken.
         }
 
         /// <summary>
@@ -1073,6 +1085,7 @@ namespace MusePico.Journey
 
             Journey.Session.RecordQuestion(_askQuestion);
             _askReplies = "THE MASTERS ARE READING YOUR QUESTION\u2026";
+            _liveIndex = 0;
 
             dialogue.invitedMasterIds.Clear();
             foreach (var id in Journey.InvitedMasterIds) dialogue.invitedMasterIds.Add(id);
@@ -1097,11 +1110,7 @@ namespace MusePico.Journey
                                   ? "." : ": " + result.Error);
                 return;
             }
-
-            var sb = new System.Text.StringBuilder();
-            foreach (var reading in result.Perspectives)
-                sb.Append(reading.speaker).Append(" \u2014 ").Append(reading.text).Append("\n\n");
-            _askReplies = sb.ToString().TrimEnd();
+            // Success leaves the last reading showing; each one was put up as it was spoken.
         }
 
         /// <summary>Her <c>advanceTour</c>: the stop is done, move the guide on.</summary>
