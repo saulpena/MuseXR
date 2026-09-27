@@ -401,6 +401,17 @@ namespace MusePico.Journey
             AskTheMasters();
             yield return WaitForDialogue(Log, "ask replies");
             Log("ask live: " + _askReplies);
+            CloseAsk();
+
+            // Scene 1's doorway: the same call the courtyard's DoorwayPortal makes.
+            const string hall = "empty-chinese-imperial-temple-hall-500k";
+            EnterWorld(hall);
+            t = 0f;
+            while ((worlds == null || worlds.Current == null || worlds.Current.key != hall) && t < 30f) { t += Time.deltaTime; yield return null; }
+            yield return new WaitForSeconds(2f);
+            Log(worlds != null && worlds.Current != null && worlds.Current.key == hall
+                ? "entered the hall in " + t.ToString("0.0") + " s, visitor at " + (rig != null ? rig.position.ToString("F1") : "?")
+                : "FAIL the hall did not load in 30 s");
             Log("done");
         }
 
@@ -603,13 +614,44 @@ namespace MusePico.Journey
         //
         // The world owns the pose. Restart() reloads the world, which re-places the visitor.
 
+        /// <summary>
+        /// Walk through a doorway into another world inside the same chapter — Scene 1's courtyard
+        /// into the Hall of the Great Buddha (Skylar: "once you walk inside the building, you enter
+        /// a space with a Buddha statue"). The chapter, its prompt and the visitor's record carry
+        /// on; only the place changes. Walking stages only, so a trigger brushed during a panel
+        /// stage cannot move anyone.
+        /// </summary>
+        public void EnterWorld(string worldKey)
+        {
+            if (worlds == null || string.IsNullOrEmpty(worldKey)) return;
+            if (!Walks(Journey.Current)) return;
+            if (_requestedWorldKey == worldKey) return;
+
+            CloseArt();
+            CloseAsk();
+            _requestedWorldKey = worldKey;
+            if (_worldLoad != null) StopCoroutine(_worldLoad);
+            _worldLoad = StartCoroutine(worlds.ShowWorldByKey(worldKey));
+        }
+
         void OpenChapter()
         {
             if (worlds == null) return;
             var chapter = Journey.Spine.Current;
             var key = chapter.EffectiveWorldKey + WorldCatalog.SmallSuffix;
 
-            if (_requestedWorldKey == key) return;
+            if (_requestedWorldKey == key)
+            {
+                // The chapter's world is already up — the intro now opens in Scene 1's courtyard,
+                // so stage 04 arrives without a world load, and hanging the wall and routing the
+                // tour only ever happened on WorldChanged. Do it here instead.
+                if (worlds.Current != null && worlds.Current.key == key)
+                {
+                    HangChapterWall(worlds.Current);
+                    RebuildTour();
+                }
+                return;
+            }
 
             _requestedWorldKey = key;
             if (_worldLoad != null) StopCoroutine(_worldLoad);

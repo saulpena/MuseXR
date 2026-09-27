@@ -293,35 +293,35 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 2098166138}
+    m_TransformParent: {fileID: 1145147958}
     m_Modifications:
     - target: {fileID: -7311502858795243527, guid: 2f523fa0f47a8a5498bb7dcf5fcf4c90, type: 3}
       propertyPath: m_LocalScale.x
-      value: 3
+      value: 6.429432
       objectReference: {fileID: 0}
     - target: {fileID: -7311502858795243527, guid: 2f523fa0f47a8a5498bb7dcf5fcf4c90, type: 3}
       propertyPath: m_LocalScale.y
-      value: 3
+      value: 6.429432
       objectReference: {fileID: 0}
     - target: {fileID: -7311502858795243527, guid: 2f523fa0f47a8a5498bb7dcf5fcf4c90, type: 3}
       propertyPath: m_LocalScale.z
-      value: 3
+      value: 6.429432
       objectReference: {fileID: 0}
     - target: {fileID: -7311502858795243527, guid: 2f523fa0f47a8a5498bb7dcf5fcf4c90, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 7
+      value: -9.499413
       objectReference: {fileID: 0}
     - target: {fileID: -7311502858795243527, guid: 2f523fa0f47a8a5498bb7dcf5fcf4c90, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.3
+      value: -0.60000014
       objectReference: {fileID: 0}
     - target: {fileID: -7311502858795243527, guid: 2f523fa0f47a8a5498bb7dcf5fcf4c90, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -7.5
+      value: 9.99892
       objectReference: {fileID: 0}
     - target: {fileID: -7311502858795243527, guid: 2f523fa0f47a8a5498bb7dcf5fcf4c90, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.49806073
+      value: 0.70713246
       objectReference: {fileID: 0}
     - target: {fileID: -7311502858795243527, guid: 2f523fa0f47a8a5498bb7dcf5fcf4c90, type: 3}
       propertyPath: m_LocalRotation.x
@@ -329,7 +329,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -7311502858795243527, guid: 2f523fa0f47a8a5498bb7dcf5fcf4c90, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.86714214
+      value: 0.7070812
       objectReference: {fileID: 0}
     - target: {fileID: -7311502858795243527, guid: 2f523fa0f47a8a5498bb7dcf5fcf4c90, type: 3}
       propertyPath: m_LocalRotation.z
@@ -610,7 +610,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 2098166138}
+    m_TransformParent: {fileID: 1145147958}
     m_Modifications:
     - target: {fileID: -1209548060638391340, guid: c454b997e99031746ae31917769290d2, type: 3}
       propertyPath: m_Name
@@ -618,31 +618,31 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1979998169252606117, guid: c454b997e99031746ae31917769290d2, type: 3}
       propertyPath: m_LocalScale.x
-      value: 3
+      value: 12.238663
       objectReference: {fileID: 0}
     - target: {fileID: 1979998169252606117, guid: c454b997e99031746ae31917769290d2, type: 3}
       propertyPath: m_LocalScale.y
-      value: 3
+      value: 12.238663
       objectReference: {fileID: 0}
     - target: {fileID: 1979998169252606117, guid: c454b997e99031746ae31917769290d2, type: 3}
       propertyPath: m_LocalScale.z
-      value: 3
+      value: 12.238663
       objectReference: {fileID: 0}
     - target: {fileID: 1979998169252606117, guid: c454b997e99031746ae31917769290d2, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -8.5
+      value: 0.0022411346
       objectReference: {fileID: 0}
     - target: {fileID: 1979998169252606117, guid: c454b997e99031746ae31917769290d2, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.3
+      value: -0.60186744
       objectReference: {fileID: 0}
     - target: {fileID: 1979998169252606117, guid: c454b997e99031746ae31917769290d2, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -11.5
+      value: 0.00037384033
       objectReference: {fileID: 0}
     - target: {fileID: 1979998169252606117, guid: c454b997e99031746ae31917769290d2, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.72545123
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1979998169252606117, guid: c454b997e99031746ae31917769290d2, type: 3}
       propertyPath: m_LocalRotation.x
@@ -650,7 +650,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1979998169252606117, guid: c454b997e99031746ae31917769290d2, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.68827367
+      value: -0.00002880339
       objectReference: {fileID: 0}
     - target: {fileID: 1979998169252606117, guid: c454b997e99031746ae31917769290d2, type: 3}
       propertyPath: m_LocalRotation.z
@@ -1033,6 +1033,59 @@ Transform:
   m_Children: []
   m_Father: {fileID: 522009967}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &601212349
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 601212350}
+  - component: {fileID: 601212351}
+  m_Layer: 0
+  m_Name: Terrace Landing (physics only)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &601212350
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 601212349}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 4.05, z: -20.6}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 994864924}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &601212351
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 601212349}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 4.6, y: 0.5, z: 2.4}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &612999335
 GameObject:
   m_ObjectHideFlags: 0
@@ -1249,6 +1302,101 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &994864922
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 994864924}
+  - component: {fileID: 994864923}
+  m_Layer: 0
+  m_Name: WorldProps_imperial-courtyard-forbidden-city-500k
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &994864923
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 994864922}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c6d3473a78b6f74d918e7a011ce320d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Worlds::MuseXR.Worlds.WorldProps
+  worldKey: imperial-courtyard-forbidden-city-500k
+--- !u!4 &994864924
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 994864922}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1800221634}
+  - {fileID: 601212350}
+  - {fileID: 1965798039}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1145147956
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1145147958}
+  - component: {fileID: 1145147957}
+  m_Layer: 0
+  m_Name: WorldProps_empty-chinese-imperial-temple-hall-500k
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1145147957
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1145147956}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c6d3473a78b6f74d918e7a011ce320d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Worlds::MuseXR.Worlds.WorldProps
+  worldKey: empty-chinese-imperial-temple-hall-500k
+--- !u!4 &1145147958
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1145147956}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 436523725}
+  - {fileID: 117133798}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1217119851 stripped
@@ -1567,6 +1715,59 @@ Transform:
   m_Children: []
   m_Father: {fileID: 522009967}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1800221633
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1800221634}
+  - component: {fileID: 1800221635}
+  m_Layer: 0
+  m_Name: Stair Ramp (physics only)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1800221634
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1800221633}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.18677273, y: 0, z: 0, w: 0.98240316}
+  m_LocalPosition: {x: 0, y: 1.9639537, z: -14.123395}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 994864924}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &1800221635
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1800221633}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 4.6, y: 0.4, z: 11.717507}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1890394375 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2555754171075400706, guid: a23267c443842e04b9f9ab2f76fcde11, type: 3}
@@ -1699,6 +1900,73 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &1965798038
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1965798039}
+  - component: {fileID: 1965798041}
+  - component: {fileID: 1965798040}
+  m_Layer: 0
+  m_Name: Hall Doorway
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1965798039
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1965798038}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 5.6000004, z: -21.3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 994864924}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1965798040
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1965798038}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 378aa302ee23fe94296dc2b17c5449eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Journey::MusePico.Journey.DoorwayPortal
+  targetWorldKey: empty-chinese-imperial-temple-hall-500k
+--- !u!65 &1965798041
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1965798038}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 3.6, y: 2.6, z: 1.2}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1974259346
 GameObject:
   m_ObjectHideFlags: 0
@@ -1903,8 +2171,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2067996235}
-  - {fileID: 436523725}
-  - {fileID: 117133798}
   - {fileID: 1230627449}
   - {fileID: 764649820}
   m_Father: {fileID: 0}
@@ -2055,7 +2321,7 @@ MonoBehaviour:
   artworkHeight: 1.4
   GalleryReach: 14
   wallAnchors: {fileID: 11400000, guid: cc44c1f4027fa294286fa267fa524441, type: 2}
-  homeWorldKey: grand-conservatory-garden-path-cut-500k
+  homeWorldKey: imperial-courtyard-forbidden-city-500k
   dialogue: {fileID: 40427850}
   voice: {fileID: 40427852}
   score: {fileID: 455511207}
@@ -2092,3 +2358,5 @@ SceneRoots:
   - {fileID: 40427853}
   - {fileID: 455511208}
   - {fileID: 2098166138}
+  - {fileID: 994864924}
+  - {fileID: 1145147958}

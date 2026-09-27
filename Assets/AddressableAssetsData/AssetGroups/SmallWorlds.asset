@@ -55,8 +55,18 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a2824f779c8b86c42b2cacf22b3c705a
+    m_Address: imperial-courtyard-forbidden-city-500k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: b1324dfe4e84cd242bde8f650e1d4757
     m_Address: elegant-floral-palace-interior-500k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: baa469f2b041fd844a315f533c0837c0
+    m_Address: empty-chinese-imperial-temple-hall-500k
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

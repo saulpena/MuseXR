@@ -81,16 +81,18 @@ namespace MusePico.Dialogue
         /// <summary>The eight chapters, in her order. Copied from <c>config/exhibitionScenes.js</c>.</summary>
         public static readonly IReadOnlyList<ExhibitionChapter> Chapters = new List<ExhibitionChapter>
         {
-            // CHOSEN (Saul, 25 Sep 2026): the first world after the question and the philosopher is
-            // Celestial Peach Blossom Paradise, not her conservatory. Title, prompt and artworks are
-            // still hers and still conservatory-themed. No collider yet, so stage 04 stands on the
-            // flat fallback floor and hangs the wall around the spawn.
+            // CHOSEN (Saul, 27 Sep 2026, after Skylar's brief): Scene 1 is the Forbidden-City
+            // courtyard, whose open hall doors lead into the Hall of the Great Buddha (a doorway
+            // inside the chapter, not a chapter of its own); Scene 2 is the Peach Garden /
+            // Heavenly Palace with the Queen Mother of the West. Titles, prompts and artworks are
+            // still hers. Her worlds stay in WorldKey, so clearing ChosenWorldKey is the revert.
             new ExhibitionChapter { Id = "threshold-conservatory", Chapter = "01 / ARRIVAL",
                 Title = "The Threshold Conservatory", WorldKey = "grand-conservatory-with-lush-gardens",
-                ChosenWorldKey = "celestial-peach-blossom-paradise", Artist = "A cross-temporal salon",
+                ChosenWorldKey = "imperial-courtyard-forbidden-city", Artist = "A cross-temporal salon",
                 Prompt = "What must become visible before an answer can begin?" , CollectionId = "threshold-conservatory" },
             new ExhibitionChapter { Id = "court-of-light", Chapter = "02 / QUESTION",
-                Title = "The Court of Light", WorldKey = "elegant-floral-palace-interior", Artist = "Sigmund Freud",
+                Title = "The Court of Light", WorldKey = "elegant-floral-palace-interior",
+                ChosenWorldKey = "celestial-peach-blossom-paradise", Artist = "Sigmund Freud",
                 Prompt = "Which part of your question belongs to you, and which part was inherited?" , CollectionId = "court-of-light" },
             new ExhibitionChapter { Id = "garden-of-water-and-light", Chapter = "03 / PERCEPTION",
                 Title = "The Garden of Water and Light", WorldKey = "enchanted-water-garden-sanctuary", Artist = "Claude Monet",

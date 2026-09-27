@@ -334,17 +334,22 @@ namespace MusePico.Tests
         }
 
         [Test]
-        public void ChapterOne_LoadsTheChosenPeachBlossomWorld_AndKeepsHersOnRecord()
+        public void ScenesOneAndTwo_AreSkylarsCourtyardThenPeachGarden_AndKeepHersOnRecord()
         {
-            // Saul's choice for the first world after the question and the philosopher. Her
-            // conservatory stays in WorldKey so clearing ChosenWorldKey is the whole revert.
+            // Skylar's brief (27 Sep): Scene 1 the Forbidden-City courtyard (its doors lead into
+            // the Buddha hall), Scene 2 the Peach Garden. Her worlds stay in WorldKey, so clearing
+            // ChosenWorldKey is the whole revert.
             var ch01 = ExhibitionSpine.Chapters[0];
             Assert.AreEqual("grand-conservatory-with-lush-gardens", ch01.WorldKey, "her world, preserved");
             Assert.IsTrue(ch01.IsChosen);
             Assert.IsFalse(ch01.IsPlaceholder, "a choice is not a stand-in for a missing export");
-            Assert.AreEqual("celestial-peach-blossom-paradise", ch01.EffectiveWorldKey, "what actually loads");
-            Assert.AreSame(ch01, ExhibitionSpine.ByWorldKey("celestial-peach-blossom-paradise"));
-            Assert.AreSame(ch01, ExhibitionSpine.ByWorldKey("grand-conservatory-with-lush-gardens"));
+            Assert.AreEqual("imperial-courtyard-forbidden-city", ch01.EffectiveWorldKey, "what actually loads");
+            Assert.AreSame(ch01, ExhibitionSpine.ByWorldKey("imperial-courtyard-forbidden-city"));
+
+            var ch02 = ExhibitionSpine.Chapters[1];
+            Assert.AreEqual("elegant-floral-palace-interior", ch02.WorldKey, "her world, preserved");
+            Assert.AreEqual("celestial-peach-blossom-paradise", ch02.EffectiveWorldKey, "what actually loads");
+            Assert.AreSame(ch02, ExhibitionSpine.ByWorldKey("celestial-peach-blossom-paradise"));
         }
 
         [Test]
