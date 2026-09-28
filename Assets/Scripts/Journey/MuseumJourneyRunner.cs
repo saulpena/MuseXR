@@ -1033,9 +1033,28 @@ namespace MusePico.Journey
         /// JourneyPanel.Pointable, for things that live in the world rather than on the panel.
         /// </summary>
         static UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable MakePointable(
-            GameObject go, System.Action onPick)
+            GameObject go, System.Action onPick, params Collider[] colliders)
         {
-            var interactable = go.AddComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
+            // Colliders handed over EXPLICITLY, before the interactable registers, whenever given.
+            // Left to collect its own, XRBaseInteractable DROPS trigger colliders ("Skip any that
+            // are trigger colliders ... If a user wants to use a trigger collider, they must
+            // serialize the reference manually", XRBaseInteractable.cs:686-689) — and the masters'
+            // targets are triggers. So on the headset their interactables had no colliders: the ray
+            // physically hit Monet (RayDiag, 27 Sep) but nothing received it, it went on to the
+            // Buddha behind him, and clicking a master "talked about Buddha". The Editor's mouse
+            // path bypasses XRI, which is why it only failed on the Quest. It also avoids grabbing a
+            // collider already queued for Destroy (the name plate's backing quad).
+            UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable interactable;
+            if (colliders != null && colliders.Length > 0)
+            {
+                var wasActive = go.activeSelf;
+                go.SetActive(false);        // so Awake/OnEnable (registration) run after the list is set
+                interactable = go.AddComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
+                interactable.colliders.Clear();
+                foreach (var c in colliders) if (c != null) interactable.colliders.Add(c);
+                go.SetActive(wasActive);
+            }
+            else interactable = go.AddComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
             // Logged with the interactor, so a headset session says exactly what the ray selected.
             interactable.selectEntered.AddListener(args =>
             {
@@ -1117,7 +1136,7 @@ namespace MusePico.Journey
                 capsule.isTrigger = true;
 
                 var chosen = lens;                          // capture, not the loop variable
-                var body = MakePointable(target, () => OpenAsk(chosen));
+                var body = MakePointable(target, () => OpenAsk(chosen), capsule);
                 var tag = BuildAskTag(t, lens, figure.max.y + 0.22f, () => OpenAsk(chosen));
                 Glow(body, tag);
                 // The reading's bubble sits just above the name plate (0.19 m tall at 0.22 up).
@@ -1219,7 +1238,7 @@ namespace MusePico.Journey
             text.text = "<b>" + (string.IsNullOrEmpty(lens.name) ? lens.fullName : lens.name) + "</b>\n" +
                         "<size=62%><color=#C9AA72><cspace=0.18em>ASK A QUESTION</cspace></color></size>";
 
-            MakePointable(tag, onPick);
+            MakePointable(tag, onPick, box);
             return renderer;
         }
 
