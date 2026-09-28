@@ -460,6 +460,8 @@ namespace MusePico.Journey
             panel.listening = voice != null && voice.IsRecording;
             panel.micLevel = voice == null ? 0f : voice.Level;
 
+            KeepCompanionsPointable();
+
             // The ask form takes over the panel while it is open - it IS the stage's foreground,
             // the way her popup covers the gallery.
             if (_asking != null)
@@ -578,8 +580,11 @@ namespace MusePico.Journey
             var walks = Walks(stage);
             if (companions != null)
             {
-                companions.gameObject.SetActive(walks);
-                if (walks) MakeCompanionsPointable();
+                // The masters also stand with the visitor in the lobby — the opening stages in the
+                // courtyard — and can be asked there (Saul, 27 Sep: "add the philosophers to the
+                // lobby to see if I can click them there"). Their click targets are added by
+                // KeepCompanionsPointable once the party has actually spawned.
+                companions.gameObject.SetActive(walks || InLobby(stage));
             }
             if (wall != null) wall.gameObject.SetActive(walks);
 
@@ -1221,16 +1226,70 @@ namespace MusePico.Journey
         static readonly Color TagHot = new Color(0.60f, 0.49f, 0.30f, 0.90f);
 
         /// <summary>Light the plate while either the body or the plate is pointed at.</summary>
+        /// <summary>
+        /// While the ray is on a master (body or plate): the plate turns gold and grows by a third,
+        /// so it is unmistakable whether the ray has them before the trigger is pulled. Every hover
+        /// is logged, so a headset session shows whether the ray ever reached them.
+        /// </summary>
         static void Glow(UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable body, MeshRenderer tag)
         {
             var tagInteractable = tag.GetComponentInParent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
+            var plate = tagInteractable != null ? tagInteractable.transform : null;
+            var restScale = plate != null ? plate.localScale : Vector3.one;
+            var hovering = 0;
             foreach (var i in new[] { body, tagInteractable })
             {
                 if (i == null) continue;
-                i.hoverEntered.AddListener(_ => { if (tag != null) tag.sharedMaterial.SetColor("_BaseColor", TagHot); });
-                i.hoverExited.AddListener(_ => { if (tag != null) tag.sharedMaterial.SetColor("_BaseColor", TagRest); });
+                var who = i.transform.parent != null ? i.transform.parent.name : i.name;
+                i.hoverEntered.AddListener(_ =>
+                {
+                    hovering++;
+                    Debug.Log("[Hover] on " + who + "/" + i.name);
+                    if (tag != null) tag.sharedMaterial.SetColor("_BaseColor", TagHot);
+                    if (plate != null) plate.localScale = restScale * 1.35f;
+                });
+                i.hoverExited.AddListener(_ =>
+                {
+                    hovering = Mathf.Max(0, hovering - 1);
+                    if (hovering > 0) return;                     // still on the other part
+                    if (tag != null) tag.sharedMaterial.SetColor("_BaseColor", TagRest);
+                    if (plate != null) plate.localScale = restScale;
+                });
             }
         }
+
+        /// <summary>The opening stages, in the courtyard, before the exhibition.</summary>
+        static bool InLobby(Stage stage) =>
+            stage == Stage.Threshold || stage == Stage.LifeQuestion ||
+            stage == Stage.CompanionSelection || stage == Stage.AiCuration;
+
+        /// <summary>
+        /// Give every spawned master its click target, as soon as it exists.
+        ///
+        /// Doing this once, when the gallery opened, raced the party: the Companions object is
+        /// switched on in that same frame, and CompanionParty spawns the masters in its Start —
+        /// which had not run yet on the Quest, so no master got a target and nothing could be
+        /// clicked. The Editor happened to run the party's Start first, which is why only the
+        /// headset failed (Saul, 27 Sep). Called every frame the masters are shown; cheap once
+        /// built (it skips masters that already have a target).
+        /// </summary>
+        void KeepCompanionsPointable()
+        {
+            if (companions == null || !companions.gameObject.activeInHierarchy) return;
+            var party = companions.GetComponent<MusePico.Worlds.CompanionParty>();
+            if (party == null || party.Count == 0 || _pointableCount >= party.Count) return;
+            MakeCompanionsPointable();
+            var built = 0;
+            for (var i = 0; i < party.Count; i++)
+            {
+                var t = party.TransformOf(i);
+                if (t != null && t.Find("Ask Target") != null) built++;
+            }
+            if (built != _pointableCount) Debug.Log("[MuseumJourneyRunner] masters clickable: " + built + " / " + party.Count);
+            _pointableCount = built;
+        }
+
+        int _pointableCount;
 
         /// <summary>
         /// Her <c>selectCompanion</c>: clicking a master in the gallery opens the ask form.
@@ -1238,7 +1297,7 @@ namespace MusePico.Journey
         /// </summary>
         void OpenAsk(MasterLens companion)
         {
-            if (companion == null || Journey.Current != Stage.WorldExploration) return;
+            if (companion == null || !(Journey.Current == Stage.WorldExploration || InLobby(Journey.Current))) return;
 
             CloseArt();                                 // one popup at a time, as hers
             _asking = companion;
