@@ -130,6 +130,18 @@ namespace MusePico.Dialogue
             return string.Join(" ", words);
         }
 
+        /// <summary>
+        /// The question the masters' ask form opens with, so a visitor can ask without typing or
+        /// speaking: the work they last stopped at, else the room's focal object (the Buddha),
+        /// else the room itself. Never empty.
+        /// </summary>
+        public static string DefaultQuestion(string stoppedAt, string focalObject)
+        {
+            if (!string.IsNullOrWhiteSpace(stoppedAt)) return "What do you see in " + stoppedAt + "?";
+            if (!string.IsNullOrWhiteSpace(focalObject)) return "What do you see in " + focalObject + "?";
+            return "What should I notice in this place?";
+        }
+
         public static ArtworkChoice ChoiceById(string id)
         {
             foreach (var c in Choices) if (c.Id == id) return c;

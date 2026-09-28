@@ -42,10 +42,16 @@ namespace MuseXR.Worlds
             if (rig == null) rig = transform;
         }
 
+        [Tooltip("Vertical field of view without a headset. Unity's 60 left the masters, who stand " +
+                 "either side of the panel, and their speech bubbles half off the screen.")]
+        public float desktopFieldOfView = 85f;
+
         void Update()
         {
             if (!DesktopMotion.Active(UnityEngine.XR.XRSettings.isDeviceActive)) return;
             if (head == null) { var cam = Camera.main; if (cam == null) return; head = cam.transform; }
+            var eye = head.GetComponent<Camera>();
+            if (eye != null && !Mathf.Approximately(eye.fieldOfView, desktopFieldOfView)) eye.fieldOfView = desktopFieldOfView;
 
             Look(Mouse.current);
             if (!Suspended) Move(Keyboard.current);

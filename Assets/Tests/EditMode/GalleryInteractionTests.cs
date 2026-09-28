@@ -209,6 +209,16 @@ namespace MusePico.Tests
         }
 
         [Test]
+        public void TheAskFormAlwaysOpensWithAQuestionReadyToAsk()
+        {
+            Assert.AreEqual("What do you see in Water Lilies?",
+                ArtworkDialogue.DefaultQuestion("Water Lilies", "the Great Buddha"), "the work stopped at wins");
+            Assert.AreEqual("What do you see in the Great Buddha?",
+                ArtworkDialogue.DefaultQuestion(null, "the Great Buddha"), "else the room's focal object");
+            Assert.IsNotEmpty(ArtworkDialogue.DefaultQuestion(null, null), "never an empty box");
+        }
+
+        [Test]
         public void AnObjectTakesItsTitleFromItsAssetName()
         {
             Assert.AreEqual("Golden Buddha Statues", ArtworkDialogue.TitleFromName("golden-buddha-statues"));

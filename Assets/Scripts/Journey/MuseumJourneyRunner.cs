@@ -306,16 +306,22 @@ namespace MusePico.Journey
             Journey.Session.RecordPerspective(p.speakerId, p.speaker, p.text);
             SetTalkingMaster(p.speakerId, true);
 
-            // The popup shows the reading being SPOKEN, one at a time, as it starts. All three at
-            // once ran the panel off its own bottom and pushed the answers out of reach (seen live
-            // 27 Sep); waiting for the full set left "THE MASTERS ARE LOOKING…" up for 87 s while
-            // the masters were audibly talking.
+            // Each reading goes into its master's bubble as they start speaking, and stays: after
+            // the third, all three can be read side by side (Saul, 27 Sep). The panel only says who
+            // is talking — putting the readings there showed one at a time, each replacing the last.
             _liveIndex++;
-            var reading = _liveIndex + " / " + Mathf.Max(Journey.InvitedMasterIds.Count, _liveIndex) +
-                          " · " + p.speaker + " — " + p.text;
-            if (_artOpen != null) _artLive = reading;
-            else if (_asking != null) _askReplies = reading;
+            var total = Mathf.Max(Journey.InvitedMasterIds.Count, _liveIndex);
+            QuietBubbles();
+            if (_bubbles.TryGetValue(p.speakerId, out var bubble) && bubble != null)
+                bubble.Show(p.speaker, p.text, speaking: true);
+
+            var status = p.speaker.ToUpperInvariant() + " IS SPEAKING (" + _liveIndex + " / " + total +
+                         ") · EACH ANSWER STAYS ABOVE ITS MASTER";
+            if (_artOpen != null) _artLive = status;
+            else if (_asking != null) _askReplies = status;
         }
+
+        const string AllAnswered = "ALL THREE HAVE ANSWERED · READ EACH ONE ABOVE ITS MASTER";
 
         /// <summary>How many readings of the current question have been shown.</summary>
         int _liveIndex;
@@ -538,6 +544,7 @@ namespace MusePico.Journey
         void EnterStage(Stage stage)
         {
             CloseArt();
+            ClearBubbles();
             foreach (var pair in _stageRoots) pair.Value.SetActive(pair.Key == stage);
 
             var walks = Walks(stage);
@@ -670,6 +677,22 @@ namespace MusePico.Journey
             var head = rig != null ? rig : transform;
             var eye = Camera.main != null ? Camera.main.transform : head;
 
+            // The room's focal object is the first stop, so the arrow and the ask form's ready
+            // question point at the same thing (Saul, 27 Sep: "the main object of interest should
+            // be the Buddha"). The hung works follow it.
+            var focal = CurrentFocal();
+            var offset = focal != null ? 1 : 0;
+            var total = _tourOrder.Count + offset;
+            if (focal != null && !_focalVisited)
+            {
+                var fr = focal.GetComponentsInChildren<Renderer>();
+                var at = focal.transform.position;
+                if (fr.Length > 0) { var fb = fr[0].bounds; foreach (var r in fr) fb.Encapsulate(r.bounds); at = fb.center; }
+                var name = char.ToUpperInvariant(focal.title[0]) + focal.title.Substring(1);
+                panel.ShowCompass(TourGuide.Describe(eye.position, eye.eulerAngles.y, at, 0, total, name, null));
+                return;
+            }
+
             var index = Mathf.Clamp(_tourIndex, 0, _tourOrder.Count - 1);
             var target = wall.GetChild(_tourOrder[index]);
 
@@ -677,7 +700,7 @@ namespace MusePico.Journey
             var record = wallIndex < _hanging.Count ? _hanging[wallIndex] : null;
 
             panel.ShowCompass(TourGuide.Describe(
-                eye.position, eye.eulerAngles.y, target.position, index, _tourOrder.Count,
+                eye.position, eye.eulerAngles.y, target.position, index + offset, total,
                 record != null ? record.title : null,
                 record != null ? record.artist : null));
         }
@@ -720,6 +743,9 @@ namespace MusePico.Journey
         void HangChapterWall(MuseXR.Worlds.WorldDefinition world)
         {
             CloseArt();                 // the work it was about has just come off the wall
+            ClearBubbles();
+            _focused = null;            // a new room: its own focal object seeds the question
+            _focalVisited = false;
             if (wall == null || world == null) return;
 
             _hanging.Clear();
@@ -841,6 +867,8 @@ namespace MusePico.Journey
             if (record == null) return;
             _focused = record;
             Journey.Session.RecordArtwork(record.title, record.artist);
+            var focal = CurrentFocal();
+            if (focal != null && record.id == focal.gameObject.name) _focalVisited = true;   // the tour moves on
             OpenArt(record);
         }
 
@@ -873,6 +901,7 @@ namespace MusePico.Journey
 
             _artLive = "THE MASTERS ARE LOOKING…";
             _liveIndex = 0;
+            ClearBubbles();
             dialogue.invitedMasterIds.Clear();
             foreach (var id in Journey.InvitedMasterIds) dialogue.invitedMasterIds.Add(id);
             dialogue.artworkTitle = record.title ?? string.Empty;
@@ -888,7 +917,8 @@ namespace MusePico.Journey
                            (result == null || string.IsNullOrEmpty(result.Error) ? "." : ": " + result.Error);
                 return;
             }
-            // Success leaves the last reading showing; each one was put up as it was spoken.
+            QuietBubbles();
+            _artLive = AllAnswered;
         }
 
         /// <summary>
@@ -946,10 +976,11 @@ namespace MusePico.Journey
                     if (prop.GetComponentInChildren<Renderer>(true) == null) continue;
                     if (prop.GetComponentInChildren<Collider>(true) == null) continue;
 
-                    var record = new ArtworkRecord
-                    {
-                        id = prop.name, title = ArtworkDialogue.TitleFromName(prop.name), artist = string.Empty,
-                    };
+                    var focal = prop.GetComponent<FocalObject>();
+                    var title = focal != null && !string.IsNullOrEmpty(focal.title)
+                        ? char.ToUpperInvariant(focal.title[0]) + focal.title.Substring(1)   // "The Great Buddha"
+                        : ArtworkDialogue.TitleFromName(prop.name);
+                    var record = new ArtworkRecord { id = prop.name, title = title, artist = string.Empty };
                     MakePointable(prop.gameObject, () => OnObjectTaken(record));
                 }
             }
@@ -1004,7 +1035,44 @@ namespace MusePico.Journey
                 var body = MakePointable(target, () => OpenAsk(chosen));
                 var tag = BuildAskTag(t, lens, figure.max.y + 0.22f, () => OpenAsk(chosen));
                 Glow(body, tag);
+                // The reading's bubble sits just above the name plate (0.19 m tall at 0.22 up).
+                // The third master stands beside the second, 1.5 m apart, and their bubbles
+                // overlapped (27 Sep); theirs goes up a tier.
+                var tier = i == 2 ? 1.0f : 0f;
+                _bubbles[lens.id] = SpeechBubble.Create(t, figure.max.y + 0.22f + 0.14f + tier);
             }
+        }
+
+        /// <summary>Each invited master's speech bubble, by master id.</summary>
+        readonly Dictionary<string, SpeechBubble> _bubbles = new Dictionary<string, SpeechBubble>();
+
+        void ClearBubbles()
+        {
+            foreach (var b in _bubbles.Values) if (b != null) b.Hide();
+        }
+
+        void QuietBubbles()
+        {
+            foreach (var b in _bubbles.Values) if (b != null && b.gameObject.activeSelf) b.SetSpeaking(false);
+        }
+
+        /// <summary>The world's main object of interest, if the loaded world marks one.</summary>
+        FocalObject CurrentFocal() => FindFirstObjectByType<FocalObject>();
+
+        /// <summary>Whether the tour has already taken the visitor to the focal object.</summary>
+        bool _focalVisited;
+
+        /// <summary>
+        /// The question the ask form opens with, so it can be asked without typing or speaking: the
+        /// work the visitor last stopped at, else the room's focal object, else the room itself.
+        /// </summary>
+        string DefaultQuestion()
+        {
+            var focal = CurrentFocal();
+            string stoppedAt = null;
+            if (_focused != null)
+                stoppedAt = focal != null && _focused.id == focal.gameObject.name ? focal.title : _focused.title;
+            return ArtworkDialogue.DefaultQuestion(stoppedAt, focal != null ? focal.title : null);
         }
 
         /// <summary>The world bounds of everything rendered under a figure, or a 1.8 m box at its feet.</summary>
@@ -1096,7 +1164,7 @@ namespace MusePico.Journey
             CloseArt();                                 // one popup at a time, as hers
             _asking = companion;
             _askReplies = string.Empty;
-            _askQuestion = _focused == null ? string.Empty : "What do you see in " + _focused.title + "?";
+            _askQuestion = DefaultQuestion();
             _askIsSuggestion = true;
             _typed.Clear();
         }
@@ -1162,15 +1230,19 @@ namespace MusePico.Journey
             Journey.Session.RecordQuestion(_askQuestion);
             _askReplies = "THE MASTERS ARE READING YOUR QUESTION\u2026";
             _liveIndex = 0;
+            ClearBubbles();
 
             dialogue.invitedMasterIds.Clear();
             foreach (var id in Journey.InvitedMasterIds) dialogue.invitedMasterIds.Add(id);
-            if (_focused != null)
-            {
-                dialogue.artworkTitle = _focused.title;
-                dialogue.artworkArtist = _focused.artist ?? string.Empty;
-                dialogue.artworkDate = _focused.date ?? string.Empty;
-            }
+            // Always name the subject. With nothing stopped at, the question used to go out with
+            // whatever work the dialogue last held — asked "What do you see in the Great Buddha?",
+            // van Gogh answered "you find no Great Buddha here; you face blue-green water, lily
+            // pads" (live, 27 Sep). The room's focal object is the subject then.
+            var focal = CurrentFocal();
+            dialogue.artworkTitle = _focused != null ? _focused.title
+                                  : focal != null ? focal.title : string.Empty;
+            dialogue.artworkArtist = _focused != null ? _focused.artist ?? string.Empty : string.Empty;
+            dialogue.artworkDate = _focused != null ? _focused.date ?? string.Empty : string.Empty;
 
             var result = await dialogue.AskAsync(_askQuestion);
 
@@ -1186,7 +1258,8 @@ namespace MusePico.Journey
                                   ? "." : ": " + result.Error);
                 return;
             }
-            // Success leaves the last reading showing; each one was put up as it was spoken.
+            QuietBubbles();
+            _askReplies = AllAnswered;
         }
 
         /// <summary>Her <c>advanceTour</c>: the stop is done, move the guide on.</summary>

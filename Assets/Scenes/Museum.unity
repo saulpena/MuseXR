@@ -679,6 +679,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -1209548060638391340, guid: c454b997e99031746ae31917769290d2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 436523727}
+    - targetCorrespondingSourceObject: {fileID: -1209548060638391340, guid: c454b997e99031746ae31917769290d2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 436523730}
   m_SourcePrefab: {fileID: 3150474306388093854, guid: c454b997e99031746ae31917769290d2, type: 3}
 --- !u!4 &436523725 stripped
 Transform:
@@ -711,6 +714,19 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.7704165, y: 0.9804994, z: 0.81607074}
   m_Center: {x: -0.00018307567, y: 0.49040228, z: -0.000030517578}
+--- !u!114 &436523730
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 436523726}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71bda35a5cb6ddb43b326da29b77bf9c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Worlds::MuseXR.Worlds.FocalObject
+  title: the Great Buddha
 --- !u!1 &455511206
 GameObject:
   m_ObjectHideFlags: 0
@@ -1400,6 +1416,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -4808667170892550170, guid: ef28b8731b26f8047ba241752bcc4193, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1230627451}
+    - targetCorrespondingSourceObject: {fileID: -4808667170892550170, guid: ef28b8731b26f8047ba241752bcc4193, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1230627454}
   m_SourcePrefab: {fileID: 3150474306388093854, guid: ef28b8731b26f8047ba241752bcc4193, type: 3}
 --- !u!4 &1230627449 stripped
 Transform:
@@ -1432,6 +1451,19 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.9800719, y: 0.6070558, z: 0.7449343}
   m_Center: {x: -0.00006094575, y: 0.30368048, z: 0.000015199184}
+--- !u!114 &1230627454
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1230627450}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71bda35a5cb6ddb43b326da29b77bf9c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Worlds::MuseXR.Worlds.FocalObject
+  title: the Queen Mother of the West
 --- !u!1 &1245260376
 GameObject:
   m_ObjectHideFlags: 0
