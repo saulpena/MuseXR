@@ -357,7 +357,32 @@ namespace MusePico.Journey
             Journey.StageChanged += (_, to) => EnterStage(to);
             EnterStage(Journey.Current);
             MakeObjectsPointable();
+            LetRaysHitTriggers();
             if (LaunchOptions.SelfTest) StartCoroutine(SelfTest());
+        }
+
+        /// <summary>
+        /// Let the controller rays select TRIGGER colliders.
+        ///
+        /// The masters are pointed at through trigger colliders (the capsule over the body and the
+        /// name plate): triggers, so the visitor can walk up to them and the party's own ground
+        /// rays do not land on them. XRI's rays default to <c>QueryTriggerInteraction.Ignore</c>
+        /// (<c>CurveInteractionCaster</c>, <c>XRRayInteractor</c>), so on the headset the ray
+        /// passed straight through every master while panels and paintings — solid colliders —
+        /// worked. The Editor's mouse pick queries triggers, which is why it only broke on the Quest
+        /// (Saul, 27 Sep: "I can not click on the philosophers on the Quest").
+        /// </summary>
+        void LetRaysHitTriggers()
+        {
+            // Only the controllers' pointing rays (the Near-Far interactors' casters). The teleport
+            // rays stay on Ignore, so a master's capsule never blocks teleporting past them.
+            // Measured in Play Mode: with Ignore a ray at Monet's name plate hit nothing and one at
+            // his body passed through to the floor; with Collide both hit Monet.
+            var n = 0;
+            foreach (var c in FindObjectsByType<UnityEngine.XR.Interaction.Toolkit.Interactors.Casters.CurveInteractionCaster>(
+                         FindObjectsInactive.Include, FindObjectsSortMode.None))
+            { c.raycastTriggerInteraction = QueryTriggerInteraction.Collide; n++; }
+            Debug.Log("[MuseumJourneyRunner] controller rays now hit trigger colliders (the masters): " + n + " casters");
         }
 
         /// <summary>
