@@ -85,6 +85,24 @@ namespace MusePico.Tests
         }
 
         [Test]
+        public void TheReadyQuestionIsAPlateUnderAnEmptyBox_NeverThePrefill()
+        {
+            // Saul, 27 Sep: clicking a master must stay "ask my own question"; the Buddha question
+            // is an extra, not what the box holds.
+            var panel = JourneyScript.AskDialogue(Monet, null, string.Empty, string.Empty, typing: true,
+                suggestion: "What do you see in the Great Buddha?");
+            StringAssert.Contains("What do you want to ask?", panel.Heading);
+            Assert.IsFalse(panel.ActionEnabled, "nothing to send until the visitor asks something");
+            Assert.AreEqual(1, panel.Choices.Count);
+            Assert.AreEqual(JourneyScript.SuggestedQuestionId, panel.Choices[0].Id);
+            StringAssert.Contains("the Great Buddha", panel.Choices[0].Label);
+
+            var headset = JourneyScript.AskDialogue(Monet, null, string.Empty, string.Empty, typing: false,
+                suggestion: "What do you see in the Great Buddha?");
+            StringAssert.Contains("SPEAK YOUR QUESTION", headset.Hint);
+        }
+
+        [Test]
         public void TheFirstKeyReplacesTheSuggestion()
         {
             var suggestion = true;

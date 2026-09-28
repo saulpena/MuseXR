@@ -217,16 +217,19 @@ namespace MuseXR.Worlds
             // z -10..-20, the hall front stands at z ~ -21 with its central doors open. Spawn 6 m
             // back from the origin so the whole hall and its roof frame (12 m back smears the
             // paving underfoot). yaw 180 faces the hall; yaw 0 is the gate wall.
+            // groundY +0.25 m over the collider's floor: standing on the collider's height, the
+            // visitor and the masters sat visibly sunk into the splat paving (Saul, Quest, 27 Sep).
             Small_("imperial-courtyard-forbidden-city", "Imperial Courtyard",
-                   1.7f, new Vector2(0f, 6f / 1.7f), 0f, 180f, 400f),
+                   1.7f, new Vector2(0f, 6f / 1.7f), 0.25f / 1.7f, 180f, 400f),
             // Hall: floor y -0.6, ceiling 17-19 m, ~34 m between the side walls at mid-hall,
             // ~100 m long. A small altar at the +z end, the grand shrine at -z. The capture is only
             // sharp within ~15 m of its centre (z ~ +6): at 24 m the view looked through a brown
             // fog of edge splats, and behind a Buddha at z -8 the same fog hid its back. So the
             // 12 m Buddha stands at z 0 (spanning -5..+5) and the visitor arrives 16 m out,
             // facing it and the shrine beyond. Its props live under WorldProps_<this key>.
+            // groundY -0.35: the collider's -0.6 plus the same 0.25 m lift as the courtyard.
             Small_("empty-chinese-imperial-temple-hall", "Hall of the Great Buddha",
-                   1.7f, new Vector2(0f, 16f / 1.7f), -0.6f / 1.7f, 180f, 250f),
+                   1.7f, new Vector2(0f, 16f / 1.7f), -0.35f / 1.7f, 180f, 250f),
         };
 
         /// <summary>

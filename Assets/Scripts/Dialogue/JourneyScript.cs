@@ -332,24 +332,46 @@ namespace MusePico.Dialogue
             MasterLens companion, string artworkTitle, string question, string replies) =>
             AskDialogue(companion, artworkTitle, question, replies, typing: false);
 
+        /// <summary>The choice id of the ready-made question plate on the ask form.</summary>
+        public const string SuggestedQuestionId = "ask-suggested";
+
         /// <summary>
         /// The same popup with a keyboard. <paramref name="typing"/> is true when there is no
         /// headset, so the question is typed rather than dictated: the box shows a caret and the
         /// hint names the keys instead of the grip.
+        ///
+        /// <paramref name="suggestion"/> is a ready-made question offered as its own plate UNDER
+        /// the box, never put in it: the box is for the visitor's own question. Pre-filling it made
+        /// clicking a master a second way of asking about the Buddha (Saul, 27 Sep: "now we can not
+        /// ask questions, it is only talking about Buddha").
         /// </summary>
         public static StagePanel AskDialogue(
-            MasterLens companion, string artworkTitle, string question, string replies, bool typing)
+            MasterLens companion, string artworkTitle, string question, string replies, bool typing,
+            string suggestion = null)
         {
             var panel = AskDialogueFor(companion, artworkTitle, question, replies);
-            if (!typing) return panel;
-
             var hasQuestion = !string.IsNullOrWhiteSpace(question);
+            var hasSuggestion = !string.IsNullOrWhiteSpace(suggestion);
+
+            if (hasSuggestion)
+                panel.Choices = new List<StageChoice> { new StageChoice(SuggestedQuestionId, "OR ASK: " + suggestion) };
+
+            if (!typing)
+            {
+                panel.Hint = hasQuestion
+                    ? "HOLD GRIP TO SAY IT AGAIN · TRIGGER ON ASK"
+                    : hasSuggestion ? "HOLD GRIP AND SPEAK YOUR QUESTION · OR POINT AT THE SUGGESTION"
+                                    : "HOLD GRIP AND SPEAK YOUR QUESTION";
+                return panel;
+            }
+
             // No quotes while typing: a caret drawn inside the closing quote read as a stray glyph
             // (independent review, 27 Sep).
-            panel.Heading = (question ?? string.Empty) + "|";
+            panel.Heading = hasQuestion ? question + "|" : "What do you want to ask?|";
             panel.Hint = hasQuestion
                 ? "TYPE TO CHANGE IT · ENTER TO ASK · ESC TO GO BACK"
-                : "TYPE YOUR QUESTION · ENTER TO ASK · ESC TO GO BACK";
+                : hasSuggestion ? "TYPE YOUR QUESTION · ENTER TO ASK · OR CLICK THE SUGGESTION"
+                                : "TYPE YOUR QUESTION · ENTER TO ASK · ESC TO GO BACK";
             return panel;
         }
 

@@ -146,6 +146,9 @@ namespace MusePico.Journey
         /// <summary>The three readings, once they arrive.</summary>
         string _askReplies = string.Empty;
 
+        /// <summary>The ready-made question offered under the box (about the work or the room's focal object).</summary>
+        string _askSuggestion;
+
         /// <summary>
         /// True while the box holds a question the visitor did not type — the pre-fill, or the
         /// question already answered — so the first key replaces it (<see cref="AskTyping"/>).
@@ -442,7 +445,8 @@ namespace MusePico.Journey
                 if (typing && HandleAskTyping()) return;     // Esc closed the form
 
                 panel.Show(JourneyScript.AskDialogue(
-                    _asking, _focused == null ? null : _focused.title, _askQuestion, _askReplies, typing));
+                    _asking, _focused == null ? null : _focused.title, _askQuestion, _askReplies, typing,
+                    dialogue != null && dialogue.IsBusy ? null : _askSuggestion));
                 panel.ShowCompass(default);      // the tour caption drew over the replies
                 HandleAskInput();
                 return;
@@ -1208,8 +1212,11 @@ namespace MusePico.Journey
             CloseArt();                                 // one popup at a time, as hers
             _asking = companion;
             _askReplies = string.Empty;
-            _askQuestion = DefaultQuestion();
-            _askIsSuggestion = true;
+            // The box starts EMPTY: it is for the visitor's own question. The ready-made one is a
+            // separate plate under it (JourneyScript.AskDialogue's suggestion).
+            _askQuestion = string.Empty;
+            _askIsSuggestion = false;
+            _askSuggestion = DefaultQuestion();
             _typed.Clear();
         }
 
@@ -1279,15 +1286,28 @@ namespace MusePico.Journey
 
             dialogue.invitedMasterIds.Clear();
             foreach (var id in Journey.InvitedMasterIds) dialogue.invitedMasterIds.Add(id);
-            // Always name the subject. With nothing stopped at, the question used to go out with
-            // whatever work the dialogue last held — asked "What do you see in the Great Buddha?",
-            // van Gogh answered "you find no Great Buddha here; you face blue-green water, lily
-            // pads" (live, 27 Sep). The room's focal object is the subject then.
+            // Always set the subject, never leave a stale one: asked about the Great Buddha with a
+            // leftover subject, van Gogh answered "you find no Great Buddha here; you face
+            // blue-green water, lily pads" (live, 27 Sep).
+            //   - The ready-made question is ABOUT the work stopped at, or the room's focal object.
+            //   - The visitor's own question is about whatever they asked: no work is put in focus,
+            //     or every answer bends back to the Buddha (Saul: "it is only talking about Buddha").
             var focal = CurrentFocal();
-            dialogue.artworkTitle = _focused != null ? _focused.title
-                                  : focal != null ? focal.title : string.Empty;
-            dialogue.artworkArtist = _focused != null ? _focused.artist ?? string.Empty : string.Empty;
-            dialogue.artworkDate = _focused != null ? _focused.date ?? string.Empty : string.Empty;
+            var aboutTheWork = _askQuestion == _askSuggestion;
+            if (aboutTheWork && _focused != null)
+            {
+                dialogue.artworkTitle = _focused.title;
+                dialogue.artworkArtist = _focused.artist ?? string.Empty;
+                dialogue.artworkDate = _focused.date ?? string.Empty;
+            }
+            else
+            {
+                dialogue.artworkTitle = aboutTheWork && focal != null
+                    ? focal.title
+                    : "none in particular - answer the visitor's own question";
+                dialogue.artworkArtist = string.Empty;
+                dialogue.artworkDate = string.Empty;
+            }
 
             var result = await dialogue.AskAsync(_askQuestion);
 
@@ -1419,6 +1439,17 @@ namespace MusePico.Journey
         void OnChoice(string id)
         {
             if (_artOpen != null) { OnArtChoice(id); return; }
+            if (_asking != null)
+            {
+                // The ready-made question: one press asks it.
+                if (id == JourneyScript.SuggestedQuestionId && !string.IsNullOrEmpty(_askSuggestion))
+                {
+                    _askQuestion = _askSuggestion;
+                    _askIsSuggestion = false;
+                    AskTheMasters();
+                }
+                return;
+            }
 
             switch (Journey.Current)
             {
