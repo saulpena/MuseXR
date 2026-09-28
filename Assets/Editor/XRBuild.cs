@@ -151,6 +151,10 @@ namespace MuseXR.EditorTools
             // The visual-quality benchmark: several versions of the same environment, labelled,
             // with the frame rate on the panel. See QualityBenchCatalog.
             new Target { Name = "Bench",     Scene = "Assets/Scenes/Tests/QualityBench.unity",  AddressableGroup = AddressableWorldSetup.BenchGroup },
+
+            // Every artwork in a ring round the visitor, each one grabbable and two-hand scalable.
+            // No worlds, so no Addressables group.
+            new Target { Name = "Grab",      Scene = "Assets/Scenes/Tests/GrabPaintings.unity", AddressableGroup = null },
         };
 
         /// <summary>
@@ -205,6 +209,7 @@ namespace MuseXR.EditorTools
         [MenuItem("MuseXR/Build/PICO/Sunlit", priority = 45)]    static void P8() => BuildOne(Vendor.Pico, T("Sunlit"));
         [MenuItem("MuseXR/Build/PICO/Small", priority = 46)]     static void P9() => BuildOne(Vendor.Pico, T("Small"));
         [MenuItem("MuseXR/Build/PICO/Bench", priority = 48)]     static void P11() => BuildOne(Vendor.Pico, T("Bench"));
+        [MenuItem("MuseXR/Build/PICO/Grab", priority = 49)]      static void P12() => BuildOne(Vendor.Pico, T("Grab"));
 
         [MenuItem("MuseXR/Build/Quest/Rig", priority = 20)]       static void Q0() => BuildOne(Vendor.Quest, T("Rig"));
         [MenuItem("MuseXR/Build/Quest/Samples", priority = 22)]   static void Q2() => BuildOne(Vendor.Quest, T("Samples"));
@@ -217,6 +222,7 @@ namespace MuseXR.EditorTools
         [MenuItem("MuseXR/Build/Quest/Sunlit", priority = 45)]    static void Q8() => BuildOne(Vendor.Quest, T("Sunlit"));
         [MenuItem("MuseXR/Build/Quest/Small", priority = 46)]     static void Q9() => BuildOne(Vendor.Quest, T("Small"));
         [MenuItem("MuseXR/Build/Quest/Bench", priority = 48)]     static void Q11() => BuildOne(Vendor.Quest, T("Bench"));
+        [MenuItem("MuseXR/Build/Quest/Grab", priority = 49)]      static void Q12() => BuildOne(Vendor.Quest, T("Grab"));
 
         [MenuItem("MuseXR/Build/PICO/All Three", priority = 25)]
         public static void BuildAllPico() => BuildAllFor(Vendor.Pico);

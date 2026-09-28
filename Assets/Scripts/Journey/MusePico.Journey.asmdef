@@ -12,7 +12,8 @@
         "Unity.XR.CoreUtils",
         "Unity.XR.Interaction.Toolkit",
         "Unity.Addressables",
-        "Unity.ResourceManager"
+        "Unity.ResourceManager",
+        "MusePico.Grab"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

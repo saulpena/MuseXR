@@ -10,7 +10,9 @@
         "MusePico.Dialogue",
         "MuseXR.Manifest.Editor",
         "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "UnityEditor.TestRunner",
+        "MusePico.Grab",
+        "Unity.XR.Interaction.Toolkit"
     ],
     "includePlatforms": [
         "Editor"

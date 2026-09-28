@@ -863,8 +863,16 @@ namespace MusePico.Journey
             if (texture != null) material.SetTexture("_BaseMap", texture);
             go.GetComponent<MeshRenderer>().sharedMaterial = material;
 
+            // Grabbable, not just pointable: a trigger TAP still opens the reading, a hold takes the
+            // work off the wall, and a second hand on it scales it. See Grabbable.
             var stopped = record;
-            MakePointable(go, () => OnArtworkTaken(stopped));
+            System.Action onPick = () =>
+            {
+                Debug.Log("[Pick] world: " + wall.name + "/" + go.name + " (tap)");
+                OnArtworkTaken(stopped);
+            };
+            MusePico.Grab.Grabbable.Make(go, onPick, MusePico.Grab.GrabReach.AtRayEnd, go.GetComponent<Collider>());
+            go.AddComponent<DesktopPointable>().Picked = onPick;
         }
 
         Texture2D ArtworkImage(string id)
