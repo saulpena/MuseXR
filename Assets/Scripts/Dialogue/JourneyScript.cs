@@ -353,21 +353,46 @@ namespace MusePico.Dialogue
             return panel;
         }
 
+        /// <summary>The three phases of the object popup, in the order a visitor goes through them.</summary>
+        public enum ArtPhase { Looking, Choosing, Answered }
+
         /// <summary>
-        /// Her artwork popup: clicking a work (or an object standing in the world) opens it. One
-        /// master speaks to you about the work, the live readings of all three arrive under that
-        /// line, and you answer with one of her three fixed choices. After answering, the master
-        /// who champions that answer reacts and the only way on is back to the walk.
+        /// Her artwork popup, as Saul described it working in the web build (27 Sep): click an
+        /// object, and all three masters say something about it (each reading in its bubble, kept);
+        /// then choose one of her three answers; then ONE master replies to that answer, and the only
+        /// way on is to continue the walk. No "NOT NOW".
+        ///
+        /// The answers appear only once the readings have been heard. Offered at once, a choice made
+        /// mid-reading had the reply spoken over the masters still talking, and the reply replaced a
+        /// line on the panel that looked unrelated to anything the visitor had chosen.
         /// </summary>
-        /// <param name="line">The scripted line being shown: the opening, or the reaction once answered.</param>
-        /// <param name="live">The three live readings, a status while they load, or empty.</param>
-        public static StagePanel ArtDialogue(
-            MasterLens speaker, string title, string line, string live, bool answered)
+        /// <param name="status">What is happening: the masters looking, who is speaking, or the prompt to answer.</param>
+        /// <param name="youSaid">The answer chosen, once answered.</param>
+        /// <param name="reactor">The master replying, once answered.</param>
+        /// <param name="reply">Their reply, once answered.</param>
+        public static StagePanel ArtDialogue(string title, ArtPhase phase, string status,
+                                             string youSaid = null, MasterLens reactor = null, string reply = null)
         {
-            var name = speaker == null ? "YOUR COMPANION" : speaker.fullName.ToUpperInvariant();
+            var heading = string.IsNullOrEmpty(title) ? "This work" : title;
+
+            if (phase == ArtPhase.Answered)
+            {
+                var who = reactor == null ? "A MASTER" : reactor.fullName.ToUpperInvariant();
+                return new StagePanel
+                {
+                    Marker = "IN REPLY TO YOUR ANSWER",
+                    Eyebrow = who + " REPLIES",
+                    Heading = heading,
+                    Lede = "<color=" + GoldHex + ">You said:</color> “" + (youSaid ?? string.Empty) + "”\n\n" +
+                           (reply ?? string.Empty),
+                    Action = "CONTINUE THE WALK →",
+                    ActionIsPrimary = true,
+                    Notice = ArtworkDialogue.Disclaimer,
+                };
+            }
 
             var choices = new List<StageChoice>();
-            if (!answered)
+            if (phase == ArtPhase.Choosing)
                 for (var i = 0; i < ArtworkDialogue.Choices.Count; i++)
                 {
                     var c = ArtworkDialogue.Choices[i];
@@ -376,19 +401,14 @@ namespace MusePico.Dialogue
 
             return new StagePanel
             {
-                // The eyebrow names whose SCRIPTED line is shown, and what they are doing — the live
-                // readings under it carry their own speaker. A bare name over another master's
-                // reading read as a contradiction, and the switch to the reactor looked unexplained.
-                Marker = answered ? "IN REPLY TO YOUR ANSWER" : "ABOUT THIS WORK",
-                Eyebrow = name + (answered ? " REPLIES" : " SPEAKS TO YOU"),
-                Heading = string.IsNullOrEmpty(title) ? "This work" : title,
-                Lede = string.IsNullOrEmpty(live) ? line ?? string.Empty : (line ?? string.Empty) + "\n\n" + live,
+                Marker = "ABOUT THIS WORK",
+                Eyebrow = "THE MASTERS LOOK AT IT",
+                Heading = heading,
+                Lede = status ?? string.Empty,
                 Choices = choices,
-                // Her × closes it unanswered; the panel draws a back plate only beside an action,
-                // so the way out before answering IS the action, kept quiet.
-                Action = answered ? "CONTINUE THE WALK →" : "NOT NOW",
-                ActionIsPrimary = answered,
-                Hint = answered ? string.Empty : "HOW DOES IT LEAVE YOU? POINT AT AN ANSWER",
+                Hint = phase == ArtPhase.Choosing
+                    ? "HOW DOES IT LEAVE YOU? POINT AT AN ANSWER"
+                    : "LISTEN · EACH READING STAYS ABOVE ITS MASTER",
                 Notice = ArtworkDialogue.Disclaimer,
             };
         }

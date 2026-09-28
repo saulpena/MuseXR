@@ -165,13 +165,8 @@ namespace MusePico.Journey
         /// <summary>The master currently speaking in that popup — the opener, then the reactor.</summary>
         string _artSpeakerId;
 
-        /// <summary>The scripted line shown: the opening, then the reaction once answered.</summary>
-        string _artLine = string.Empty;
-
-        /// <summary>The three live readings of the work, or a status while they load.</summary>
+        /// <summary>What the popup says is happening: the masters looking, who is speaking, done.</summary>
         string _artLive = string.Empty;
-
-        bool _artAnswered;
 
         /// <summary>Her <c>artDialogueTurn</c>: the invited masters take turns opening.</summary>
         int _artTurn;
@@ -464,7 +459,7 @@ namespace MusePico.Journey
                 if (escape || (_buttons != null && _buttons.CancelPressed)) { CloseArt(); return; }
 
                 panel.Show(JourneyScript.ArtDialogue(
-                    Master(_artSpeakerId), _artOpen.title, _artLine, _artLive, _artAnswered));
+                    _artOpen.title, _artPhase, _artLive, _artYouSaid, Master(_artSpeakerId), _artReply));
                 panel.ShowCompass(default);      // the tour caption drew over the readings
                 return;
             }
@@ -474,7 +469,11 @@ namespace MusePico.Journey
             // A master's reply belongs where the masters are, and nowhere else. It used to be
             // blitted onto the lede of EVERY stage, so an answer appeared on the question screen -
             // a screen that has not chosen a master yet and never calls one.
-            if (_speech.Length > 0 && SpeaksHere(Journey.Current)) showing.Lede = _speech;
+            // Not in the gallery any more: the readings live in the masters' bubbles and the popups
+            // carry their own status, so the last line said printed over the chapter prompt was a
+            // stale duplicate ("Socrates — You ask how I see…" after the walk had moved on, 27 Sep).
+            if (_speech.Length > 0 && SpeaksHere(Journey.Current) && Journey.Current != Stage.WorldExploration)
+                showing.Lede = _speech;
             panel.Show(showing);
 
             if (_buttons == null) return;
@@ -873,35 +872,43 @@ namespace MusePico.Journey
         }
 
         /// <summary>
-        /// Her <c>openArtDialogue</c>: the next invited master opens with a scripted line about the
-        /// work, and all three are asked for a live reading of it.
+        /// Her <c>openArtDialogue</c>, as it works in the web build: all three masters say
+        /// something about the work (live, each in its bubble), then the visitor answers, then one
+        /// master replies. A new object replaces whatever was still being said about the last.
         /// </summary>
         void OpenArt(ArtworkRecord record)
         {
             if (record == null || Journey.Current != Stage.WorldExploration || _asking != null) return;
 
+            if (dialogue != null) dialogue.Cancel();
             _artOpen = record;
-            _artAnswered = false;
+            _artPhase = JourneyScript.ArtPhase.Looking;
             _artToken++;
+            _fadeToken++;                                   // the bubbles are about to be refilled
             _artSpeakerId = ArtworkDialogue.PickOpening(Journey.InvitedMasterIds, _artTurn++);
-            _artLine = ArtworkDialogue.Format(
-                ArtworkDialogue.VoiceFor(_artSpeakerId).Opening, record.title, record.artist);
-            _artLive = string.Empty;
+            _artYouSaid = _artReply = string.Empty;
+            _artLive = "THE MASTERS ARE LOOKING…";
+            ClearBubbles();
             FetchArtReadings(record, _artToken);
         }
 
         /// <summary>
         /// Her <c>fetchLivePerspectives("Tell me how you see …")</c>: three live readings of the work,
-        /// spoken in each master's voice. Like hers, this is a paid call on every work opened.
-        /// The machine-made question is deliberately NOT recorded as the visitor's own.
+        /// spoken in each master's voice, then the answers are offered. Like hers, a paid call on
+        /// every work opened. The machine-made question is NOT recorded as the visitor's own.
         /// </summary>
         async void FetchArtReadings(ArtworkRecord record, int token)
         {
-            if (dialogue == null || dialogue.IsBusy) return;
+            if (dialogue == null) { OfferScriptedOpening(record); return; }
 
-            _artLive = "THE MASTERS ARE LOOKING…";
+            // A turn that was just cancelled takes a frame or two to unwind.
+            var waitedFrom = Time.realtimeSinceStartup;
+            while (dialogue.IsBusy && Time.realtimeSinceStartup - waitedFrom < 3f)
+                await System.Threading.Tasks.Task.Yield();
+            if (token != _artToken) return;
+            if (dialogue.IsBusy) { OfferScriptedOpening(record); return; }
+
             _liveIndex = 0;
-            ClearBubbles();
             dialogue.invitedMasterIds.Clear();
             foreach (var id in Journey.InvitedMasterIds) dialogue.invitedMasterIds.Add(id);
             dialogue.artworkTitle = record.title ?? string.Empty;
@@ -909,39 +916,76 @@ namespace MusePico.Journey
             dialogue.artworkDate = record.date ?? string.Empty;
 
             var result = await dialogue.AskAsync("Tell me how you see “" + record.title + "”.");
-            if (token != _artToken) return;            // that popup has closed
+            if (token != _artToken) return;            // that popup has closed, or another opened
 
             if (result == null || !result.Success)
             {
-                _artLive = "The masters could not be reached" +
-                           (result == null || string.IsNullOrEmpty(result.Error) ? "." : ": " + result.Error);
+                // Honest about the failure, and still answerable: her scripted opening stands in.
+                OfferScriptedOpening(record);
+                _artLive += "\n\n<size=80%>The masters could not be reached live" +
+                            (result == null || string.IsNullOrEmpty(result.Error) ? "." : ": " + result.Error) + "</size>";
                 return;
             }
             QuietBubbles();
-            _artLive = AllAnswered;
+            _artPhase = JourneyScript.ArtPhase.Choosing;
+            _artLive = "ALL THREE HAVE SPOKEN · EACH READING STAYS ABOVE ITS MASTER";
+        }
+
+        /// <summary>No live readings: one master's scripted line about the work, then the answers.</summary>
+        void OfferScriptedOpening(ArtworkRecord record)
+        {
+            var who = Master(_artSpeakerId);
+            _artLive = (who != null ? who.fullName + ": " : string.Empty) +
+                       ArtworkDialogue.Format(ArtworkDialogue.VoiceFor(_artSpeakerId).Opening, record.title, record.artist);
+            _artPhase = JourneyScript.ArtPhase.Choosing;
         }
 
         /// <summary>
-        /// Her <c>onArtChoice</c>: the answer moves the philosophy score the closing world is
-        /// built from, and the master who champions that answer replies to it.
+        /// Her <c>onArtChoice</c>: the answer moves the philosophy score the closing world is built
+        /// from, and ONE master — the champion of that answer — replies, spoken, with nothing else
+        /// playing. The readings stay in their bubbles.
         /// </summary>
         void OnArtChoice(string choiceId)
         {
             var choice = ArtworkDialogue.ChoiceById(choiceId);
-            if (choice == null || _artAnswered) return;
+            if (choice == null || _artPhase != JourneyScript.ArtPhase.Choosing) return;
 
             Journey.Session.ApplyChoice(choice.Delta);
-            _artAnswered = true;
             _artSpeakerId = ArtworkDialogue.PickReaction(choiceId, _artSpeakerId, Journey.InvitedMasterIds);
-            var voice = ArtworkDialogue.VoiceFor(_artSpeakerId);
-            _artLine = voice.Reactions.TryGetValue(choiceId, out var line) ? line : string.Empty;
+            _artReply = ArtworkDialogue.VoiceFor(_artSpeakerId).Reactions.TryGetValue(choiceId, out var line)
+                ? line : string.Empty;
+            _artYouSaid = choice.Label;
+            _artPhase = JourneyScript.ArtPhase.Answered;
+            if (dialogue != null) _ = dialogue.SayAsync(_artSpeakerId, _artReply);
         }
 
+        /// <summary>
+        /// Continue the walk (or leave): silence, close, and let the readings linger a few seconds
+        /// before they fade — unless new ones arrive first.
+        /// </summary>
         void CloseArt()
         {
+            if (_artOpen == null) return;
+            if (dialogue != null) dialogue.Cancel();
             _artOpen = null;
             _artToken++;
+            StartCoroutine(FadeBubblesSoon(++_fadeToken));
         }
+
+        /// <summary>How long the readings stay over the masters after the popup closes.</summary>
+        const float BubbleLinger = 6f;
+
+        int _fadeToken;
+
+        IEnumerator FadeBubblesSoon(int token)
+        {
+            yield return new WaitForSeconds(BubbleLinger);
+            if (token == _fadeToken) ClearBubbles();
+        }
+
+        JourneyScript.ArtPhase _artPhase;
+        string _artYouSaid = string.Empty;
+        string _artReply = string.Empty;
 
         MasterLens Master(string id)
         {
@@ -1230,6 +1274,7 @@ namespace MusePico.Journey
             Journey.Session.RecordQuestion(_askQuestion);
             _askReplies = "THE MASTERS ARE READING YOUR QUESTION\u2026";
             _liveIndex = 0;
+            _fadeToken++;                                   // new readings replace any lingering ones
             ClearBubbles();
 
             dialogue.invitedMasterIds.Clear();
@@ -1439,7 +1484,7 @@ namespace MusePico.Journey
         /// <summary>Her <c>act()</c>: what the forward button does, stage by stage.</summary>
         void OnAction()
         {
-            if (_artOpen != null) { CloseArt(); return; }     // NOT NOW, or CONTINUE THE WALK
+            if (_artOpen != null) { CloseArt(); return; }     // CONTINUE THE WALK
             if (_asking != null) { AskTheMasters(); return; }
 
             switch (Journey.Current)

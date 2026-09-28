@@ -278,7 +278,38 @@ namespace MusePico.Dialogue
                 await Task.Yield();
         }
 
-        public void Cancel() => _cancel?.Cancel();
+        /// <summary>
+        /// Stop whatever is running AND whatever is being heard. Cancelling the token alone left
+        /// the current clip playing to its end, so choosing an answer mid-reading had the masters
+        /// "talking non-stop" over the reply (Saul, 27 Sep).
+        /// </summary>
+        public void Cancel()
+        {
+            _cancel?.Cancel();
+            _sayCancel?.Cancel();
+            if (speaker != null) speaker.Stop();
+        }
+
+        CancellationTokenSource _sayCancel;
+
+        /// <summary>
+        /// Speak one line in one master's voice — the reply to the visitor's answer. Stops anything
+        /// playing first, so exactly one voice is ever heard. Text-only (silently) without a voice key.
+        /// </summary>
+        public async Task SayAsync(string masterId, string text)
+        {
+            if (_voiceService == null || string.IsNullOrWhiteSpace(text)) return;
+            Cancel();
+            var cts = new CancellationTokenSource();
+            _sayCancel = cts;
+            try
+            {
+                var clip = await _voiceService.SpeakAsync(text, MasterRoster.Find(_roster, masterId), cts.Token);
+                if (!cts.IsCancellationRequested) await PlayAsync(clip, cts.Token);
+            }
+            catch (System.OperationCanceledException) { }
+            finally { if (_sayCancel == cts) _sayCancel = null; cts.Dispose(); }
+        }
 
         void Report(string status) => StatusChanged?.Invoke(status);
     }
