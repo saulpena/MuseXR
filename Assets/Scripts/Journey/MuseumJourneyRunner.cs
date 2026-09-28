@@ -358,6 +358,7 @@ namespace MusePico.Journey
             EnterStage(Journey.Current);
             MakeObjectsPointable();
             LetRaysHitTriggers();
+            if (GetComponent<RayDiagnostics>() == null) gameObject.AddComponent<RayDiagnostics>();
             if (LaunchOptions.SelfTest) StartCoroutine(SelfTest());
         }
 
