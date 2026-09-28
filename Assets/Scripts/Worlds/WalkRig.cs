@@ -72,6 +72,20 @@ namespace MusePico.Worlds
         /// to confirm the two are aligned.</summary>
         public bool showColliderForDebug;
 
+        /// <summary>
+        /// Make the collider's floor a teleport target.
+        ///
+        /// A teleport ray stops at the first collider it meets, and a Marble collider floor sits a
+        /// few centimetres above <see cref="groundY"/> (SunlitMuseum, measured: y -0.04..0.08 along
+        /// the hall, with bumps to 0.3). A teleport slab laid at groundY underneath it is never
+        /// reached, so the ray reads invalid everywhere the collider has floor. Only upward-facing
+        /// hits count, so walls and plinth sides stay non-targets.
+        /// </summary>
+        public bool teleportOntoCollider;
+
+        /// <summary>How far from straight up a surface may face and still take a teleport.</summary>
+        public float teleportMaxSlopeDegrees = 30f;
+
         /// <summary>Immersion multiplier. Deliberately 1: she used 1.7-2 so companions read at a
         /// decent size in a browser viewport, but in a headset metres should be metres — scaling
         /// the world up scales the visitor down, which reads as being a child.</summary>
@@ -224,9 +238,24 @@ namespace MusePico.Worlds
             }
             // Physics only. A Marble collider is a crude reconstruction and looks like nothing.
             foreach (var r in instance.GetComponentsInChildren<Renderer>(true)) r.enabled = showColliderForDebug;
+            if (teleportOntoCollider) MakeTeleportable(instance);
             Physics.SyncTransforms();
             Debug.Log($"[WalkRig] collider: {meshes} mesh(es), mirrorX={mirrorColliderX}, " +
                       $"renderers={(showColliderForDebug ? "ON (debug)" : "off")}.");
+        }
+
+        void MakeTeleportable(GameObject instance)
+        {
+            // Configured while inactive, so XRI registers the area with its colliders already set.
+            instance.SetActive(false);
+            var area = instance.AddComponent<UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation.TeleportationArea>();
+            area.colliders.Clear();
+            foreach (var mc in instance.GetComponentsInChildren<MeshCollider>(true)) area.colliders.Add(mc);
+            // The rig's teleport interactors select on the "Teleport" interaction layer, bit 31.
+            area.interactionLayers = 1 << 31;
+            area.filterSelectionByHitNormal = true;
+            area.upNormalToleranceDegrees = teleportMaxSlopeDegrees;
+            instance.SetActive(true);
         }
 
         /// <summary>Backs her collider with a closed box, so a gap in its patchy floor is a step
