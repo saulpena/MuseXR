@@ -334,17 +334,18 @@ namespace MusePico.Tests
         }
 
         [Test]
-        public void ScenesOneAndTwo_AreSkylarsCourtyardThenPeachGarden_AndKeepHersOnRecord()
+        public void ChaptersOneAndTwo_AreTheBuddhaHallThenPeachGarden_AndKeepHersOnRecord()
         {
-            // Skylar's brief (27 Sep): Scene 1 the Forbidden-City courtyard (its doors lead into
-            // the Buddha hall), Scene 2 the Peach Garden. Her worlds stay in WorldKey, so clearing
+            // Skylar's brief (27 Sep): the opening stands in the Forbidden-City courtyard (the
+            // scene's home world, not a chapter); entering the exhibition is chapter 01, the
+            // Buddha hall; chapter 02 the Peach Garden. Her worlds stay in WorldKey, so clearing
             // ChosenWorldKey is the whole revert.
             var ch01 = ExhibitionSpine.Chapters[0];
             Assert.AreEqual("grand-conservatory-with-lush-gardens", ch01.WorldKey, "her world, preserved");
             Assert.IsTrue(ch01.IsChosen);
             Assert.IsFalse(ch01.IsPlaceholder, "a choice is not a stand-in for a missing export");
-            Assert.AreEqual("imperial-courtyard-forbidden-city", ch01.EffectiveWorldKey, "what actually loads");
-            Assert.AreSame(ch01, ExhibitionSpine.ByWorldKey("imperial-courtyard-forbidden-city"));
+            Assert.AreEqual("empty-chinese-imperial-temple-hall", ch01.EffectiveWorldKey, "what actually loads");
+            Assert.AreSame(ch01, ExhibitionSpine.ByWorldKey("empty-chinese-imperial-temple-hall"));
 
             var ch02 = ExhibitionSpine.Chapters[1];
             Assert.AreEqual("elegant-floral-palace-interior", ch02.WorldKey, "her world, preserved");

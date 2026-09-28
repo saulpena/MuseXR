@@ -81,14 +81,15 @@ namespace MusePico.Dialogue
         /// <summary>The eight chapters, in her order. Copied from <c>config/exhibitionScenes.js</c>.</summary>
         public static readonly IReadOnlyList<ExhibitionChapter> Chapters = new List<ExhibitionChapter>
         {
-            // CHOSEN (Saul, 27 Sep 2026, after Skylar's brief): Scene 1 is the Forbidden-City
-            // courtyard, whose open hall doors lead into the Hall of the Great Buddha (a doorway
-            // inside the chapter, not a chapter of its own); Scene 2 is the Peach Garden /
-            // Heavenly Palace with the Queen Mother of the West. Titles, prompts and artworks are
-            // still hers. Her worlds stay in WorldKey, so clearing ChosenWorldKey is the revert.
+            // CHOSEN (Saul, 27 Sep 2026, after Skylar's brief): the opening stages — the question
+            // and the choice of company — stand in the Forbidden-City courtyard (the scene's
+            // homeWorldKey); "walking inside" is entering the exhibition, so chapter 01 is the
+            // Hall of the Great Buddha. Chapter 02 is the Peach Garden / Heavenly Palace with the
+            // Queen Mother of the West. Titles, prompts and artworks are still hers. Her worlds
+            // stay in WorldKey, so clearing ChosenWorldKey is the revert.
             new ExhibitionChapter { Id = "threshold-conservatory", Chapter = "01 / ARRIVAL",
                 Title = "The Threshold Conservatory", WorldKey = "grand-conservatory-with-lush-gardens",
-                ChosenWorldKey = "imperial-courtyard-forbidden-city", Artist = "A cross-temporal salon",
+                ChosenWorldKey = "empty-chinese-imperial-temple-hall", Artist = "A cross-temporal salon",
                 Prompt = "What must become visible before an answer can begin?" , CollectionId = "threshold-conservatory" },
             new ExhibitionChapter { Id = "court-of-light", Chapter = "02 / QUESTION",
                 Title = "The Court of Light", WorldKey = "elegant-floral-palace-interior",
