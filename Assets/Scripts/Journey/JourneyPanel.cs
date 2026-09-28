@@ -182,13 +182,36 @@ namespace MusePico.Journey
         /// The ray and the mouse, from one call: anything pointable gets both, running the same
         /// callback, so the two input paths cannot drift apart.
         /// </summary>
-        static XRSimpleInteractable Pointable(GameObject go, Action onPick)
+        XRSimpleInteractable Pointable(GameObject go, Action onPick)
         {
+            // A plate that has only just appeared ignores a press for a moment. One trigger pull on a
+            // master opened the ask form and then landed on the plate that appeared under the ray —
+            // "OR ASK: …the Great Buddha?" — so a click on a master "talked about the Buddha"
+            // (Saul, Quest, 27 Sep). Every accepted press is logged with what it hit.
+            Action guarded = () =>
+            {
+                if (Time.unscaledTime - _builtAt < FreshPlateGuard)
+                {
+                    Debug.Log("[Pick] ignored " + go.name + " (appeared " +
+                              ((Time.unscaledTime - _builtAt) * 1000f).ToString("0") + " ms ago)");
+                    return;
+                }
+                Debug.Log("[Pick] panel: " + go.name);
+                onPick();
+            };
             var interactable = go.AddComponent<XRSimpleInteractable>();
-            interactable.selectEntered.AddListener(_ => onPick());
-            go.AddComponent<DesktopPointable>().Picked = onPick;
+            interactable.selectEntered.AddListener(_ => guarded());
+            go.AddComponent<DesktopPointable>().Picked = guarded;
             return interactable;
         }
+
+        /// <summary>How long a freshly built plate refuses presses.</summary>
+        const float FreshPlateGuard = 0.5f;
+
+        /// <summary>When the panel last changed screen.</summary>
+        float _builtAt = -10f;
+
+        string _guardHeading, _guardMarker;
 
         void LateUpdate()
         {
@@ -740,6 +763,16 @@ namespace MusePico.Journey
 
         void BuildPlates(StagePanel panel, float copyHeight)
         {
+            // Only a change of SCREEN arms the guard, not every rebuild: the panel also rebuilds
+            // when a choice is ticked or a menu opens, and those must stay responsive.
+            // Marker + eyebrow identify the screen; the heading does not (on the ask form it IS the
+            // question being typed, so it changes on every key).
+            if (panel.Eyebrow != _guardHeading || panel.Marker != _guardMarker)
+            {
+                _builtAt = Time.unscaledTime;
+                _guardHeading = panel.Eyebrow;
+                _guardMarker = panel.Marker;
+            }
             for (var i = _plates.childCount - 1; i >= 0; i--) Destroy(_plates.GetChild(i).gameObject);
 
             var ids = new List<string>();

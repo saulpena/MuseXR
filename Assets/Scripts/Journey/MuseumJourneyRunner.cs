@@ -1030,7 +1030,13 @@ namespace MusePico.Journey
             GameObject go, System.Action onPick)
         {
             var interactable = go.AddComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
-            interactable.selectEntered.AddListener(_ => onPick());
+            // Logged with the interactor, so a headset session says exactly what the ray selected.
+            interactable.selectEntered.AddListener(args =>
+            {
+                Debug.Log("[Pick] world: " + go.transform.parent.name + "/" + go.name + " by " +
+                          (args.interactorObject != null ? args.interactorObject.transform.name : "?"));
+                onPick();
+            });
             go.AddComponent<DesktopPointable>().Picked = onPick;
             return interactable;
         }
