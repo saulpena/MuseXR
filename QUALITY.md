@@ -174,3 +174,35 @@ therefore land where the `.spz` would. Command:
 - Garden 1M / 1.92M and prompt-temple 1M not yet seen on the headset.
 - Research next steps not yet tried: re-fit colours of a reduced splat against renders of the full
   (Research, ranked step 2), building from plain Marble 1.1 instead of 1.1 Plus.
+
+## Session state, end of 28 Sep 2026 (for whoever picks this up)
+
+**Where to see the reduction results.** `Tools/splat/out/` is git-ignored, so these exist only on
+Saul's PC: `Tools/splat/out/buddha-compare/PLAYCANVAS-COMPARISON.png` (six versions × three views,
+labelled), the merged PLYs in `Tools/splat/out/buddha-st/` (open in SuperSplat), and the per-world
+comparison folders `*-compare/`. Regenerate them with `compare_views.py` (presets `buddha-chisel`,
+`garden-chisel`, `prompt-temple`, `chisel`) from the sources listed in `QualityBenchCatalog.cs`.
+
+**Decision (Saul, 28 Sep): Chisel worlds stay at Marble's own 500k — no cutting, no pruning.**
+
+**Chisel worlds made so far** (Marble library, all set Private; the Van Gogh one's Private setting
+was chosen but not re-confirmed after reload):
+
+| Marble name | In project as | Size (designed) | worldScale | Status |
+|---|---|---|---|---|
+| Rectangular Temple Hall Interior (downloaded as "Ornate Temple Hall Interior") | SMALL TEMPLE (Chisel) | 16 × 24 m | 1.7 (room ~10 × 15.5 m) | in bench |
+| Empty Temple Hall Interior (downloaded as "Ornate Golden Temple Interior") | BUDDHA HALL (Chisel) | 20 × 28 m | 2.63 | in bench, handed to MuseXR-B |
+| Enclosed Garden Courtyard | GARDEN (Chisel) | 20 × 30 m | 1.7 | in bench |
+| Rectangular Art Gallery Interior (Van Gogh) | not in bench | 10 × 24 m | 2.8 (from collider) | handed to MuseXR-B; **not looked at**; spawn unverified |
+
+**Hand-off to MuseXR-B.** Splats are git-ignored, so the Buddha hall and Van Gogh 500k `.spz`, their
+colliders and a README with placement numbers were copied to
+`MuseXR-B/Tools/marble/handoff/` (outside Assets/, because that project's editor was open). Its
+agent session was messaged twice with the paths and import steps.
+
+**Not done / next:**
+- The headset APK predates the merged Buddha-hall versions; rebuild (MuseXR > Build > Quest > Bench)
+  to see them on the Quest.
+- Anti-aliasing opacity compensation (see its section) — the one untried lever that applies to every
+  world at every tier.
+- Credits: the Marble account ran out once on 28 Sep; Marble shows no per-step price.
