@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: BenchReference
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: BenchReference
+  m_GUID: da7f4c7894b096a43af18c32e0e794ba
+  m_SerializeEntries:
+  - m_GUID: 061199a618b3a1c48a4dccdc5824e52f
+    m_Address: bench-temple-full-crop-visible
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6b5f84b60cecd8e4db4d186684f1e64f
+    m_Address: bench-temple-full-untouched
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b4e0fe7f3c583ed46824cb174bef77b2
+    m_Address: bench-small-prompt-full-untouched
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 79db9c0aa57a04f4790cc9a5ccfb9344, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: a0b7b9bb6510d4c4fa4a8f65cba79acd, type: 2}
+    - {fileID: 11400000, guid: bbab8f46a7369c6439be148c47ec40a7, type: 2}
+    m_SchemaDisplayOrder:
+    - BenchReference_BundledAssetGroupSchema
+    - BenchReference_ContentUpdateGroupSchema
+  m_IncludeInBuild: 0
+  m_IncludeInBuildMigrated: 1

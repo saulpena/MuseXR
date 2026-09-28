@@ -1,0 +1,118 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: BenchWorlds
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: BenchWorlds
+  m_GUID: adbaf7505ef083a4b8f566f579afa925
+  m_SerializeEntries:
+  - m_GUID: 50634b553595a1940a460d63317c8b37
+    m_Address: bench-garden-chisel-500k-untouched
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 522177230e86bdf4286bdda1491899d7
+    m_Address: bench-small-prompt-500k-untouched
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5a21c768c1a80ba41b76b131074485fd
+    m_Address: bench-buddha-chisel-full-merge-1000k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 62760fc5108298e4599ba311b8a0fab1
+    m_Address: bench-temple-full-crop-1500k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 62f738f2fa81c4e45bde67761ef7bd83
+    m_Address: bench-conservatory-500k-untouched
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 69c8a3fe1ff0bbc4aa8f4b9511ec93c0
+    m_Address: bench-buddha-chisel-full-cov-750k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6e2d7d8505bfb7645895e0a8bf72731b
+    m_Address: bench-small-chisel-full-cov-750k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 79fe46bc2815adc4ba1a106836985b0e
+    m_Address: bench-conservatory-500k-cleaned
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8be2a4e1128ddee46a17c2e47c3d1d6a
+    m_Address: bench-temple-500k-untouched
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8c9b260996f165044968dd1e0850cdd1
+    m_Address: bench-small-chisel-full-cov-1000k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9097c94623f9116429fc15e2fb2dd04a
+    m_Address: bench-small-prompt-full-cov-1000k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9bec17444ac62a94fadd7a0f85f7381c
+    m_Address: bench-small-chisel-500k-untouched
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9dcf339772744874b831ea13bf68079f
+    m_Address: bench-buddha-chisel-full-cov-1000k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a5f651f8a595502449db53ec4138e352
+    m_Address: bench-garden-chisel-full-untouched
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a69e76b384591384bb74d3282c874630
+    m_Address: bench-buddha-chisel-500k-untouched
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b5856301dd74755439ef13bd55802801
+    m_Address: bench-garden-chisel-full-cov-1000k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c7aed5b7d5e527b4d82a4448451c4e41
+    m_Address: bench-temple-500k-cleaned
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fa169c99f687afb4f8c57787c115e90a
+    m_Address: bench-buddha-chisel-full-merge-750k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 79db9c0aa57a04f4790cc9a5ccfb9344, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 80fc9700673f27e4c97f578592d040a4, type: 2}
+    - {fileID: 11400000, guid: eff2b14d604813d4da3c2329f9b7f863, type: 2}
+    m_SchemaDisplayOrder:
+    - BenchWorlds_BundledAssetGroupSchema
+    - BenchWorlds_ContentUpdateGroupSchema
+  m_IncludeInBuild: 1
+  m_IncludeInBuildMigrated: 1

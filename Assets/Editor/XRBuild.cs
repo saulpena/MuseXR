@@ -147,6 +147,10 @@ namespace MuseXR.EditorTools
             // Its own group, not MarbleGroup: sharing that one made the single-world Sunlit build
             // carry all nine.
             new Target { Name = "Small",     Scene = "Assets/Scenes/Tests/SmallWorlds.unity",   AddressableGroup = AddressableWorldSetup.SmallGroup },
+
+            // The visual-quality benchmark: several versions of the same environment, labelled,
+            // with the frame rate on the panel. See QualityBenchCatalog.
+            new Target { Name = "Bench",     Scene = "Assets/Scenes/Tests/QualityBench.unity",  AddressableGroup = AddressableWorldSetup.BenchGroup },
         };
 
         /// <summary>
@@ -200,6 +204,7 @@ namespace MuseXR.EditorTools
         [MenuItem("MuseXR/Build/PICO/Journey", priority = 47)]   static void P10() => BuildOne(Vendor.Pico, T("Journey"));
         [MenuItem("MuseXR/Build/PICO/Sunlit", priority = 45)]    static void P8() => BuildOne(Vendor.Pico, T("Sunlit"));
         [MenuItem("MuseXR/Build/PICO/Small", priority = 46)]     static void P9() => BuildOne(Vendor.Pico, T("Small"));
+        [MenuItem("MuseXR/Build/PICO/Bench", priority = 48)]     static void P11() => BuildOne(Vendor.Pico, T("Bench"));
 
         [MenuItem("MuseXR/Build/Quest/Rig", priority = 20)]       static void Q0() => BuildOne(Vendor.Quest, T("Rig"));
         [MenuItem("MuseXR/Build/Quest/Samples", priority = 22)]   static void Q2() => BuildOne(Vendor.Quest, T("Samples"));
@@ -211,6 +216,7 @@ namespace MuseXR.EditorTools
         [MenuItem("MuseXR/Build/Quest/Journey", priority = 47)]   static void Q10() => BuildOne(Vendor.Quest, T("Journey"));
         [MenuItem("MuseXR/Build/Quest/Sunlit", priority = 45)]    static void Q8() => BuildOne(Vendor.Quest, T("Sunlit"));
         [MenuItem("MuseXR/Build/Quest/Small", priority = 46)]     static void Q9() => BuildOne(Vendor.Quest, T("Small"));
+        [MenuItem("MuseXR/Build/Quest/Bench", priority = 48)]     static void Q11() => BuildOne(Vendor.Quest, T("Bench"));
 
         [MenuItem("MuseXR/Build/PICO/All Three", priority = 25)]
         public static void BuildAllPico() => BuildAllFor(Vendor.Pico);

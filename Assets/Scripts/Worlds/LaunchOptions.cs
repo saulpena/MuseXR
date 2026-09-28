@@ -19,6 +19,10 @@ namespace MuseXR.Worlds
         public const string FreeWalkExtra = "musexr.freeWalk";
         public const string CaptureYawExtra = "musexr.captureYaw";
         public const string SelfTestExtra = "musexr.selfTest";
+        public const string BenchVariantExtra = "musexr.benchVariant";
+
+        /// <summary>QualityBench only: the version key to open first (e.g. bench-temple-500k-untouched); null = the first.</summary>
+        public static string BenchVariant => StringExtra(BenchVariantExtra);
 
         /// <summary>
         /// Walk the gallery's dialogue path unattended and log each step: invite three masters,

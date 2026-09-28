@@ -27,6 +27,9 @@ DEV = torch.device("cuda")
 
 
 def load_spz(path, world_scale=1.7):
+    """Load a splat file. .spz is decoded here; .ply is handed to load_ply (same output)."""
+    if str(path).lower().endswith(".ply"):
+        return load_ply(path, world_scale)
     raw = gzip.open(path).read()
     magic, ver, n, sh, fb, flags, _ = struct.unpack("<IIIBBBB", raw[:16])
     if magic != 0x5053474E or ver != 2:
@@ -60,6 +63,70 @@ def load_spz(path, world_scale=1.7):
     }
 
 
+_PLY_TYPES = {"float": "f4", "float32": "f4", "double": "f8", "float64": "f8",
+              "uchar": "u1", "uint8": "u1", "char": "i1", "int8": "i1", "ushort": "u2", "uint16": "u2",
+              "short": "i2", "int16": "i2", "uint": "u4", "uint32": "u4", "int": "i4", "int32": "i4"}
+
+
+def load_ply(path, world_scale=1.7):
+    """Standard 3DGS binary little-endian PLY (as written by PlayCanvas splat-transform), SH degree 0.
+
+    Returns exactly what load_spz returns. Conventions, matched to load_spz's decode of .spz:
+      x,y,z             raw positions, same frame as .spz raw positions (no axis flip), x worldScale
+      scale_0..2        log sigma           -> exp()             (spz: exp(byte/16 - 10))
+      opacity           logit               -> sigmoid()         (spz: byte/255, already sigmoided)
+      f_dc_0..2         SH DC coefficient   -> 0.5 + SH_C0 * dc  (spz: dc = (byte/255 - 0.5)/0.15)
+      rot_0..3          quaternion w,x,y,z  -> normalised, reordered to x,y,z,w as load_spz stores it
+    """
+    with open(path, "rb") as f:
+        if f.readline().strip() != b"ply":
+            raise ValueError(f"{path}: not a PLY file")
+        props, n, fmt, in_vertex = [], None, None, False
+        while True:
+            line = f.readline()
+            if not line:
+                raise ValueError(f"{path}: header has no end_header")
+            tok = line.decode("ascii", "replace").split()
+            if not tok:
+                continue
+            if tok[0] == "format":
+                fmt = tok[1]
+            elif tok[0] == "element":
+                in_vertex = tok[1] == "vertex"
+                if in_vertex:
+                    n = int(tok[2])
+                elif props:
+                    raise ValueError(f"{path}: element '{tok[1]}' after vertex is not supported")
+            elif tok[0] == "property" and in_vertex:
+                if tok[1] == "list":
+                    raise ValueError(f"{path}: list properties are not supported")
+                props.append((tok[2], "<" + _PLY_TYPES[tok[1]]))
+            elif tok[0] == "end_header":
+                break
+        if fmt != "binary_little_endian":
+            raise ValueError(f"{path}: format {fmt}; only binary_little_endian is supported")
+        v = np.fromfile(f, dtype=np.dtype(props), count=n)
+    if len(v) != n:
+        raise ValueError(f"{path}: expected {n} vertices, read {len(v)}")
+    names = {p[0] for p in props}
+    if any(k.startswith("f_rest_") for k in names):
+        raise ValueError(f"{path}: has f_rest_* (SH degree > 0); only degree 0 is supported here")
+    col = lambda *k: np.stack([v[x].astype(np.float64) for x in k], 1)
+    pos = col("x", "y", "z")
+    q = col("rot_1", "rot_2", "rot_3", "rot_0")       # w,x,y,z on disk -> x,y,z,w
+    q /= np.linalg.norm(q, axis=1, keepdims=True)
+    dc = col("f_dc_0", "f_dc_1", "f_dc_2")
+    t = lambda a: torch.from_numpy(np.ascontiguousarray(a, dtype=np.float32)).to(DEV)
+    return {
+        "n": n,
+        "pos": t(pos * world_scale),
+        "scale": t(np.exp(col("scale_0", "scale_1", "scale_2")) * world_scale),
+        "quat": t(q),                                           # x, y, z, w
+        "opacity": t(1.0 / (1.0 + np.exp(-v["opacity"].astype(np.float64)))),
+        "color": t(dc * 0.2820948 + 0.5),                       # SH0ToColor
+    }
+
+
 def cov3d(g):
     x, y, z, w = g["quat"].unbind(1)
     r = torch.stack([
@@ -81,8 +148,13 @@ def camera_basis(yaw_deg, pitch_deg):
 
 
 class Renderer:
-    def __init__(self, g, near=0.1, far=400.0):
+    def __init__(self, g, near=0.1, far=400.0, track_sum=False):
+        """track_sum: also accumulate, per splat, the SUM of its contribution over every pixel of
+        every view rendered (float64, in pixel units: 1.0 = one fully opaque unoccluded pixel).
+        That is its accumulated screen coverage, the budget ranking prune.py --rank coverage uses.
+        Off by default, so max_contrib runs are unchanged."""
         self.g = g
+        self.sum_contrib = torch.zeros(g["n"], device=DEV, dtype=torch.float64) if track_sum else None
         self.near, self.far = near, far
         self.cov = cov3d(g)
         self.max_contrib = torch.zeros(g["n"], device=DEV)
@@ -151,6 +223,7 @@ class Renderer:
         op = g["opacity"][idx]
         img = torch.zeros(height, width, 3, device=DEV) if image else None
         contrib = torch.zeros(len(idx), device=DEV)
+        csum = torch.zeros(len(idx), device=DEV, dtype=torch.float64) if self.sum_contrib is not None else None
         stats = {"fragments": 0, "pairs": 0}
 
         def do_tile(tx0, ty0, tx1, ty1):
@@ -202,6 +275,8 @@ class Renderer:
             before = cs - la - (cs[seg_start] - la[seg_start])
             w = (alpha.double() * torch.exp(before)).float()
             contrib.scatter_reduce_(0, pg, w, reduce="amax")
+            if csum is not None:
+                csum.index_add_(0, pg, w.double())
             if img is not None:
                 flat = img.view(-1, 3)
                 flat.index_add_(0, pix, col[pg] * w[:, None])
@@ -213,5 +288,7 @@ class Renderer:
         full = self.max_contrib.new_zeros(g["n"])
         full[idx] = contrib
         torch.maximum(self.max_contrib, full, out=self.max_contrib)
+        if csum is not None:
+            self.sum_contrib.index_add_(0, idx, csum)
         stats["splats_in_view"] = int((contrib > 0).sum())
         return (img.clamp(0, 1) if img is not None else None), stats

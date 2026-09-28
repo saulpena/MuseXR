@@ -134,3 +134,8 @@ __pycache__/
 /Tools/props/node_modules/
 /Tools/props/glb_backup/
 /Tools/props/out/
+
+# Quality benchmark sources: bench-named copies of Marble exports and cut/merged versions (.spz/.ply,
+# ~450 MB) and Marble collider GLBs. Recreate from Marble / Tools/splat — see QUALITY.md.
+/Tools/marble/bench/
+/Tools/marble/colliders/

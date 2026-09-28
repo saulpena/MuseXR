@@ -37,12 +37,25 @@ namespace MuseXR.EditorTools
         /// </summary>
         public const string SmallGroup = "SmallWorlds";
 
+        /// <summary>
+        /// The quality benchmark's versions (QualityBenchCatalog): the same environment several
+        /// ways, converted side by side under bench- keys. Its own group so the benchmark build
+        /// carries only them, and so no shipped build ever carries a full-resolution reference.
+        /// </summary>
+        public const string BenchGroup = "BenchWorlds";
+
+        /// <summary>Bench versions the headset cannot render (QualityBenchCatalog.ReferenceFolder):
+        /// Editor comparison only, never in a player build.</summary>
+        public const string BenchReferenceGroup = "BenchReference";
+
         const string SkylarFolder = "Assets/Worlds";
         const string SampleFolder = "Assets/Worlds/Samples";
         const string MarbleFolder = "Assets/Worlds/Marble";
+        const string BenchFolder = MuseXR.Worlds.QualityBenchCatalog.Folder;
+        const string BenchReferenceFolder = MuseXR.Worlds.QualityBenchCatalog.ReferenceFolder;
 
         /// <summary>Every group this setup owns, so include/exclude never misses one.</summary>
-        public static readonly string[] AllGroups = { SkylarGroup, SampleGroup, MarbleGroup, SmallGroup };
+        public static readonly string[] AllGroups = { SkylarGroup, SampleGroup, MarbleGroup, SmallGroup, BenchGroup, BenchReferenceGroup };
 
         /// <summary>
         /// Groups that stay on disk but must never reach a player build.
@@ -56,7 +69,7 @@ namespace MuseXR.EditorTools
         /// resolves from the AssetDatabase in the Editor (FastMode). So Play Mode still loads the
         /// full-resolution worlds for a side-by-side, while no APK can carry them.
         /// </summary>
-        public static readonly string[] ComparisonOnlyGroups = { SkylarGroup };
+        public static readonly string[] ComparisonOnlyGroups = { SkylarGroup, BenchReferenceGroup };
 
         public static bool IsComparisonOnly(string groupName) =>
             groupName != null && System.Array.IndexOf(ComparisonOnlyGroups, groupName) >= 0;
@@ -77,6 +90,8 @@ namespace MuseXR.EditorTools
                              requireSuffix: MuseXR.Worlds.WorldCatalog.SmallSuffix);
             int marble = Mark(settings, MarbleFolder, MarbleGroup, excludeNested: false,
                               rejectSuffix: MuseXR.Worlds.WorldCatalog.SmallSuffix);
+            int bench = Mark(settings, BenchFolder, BenchGroup, excludeNested: false, skipPathPart: "/Reference/");
+            int benchRef = Mark(settings, BenchReferenceFolder, BenchReferenceGroup, excludeNested: false);
             int skylar = Mark(settings, SkylarFolder, SkylarGroup, excludeNested: true);
 
             // Re-assert on every sweep: a newly created group defaults to IncludeInBuild = true,
@@ -85,12 +100,13 @@ namespace MuseXR.EditorTools
 
             AssetDatabase.SaveAssets();
             Debug.Log($"[Addressables] {SampleGroup}: {samples} worlds, {MarbleGroup}: {marble} worlds, " +
-                      $"{SmallGroup}: {small} worlds, {SkylarGroup}: {skylar} worlds " +
+                      $"{SmallGroup}: {small} worlds, {BenchGroup}: {bench} worlds, {BenchReferenceGroup}: {benchRef} (comparison only), {SkylarGroup}: {skylar} worlds " +
                       $"(comparison only — excluded from every build)");
         }
 
         static int Mark(AddressableAssetSettings settings, string folder, string groupName,
-                        bool excludeNested, string requireSuffix = null, string rejectSuffix = null)
+                        bool excludeNested, string requireSuffix = null, string rejectSuffix = null,
+                        string skipPathPart = null)
         {
             if (!AssetDatabase.IsValidFolder(folder)) return 0;
             var group = EnsureGroup(settings, groupName);
@@ -99,7 +115,9 @@ namespace MuseXR.EditorTools
             foreach (var guid in AssetDatabase.FindAssets("t:GaussianSplatAsset", new[] { folder }))
             {
                 var path = AssetDatabase.GUIDToAssetPath(guid);
-                if (excludeNested && (path.Contains("/Samples/") || path.Contains("/Marble/"))) continue;
+                if (excludeNested && (path.Contains("/Samples/") || path.Contains("/Marble/") || path.Contains("/Bench/"))) continue;
+
+                if (skipPathPart != null && path.Contains(skipPathPart)) continue;
 
                 var name = Path.GetFileNameWithoutExtension(path);
                 if (requireSuffix != null && !name.EndsWith(requireSuffix, System.StringComparison.Ordinal)) continue;

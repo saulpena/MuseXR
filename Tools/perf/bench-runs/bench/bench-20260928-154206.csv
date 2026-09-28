@@ -1,0 +1,187 @@
+time,environment,version,key,splats,splat_res,fps,frame_ms,rendering,buddha
+15:42:08,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,64.8,15.8,yes,shown
+15:42:09,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.3,13.9,yes,shown
+15:42:10,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:11,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:12,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:13,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,69.2,14.5,yes,shown
+15:42:14,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,69.0,14.5,yes,shown
+15:42:15,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:16,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:17,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:18,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:19,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:20,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:21,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:22,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:23,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:24,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:25,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:26,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,68.0,14.7,yes,shown
+15:42:27,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,62.2,16.1,yes,shown
+15:42:28,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,70.6,14.2,yes,shown
+15:42:29,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:30,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:31,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,71.9,13.9,yes,shown
+15:42:32,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:33,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:34,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:35,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:36,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:37,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:38,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:39,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:40,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:41,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:42,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,71.4,14.0,yes,shown
+15:42:43,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:44,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:45,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:46,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:47,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:48,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,66.2,15.1,yes,shown
+15:42:49,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,69.1,14.5,yes,shown
+15:42:50,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,71.3,14.0,yes,shown
+15:42:51,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:52,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:53,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:54,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:55,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:56,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:57,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:42:58,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:42:59,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.0,13.9,yes,shown
+15:43:00,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.1,13.9,yes,shown
+15:43:01,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,70.2,14.3,yes,shown
+15:43:02,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,67.9,14.7,yes,shown
+15:43:03,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,72.2,13.9,yes,shown
+15:43:04,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,71.0,14.1,yes,shown
+15:43:05,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,64.5,15.5,yes,shown
+15:43:06,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,65.9,15.2,yes,shown
+15:43:07,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,69.1,14.5,yes,shown
+15:43:08,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,69.2,14.5,yes,shown
+15:43:09,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,66.8,15.0,yes,shown
+15:43:10,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,65.2,15.4,yes,shown
+15:43:11,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,61.3,16.3,yes,shown
+15:43:12,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,61.3,16.3,yes,shown
+15:43:13,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,66.2,15.1,yes,shown
+15:43:14,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,70.6,14.2,yes,shown
+15:43:16,"TEMPLE HALL","500k · cleaned",bench-temple-500k-cleaned,453051,0.60,67.0,15.2,yes,shown
+15:43:18,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,58.9,17.3,yes,shown
+15:43:19,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,61.5,16.3,yes,shown
+15:43:21,"SMALL TEMPLE (prompt)","500k · untouched",bench-small-prompt-500k-untouched,500000,0.60,69.5,14.7,yes,none
+15:43:22,"SMALL TEMPLE (prompt)","500k · untouched",bench-small-prompt-500k-untouched,500000,0.60,71.8,13.9,yes,none
+15:43:23,"SMALL TEMPLE (prompt)","500k · untouched",bench-small-prompt-500k-untouched,500000,0.60,72.2,13.9,yes,none
+15:43:24,"SMALL TEMPLE (prompt)","500k · untouched",bench-small-prompt-500k-untouched,500000,0.60,72.0,13.9,yes,none
+15:43:25,"SMALL TEMPLE (prompt)","500k · untouched",bench-small-prompt-500k-untouched,500000,0.60,71.1,14.1,yes,none
+15:43:26,"SMALL TEMPLE (prompt)","500k · untouched",bench-small-prompt-500k-untouched,500000,0.60,65.9,15.2,yes,none
+15:43:27,"SMALL TEMPLE (prompt)","500k · untouched",bench-small-prompt-500k-untouched,500000,0.60,67.9,14.7,yes,none
+15:43:29,"TEMPLE HALL","FULL → 1.5M crop",bench-temple-full-crop-1500k,1500000,0.60,22.9,47.6,yes,shown
+15:43:31,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,65.9,15.5,yes,none
+15:43:33,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,68.3,14.6,yes,none
+15:43:34,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,66.1,15.1,yes,none
+15:43:36,"SMALL TEMPLE (Chisel)","FULL → 1M (coverage)",bench-small-chisel-full-cov-1000k,1000000,0.60,34.4,30.9,yes,none
+15:43:38,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,66.1,15.4,yes,none
+15:43:39,"SMALL TEMPLE (Chisel)","FULL → 1M (coverage)",bench-small-chisel-full-cov-1000k,1000000,0.60,34.3,30.9,yes,none
+15:43:41,"SMALL TEMPLE (Chisel)","FULL → 750k (coverage)",bench-small-chisel-full-cov-750k,750000,0.60,37.0,28.2,yes,none
+15:43:42,"SMALL TEMPLE (Chisel)","FULL → 750k (coverage)",bench-small-chisel-full-cov-750k,750000,0.60,37.0,27.1,yes,none
+15:43:44,"BUDDHA HALL (Chisel)","500k · untouched",bench-buddha-chisel-500k-untouched,500000,0.60,62.8,16.2,yes,shown
+15:43:45,"BUDDHA HALL (Chisel)","500k · untouched",bench-buddha-chisel-500k-untouched,500000,0.60,65.2,15.3,yes,shown
+15:43:46,"BUDDHA HALL (Chisel)","500k · untouched",bench-buddha-chisel-500k-untouched,500000,0.60,67.1,14.9,yes,shown
+15:43:47,"BUDDHA HALL (Chisel)","500k · untouched",bench-buddha-chisel-500k-untouched,500000,0.60,64.2,15.6,yes,shown
+15:43:48,"BUDDHA HALL (Chisel)","500k · untouched",bench-buddha-chisel-500k-untouched,500000,0.60,65.9,15.2,yes,shown
+15:43:49,"BUDDHA HALL (Chisel)","500k · untouched",bench-buddha-chisel-500k-untouched,500000,0.60,71.4,14.0,yes,shown
+15:43:50,"BUDDHA HALL (Chisel)","500k · untouched",bench-buddha-chisel-500k-untouched,500000,0.60,69.1,14.5,yes,shown
+15:43:52,"BUDDHA HALL (Chisel)","500k · untouched",bench-buddha-chisel-500k-untouched,500000,0.60,68.7,14.6,yes,shown
+15:43:53,"BUDDHA HALL (Chisel)","FULL → 1M (coverage)",bench-buddha-chisel-full-cov-1000k,1000000,0.60,33.2,32.2,yes,shown
+15:43:54,"BUDDHA HALL (Chisel)","FULL → 1M (coverage)",bench-buddha-chisel-full-cov-1000k,1000000,0.60,36.1,27.8,yes,shown
+15:43:56,"BUDDHA HALL (Chisel)","FULL → 750k (coverage)",bench-buddha-chisel-full-cov-750k,750000,0.60,37.1,28.2,yes,shown
+15:43:57,"BUDDHA HALL (Chisel)","FULL → 750k (coverage)",bench-buddha-chisel-full-cov-750k,750000,0.60,36.0,27.8,yes,shown
+15:43:58,"BUDDHA HALL (Chisel)","FULL → 750k (coverage)",bench-buddha-chisel-full-cov-750k,750000,0.60,42.4,23.6,yes,shown
+15:43:59,"BUDDHA HALL (Chisel)","FULL → 750k (coverage)",bench-buddha-chisel-full-cov-750k,750000,0.60,47.9,20.9,yes,shown
+15:44:01,"CONSERVATORY","500k · untouched",bench-conservatory-500k-untouched,500000,0.60,72.5,14.1,yes,none
+15:44:03,"BUDDHA HALL (Chisel)","FULL → 750k (coverage)",bench-buddha-chisel-full-cov-750k,750000,0.60,38.2,27.4,yes,shown
+15:44:05,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,72.3,14.1,yes,none
+15:44:06,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,71.9,13.9,yes,none
+15:44:07,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,72.0,13.9,yes,none
+15:44:08,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,72.0,13.9,yes,none
+15:44:09,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,72.0,13.9,yes,none
+15:44:11,"TEMPLE HALL","500k · untouched",bench-temple-500k-untouched,500000,0.60,66.9,15.3,yes,shown
+15:44:12,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,71.0,14.3,yes,none
+15:44:13,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,61.2,16.3,yes,none
+15:44:14,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,60.3,16.6,yes,none
+15:44:15,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,62.2,16.1,yes,none
+15:44:16,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,67.1,14.9,yes,none
+15:44:17,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,68.8,14.6,yes,none
+15:44:18,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,45.7,21.9,yes,none
+15:44:19,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,38.6,25.9,yes,none
+15:44:21,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,41.5,24.1,yes,none
+15:44:22,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,40.9,24.5,yes,none
+15:44:23,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,36.5,27.4,yes,none
+15:44:24,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,36.1,27.8,yes,none
+15:44:25,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,36.1,27.8,yes,none
+15:44:26,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,35.9,27.8,yes,none
+15:44:27,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,36.1,27.7,yes,none
+15:44:28,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,36.1,27.7,yes,none
+15:44:29,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,36.0,27.8,yes,none
+15:44:30,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,36.1,27.8,yes,none
+15:44:31,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,36.0,27.8,yes,none
+15:44:32,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,36.1,27.8,yes,none
+15:44:33,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,36.0,27.8,yes,none
+15:44:34,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,36.0,27.8,yes,none
+15:44:35,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,0.60,36.1,27.8,yes,none
+15:44:36,"SMALL TEMPLE (Chisel)","FULL → 1M (coverage)",bench-small-chisel-full-cov-1000k,1000000,0.60,23.6,44.3,yes,none
+15:44:37,"SMALL TEMPLE (Chisel)","FULL → 1M (coverage)",bench-small-chisel-full-cov-1000k,1000000,0.60,24.1,41.6,yes,none
+15:44:38,"SMALL TEMPLE (Chisel)","FULL → 1M (coverage)",bench-small-chisel-full-cov-1000k,1000000,0.60,24.0,41.8,yes,none
+15:44:40,"SMALL TEMPLE (Chisel)","FULL → 1M (coverage)",bench-small-chisel-full-cov-1000k,1000000,0.60,24.1,41.5,yes,none
+15:44:41,"SMALL TEMPLE (Chisel)","FULL → 1M (coverage)",bench-small-chisel-full-cov-1000k,1000000,0.60,24.0,41.7,yes,none
+15:44:42,"SMALL TEMPLE (Chisel)","FULL → 1M (coverage)",bench-small-chisel-full-cov-1000k,1000000,0.60,24.0,41.7,yes,none
+15:44:43,"SMALL TEMPLE (Chisel)","FULL → 1M (coverage)",bench-small-chisel-full-cov-1000k,1000000,0.60,24.1,41.6,yes,none
+15:44:44,"SMALL TEMPLE (Chisel)","FULL → 1M (coverage)",bench-small-chisel-full-cov-1000k,1000000,0.60,24.0,41.7,yes,none
+15:44:45,"SMALL TEMPLE (Chisel)","FULL → 1M (coverage)",bench-small-chisel-full-cov-1000k,1000000,0.60,24.1,41.6,yes,none
+15:44:46,"SMALL TEMPLE (Chisel)","FULL → 750k (coverage)",bench-small-chisel-full-cov-750k,750000,0.60,29.2,35.6,yes,none
+15:44:47,"SMALL TEMPLE (Chisel)","FULL → 750k (coverage)",bench-small-chisel-full-cov-750k,750000,0.60,28.7,34.9,yes,none
+15:44:48,"SMALL TEMPLE (Chisel)","FULL → 750k (coverage)",bench-small-chisel-full-cov-750k,750000,0.60,29.0,34.6,yes,none
+15:44:49,"SMALL TEMPLE (Chisel)","FULL → 750k (coverage)",bench-small-chisel-full-cov-750k,750000,0.60,28.9,34.7,yes,none
+15:44:50,"SMALL TEMPLE (Chisel)","FULL → 750k (coverage)",bench-small-chisel-full-cov-750k,750000,0.60,33.1,30.2,yes,none
+15:44:54,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,38.5,26.4,yes,none
+15:44:55,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,36.0,27.8,yes,none
+15:44:56,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,39.0,25.7,yes,none
+15:44:57,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,42.4,23.6,yes,none
+15:44:58,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,42.9,23.3,yes,none
+15:44:59,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,40.8,24.5,yes,none
+15:45:00,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,38.2,26.2,yes,none
+15:45:01,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,63.0,15.9,yes,none
+15:45:02,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,69.6,14.4,yes,none
+15:45:03,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,69.4,14.4,yes,none
+15:45:04,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,71.9,13.9,yes,none
+15:45:05,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,72.1,13.9,yes,none
+15:45:06,"GARDEN (Chisel)","500k · untouched",bench-garden-chisel-500k-untouched,500000,0.60,71.1,14.1,yes,none
+15:45:10,"BUDDHA HALL (Chisel)","500k · untouched",bench-buddha-chisel-500k-untouched,500000,0.60,63.8,16.0,yes,shown
+15:45:11,"BUDDHA HALL (Chisel)","500k · untouched",bench-buddha-chisel-500k-untouched,500000,0.60,58.8,17.0,yes,shown
+15:45:12,"BUDDHA HALL (Chisel)","500k · untouched",bench-buddha-chisel-500k-untouched,500000,0.60,61.6,16.2,yes,shown
+15:45:13,"BUDDHA HALL (Chisel)","500k · untouched",bench-buddha-chisel-500k-untouched,500000,0.60,60.7,16.5,yes,shown
+15:45:14,"BUDDHA HALL (Chisel)","500k · untouched",bench-buddha-chisel-500k-untouched,500000,0.60,48.8,20.5,yes,shown
+15:45:15,"BUDDHA HALL (Chisel)","500k · untouched",bench-buddha-chisel-500k-untouched,500000,0.60,40.8,24.6,yes,shown
+15:45:16,"BUDDHA HALL (Chisel)","500k · untouched",bench-buddha-chisel-500k-untouched,500000,0.60,31.6,31.7,yes,shown
+15:45:18,"BUDDHA HALL (Chisel)","500k · untouched",bench-buddha-chisel-500k-untouched,500000,0.60,39.6,25.3,yes,shown
+15:45:19,"BUDDHA HALL (Chisel)","500k · untouched",bench-buddha-chisel-500k-untouched,500000,0.60,37.5,26.7,yes,shown
+15:45:23,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,25.9,39.1,yes,none
+15:45:24,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,24.1,41.6,yes,none
+15:45:25,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,24.0,41.7,yes,none
+15:45:26,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,23.8,42.1,yes,none
+15:45:27,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,24.0,41.8,yes,none
+15:45:28,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,22.9,43.7,yes,none
+15:45:29,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,20.9,47.8,yes,none
+15:45:30,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,20.0,50.1,yes,none
+15:45:31,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,19.0,52.5,yes,none
+15:45:32,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,18.2,55.0,yes,none
+15:45:33,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,19.4,51.6,yes,none
+15:45:34,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,19.8,50.5,yes,none
+15:45:35,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,18.5,54.2,yes,none
+15:45:36,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,18.5,54.0,yes,none
+15:45:37,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,18.3,54.7,yes,none
+15:45:38,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,18.0,55.6,yes,none
+15:45:39,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,18.0,55.5,yes,none
+15:45:40,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,18.1,55.4,yes,none
+15:45:41,"SMALL TEMPLE (Chisel)","500k · untouched",bench-small-chisel-500k-untouched,500000,1.00,18.7,53.4,yes,none
