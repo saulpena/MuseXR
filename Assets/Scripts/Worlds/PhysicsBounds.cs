@@ -25,6 +25,22 @@ namespace MusePico.Worlds
         const float Thickness = 1f;
 
         /// <summary>
+        /// The layer for INVISIBLE physics-only geometry: these walls, and the Marble collider mesh
+        /// <c>WalkRig</c> loads. Both stop a walker; neither may stop a POINTING ray. In
+        /// SunlitMuseum the walk box's "Wall +X" stands 0.3 m in front of the capture's wall and
+        /// the Marble collider 0.2 m, so on Default they caught every controller ray and no
+        /// painting behind them could be reached or grabbed. The controllers' Near-Far rays leave
+        /// this layer out; the teleport rays in <c>MuseXR Rig.prefab</c> include it, so an arc still
+        /// lands on the collider floor and still cannot pass a wall. Unmasked physics queries
+        /// (ground snapping, the party's ground rays) include it as before. The box floor stays on
+        /// Default: it is only ever walked on.
+        /// </summary>
+        public const string LayerName = "PhysicsBounds";
+
+        /// <summary>The layer index, or -1 if the project has lost the layer (then Default is used).</summary>
+        public static int Layer => LayerMask.NameToLayer(LayerName);
+
+        /// <summary>
         /// Builds the floor and walls under <paramref name="name"/>. <paramref name="floorY"/> is
         /// the walking surface: the box top sits exactly there, so a Floor-tracked XR Origin placed
         /// at the same Y is standing on it rather than inside it.
@@ -43,10 +59,11 @@ namespace MusePico.Worlds
                 new Vector3(sizeX, Thickness, sizeZ));
 
             float wy = floorY + wallHeight * 0.5f;
-            Box(root, "Wall -X", new Vector3(minX - Thickness * 0.5f, wy, cz), new Vector3(Thickness, wallHeight, sizeZ));
-            Box(root, "Wall +X", new Vector3(maxX + Thickness * 0.5f, wy, cz), new Vector3(Thickness, wallHeight, sizeZ));
-            Box(root, "Wall -Z", new Vector3(cx, wy, minZ - Thickness * 0.5f), new Vector3(sizeX, wallHeight, Thickness));
-            Box(root, "Wall +Z", new Vector3(cx, wy, maxZ + Thickness * 0.5f), new Vector3(sizeX, wallHeight, Thickness));
+            var wallLayer = Layer;
+            Box(root, "Wall -X", new Vector3(minX - Thickness * 0.5f, wy, cz), new Vector3(Thickness, wallHeight, sizeZ), wallLayer);
+            Box(root, "Wall +X", new Vector3(maxX + Thickness * 0.5f, wy, cz), new Vector3(Thickness, wallHeight, sizeZ), wallLayer);
+            Box(root, "Wall -Z", new Vector3(cx, wy, minZ - Thickness * 0.5f), new Vector3(sizeX, wallHeight, Thickness), wallLayer);
+            Box(root, "Wall +Z", new Vector3(cx, wy, maxZ + Thickness * 0.5f), new Vector3(sizeX, wallHeight, Thickness), wallLayer);
 
             Physics.SyncTransforms();
             return root;
@@ -68,9 +85,10 @@ namespace MusePico.Worlds
                          floorY, wallHeight);
         }
 
-        static void Box(GameObject parent, string name, Vector3 centre, Vector3 size)
+        static void Box(GameObject parent, string name, Vector3 centre, Vector3 size, int layer = -1)
         {
             var go = new GameObject(name);
+            if (layer >= 0) go.layer = layer;
             go.transform.SetParent(parent.transform, false);
             go.transform.position = centre;
             go.AddComponent<BoxCollider>().size = size;

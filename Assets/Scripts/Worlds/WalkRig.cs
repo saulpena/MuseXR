@@ -229,11 +229,15 @@ namespace MusePico.Worlds
             _colliderObject.transform.localScale = new Vector3(sx, worldScale, worldScale);
             var instance = Instantiate(colliderModel, _colliderObject.transform);
             int meshes = 0;
+            var invisibleLayer = PhysicsBounds.Layer;
             foreach (var filter in instance.GetComponentsInChildren<MeshFilter>(true))
             {
                 if (filter.sharedMesh == null) continue;
                 var mc = filter.gameObject.AddComponent<MeshCollider>();
                 mc.sharedMesh = filter.sharedMesh;
+                // Walked on and teleported onto, but pointed THROUGH: it stands 0.2-0.4 m proud of
+                // the visible walls, in front of anything hung on them. See PhysicsBounds.LayerName.
+                if (invisibleLayer >= 0) filter.gameObject.layer = invisibleLayer;
                 meshes++;
             }
             // Physics only. A Marble collider is a crude reconstruction and looks like nothing.
