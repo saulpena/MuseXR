@@ -104,6 +104,43 @@ RWByteAddressBuffer _SplatSelectedBits;
 ByteAddressBuffer _SplatDeletedBits;
 uint _SplatBitsValid;
 
+// MuseXR portal (GaussianSplatting.Runtime.SplatPortal / PortalGeometry). Mode 0 off, 1 the world
+// the visitor stands in, 2 the world seen through the door. Door space: aperture |x|<=params.x,
+// |y|<=params.y on z=0. params.z = cull margin (m), params.w = the eye's side of the plane (-1/+1).
+uint _PortalMode;
+float4x4 _PortalWorldToDoor;
+float4 _PortalParams;
+float4 _PortalEye;
+// Set on a splat's packed alpha (the sign bit of the FP16 in color.y's low half, never negative
+// otherwise) when its centre lies beyond the door plane from the eye.
+#define PORTAL_BEYOND_BIT 0x8000u
+
+// MuseXR reveal front (GaussianSplatting.Runtime.SplatReveal). Mode 0 off, 1 the world being left
+// (kept above the front), 2 the world arriving (kept below). plane = (normal, front);
+// params = (band, noise amplitude, noise scale, dab growth).
+uint _RevealMode;
+float4 _RevealPlane;
+float4 _RevealParams;
+// rgb multiplied into every splat; a = how far the brightest splats are spared it.
+float4 _SplatTint;
+
+float RevealHash(float3 p)
+{
+    p = frac(p * 0.3183099 + 0.1);
+    p *= 17.0;
+    return frac(p.x * p.y * p.z * (p.x + p.y + p.z));
+}
+
+float RevealNoise(float3 x)
+{
+    float3 i = floor(x), f = frac(x);
+    f = f * f * (3.0 - 2.0 * f);
+    return lerp(lerp(lerp(RevealHash(i + float3(0,0,0)), RevealHash(i + float3(1,0,0)), f.x),
+                     lerp(RevealHash(i + float3(0,1,0)), RevealHash(i + float3(1,1,0)), f.x), f.y),
+                lerp(lerp(RevealHash(i + float3(0,0,1)), RevealHash(i + float3(1,0,1)), f.x),
+                     lerp(RevealHash(i + float3(0,1,1)), RevealHash(i + float3(1,1,1)), f.x), f.y), f.z);
+}
+
 void DecomposeCovariance(float3 cov2d, out float2 v1, out float2 v2)
 {
     #if 0 // does not quite give the correct results?
@@ -219,6 +256,49 @@ void CSCalcViewData (uint3 id : SV_DispatchThreadID)
         centerClipPos.w = 0;
     }
 
+    // MuseXR portal: which side of the door is this splat on, and (for the world beyond the door)
+    // is it anywhere near the aperture? Whole-splat culling here; the exact door edge is decided
+    // per pixel against the mask in RenderGaussianSplats.shader.
+    bool portalBeyond = false;
+    if (_PortalMode != 0 && centerClipPos.w > 0)
+    {
+        float3 pd = mul(_PortalWorldToDoor, float4(centerWorldPos, 1)).xyz;
+        portalBeyond = (pd.z < 0 ? -1.0 : 1.0) != _PortalParams.w;
+        if (_PortalMode == 2)
+        {
+            if (!portalBeyond)
+            {
+                centerClipPos.w = 0;
+            }
+            else
+            {
+                float3 e = _PortalEye.xyz;
+                float t = e.z / (e.z - pd.z);
+                float2 hit = e.xy + t * (pd.xy - e.xy);
+                if (any(abs(hit) > _PortalParams.xy + _PortalParams.zz))
+                    centerClipPos.w = 0;
+            }
+        }
+    }
+
+    // MuseXR reveal front: where is this splat relative to the ragged front, and so how present?
+    if (_RevealMode != 0 && centerClipPos.w > 0)
+    {
+        float n = RevealNoise(centerWorldPos / max(1e-3, _RevealParams.z));
+        float h = dot(centerWorldPos, _RevealPlane.xyz) - _RevealPlane.w + (n - 0.5) * 2.0 * _RevealParams.y;
+        float band = max(1e-3, _RevealParams.x);
+        float presence = saturate((_RevealMode == 1 ? h : -h) / band + 0.5);
+        if (presence <= 0.0)
+        {
+            centerClipPos.w = 0;
+        }
+        else
+        {
+            opacityScale *= presence;
+            splatScale *= 1.0 + (1.0 - presence) * _RevealParams.w;
+        }
+    }
+
     view.pos = centerClipPos;
     bool behindCam = centerClipPos.w <= 0;
     if (!behindCam)
@@ -243,9 +323,14 @@ void CSCalcViewData (uint3 id : SV_DispatchThreadID)
 
         half4 col;
         col.rgb = ShadeSH(splat.sh, objViewDir, _SHOrder, _SHOnly != 0);
+        // MuseXR tint (night, dawn); the brightest splats can be spared it, so stars keep shining.
+        float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
+        col.rgb *= lerp(_SplatTint.rgb, 1.0, _SplatTint.a * smoothstep(0.55, 0.9, lum));
         col.a = min(splat.opacity * opacityScale, 65000);
         view.color.x = (f32tof16(col.r) << 16) | f32tof16(col.g);
         view.color.y = (f32tof16(col.b) << 16) | f32tof16(col.a);
+        if (portalBeyond)
+            view.color.y |= PORTAL_BEYOND_BIT;
     }
     
     _SplatViewData[idx] = view;

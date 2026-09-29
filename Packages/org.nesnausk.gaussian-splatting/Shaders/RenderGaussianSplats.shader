@@ -25,8 +25,15 @@ struct v2f
 {
     half4 col : COLOR0;
     float2 pos : TEXCOORD0;
+    nointerpolation uint portalBeyond : TEXCOORD1;
     float4 vertex : SV_POSITION;
 };
+
+// MuseXR portal (GaussianSplatting.Runtime.SplatPortal). 0 off, 1 the world the visitor stands in,
+// 2 the world seen through the door. The mask is the door's aperture drawn for THIS eye into a
+// target the size of this one, so a pixel's own position addresses it directly.
+uint _PortalMode;
+Texture2D<float> _GaussianPortalMask;
 
 StructuredBuffer<SplatViewData> _SplatViewData;
 ByteAddressBuffer _SplatSelectedBits;
@@ -52,7 +59,8 @@ v2f vert (uint vtxID : SV_VertexID, uint instID : SV_InstanceID)
 		o.col.r = f16tof32(view.color.x >> 16);
 		o.col.g = f16tof32(view.color.x);
 		o.col.b = f16tof32(view.color.y >> 16);
-		o.col.a = f16tof32(view.color.y);
+		o.portalBeyond = (view.color.y >> 15) & 1;           // see PORTAL_BEYOND_BIT
+		o.col.a = f16tof32(view.color.y & 0x7FFFu);
 
 		uint idx = vtxID;
 		float2 quadPos = float2(idx&1, (idx>>1)&1) * 2.0 - 1.0;
@@ -83,6 +91,16 @@ v2f vert (uint vtxID : SV_VertexID, uint instID : SV_InstanceID)
 
 half4 frag (v2f i) : SV_Target
 {
+	if (_PortalMode != 0)
+	{
+		// Through the door here = this pixel is inside the aperture AND the splat lies beyond it.
+		// The outside world gives up exactly those pixels; the other world keeps only those.
+		bool inDoor = _GaussianPortalMask.Load(int3(i.vertex.xy, 0)) > 0.5;
+		bool through = inDoor && i.portalBeyond != 0;
+		if (_PortalMode == 1 ? through : !through)
+			discard;
+	}
+
 	float power = -dot(i.pos, i.pos);
 	half alpha = exp(power);
 	if (i.col.a >= 0)

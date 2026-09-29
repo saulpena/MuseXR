@@ -147,6 +147,10 @@ namespace MuseXR.EditorTools
             // Its own group, not MarbleGroup: sharing that one made the single-world Sunlit build
             // carry all nine.
             new Target { Name = "Small",     Scene = "Assets/Scenes/Tests/SmallWorlds.unity",   AddressableGroup = AddressableWorldSetup.SmallGroup },
+
+            // The splat portal test: Buddha Hall -> door -> Van Gogh Gallery. Both worlds are
+            // direct references in the scene (both must be resident at once), so no group.
+            new Target { Name = "Portal",    Scene = "Assets/Scenes/Tests/SplatPortal.unity",   AddressableGroup = null },
         };
 
         /// <summary>
@@ -211,6 +215,8 @@ namespace MuseXR.EditorTools
         [MenuItem("MuseXR/Build/Quest/Journey", priority = 47)]   static void Q10() => BuildOne(Vendor.Quest, T("Journey"));
         [MenuItem("MuseXR/Build/Quest/Sunlit", priority = 45)]    static void Q8() => BuildOne(Vendor.Quest, T("Sunlit"));
         [MenuItem("MuseXR/Build/Quest/Small", priority = 46)]     static void Q9() => BuildOne(Vendor.Quest, T("Small"));
+        [MenuItem("MuseXR/Build/PICO/Portal", priority = 48)]    static void P11() => BuildOne(Vendor.Pico, T("Portal"));
+        [MenuItem("MuseXR/Build/Quest/Portal", priority = 48)]   static void Q11() => BuildOne(Vendor.Quest, T("Portal"));
 
         [MenuItem("MuseXR/Build/PICO/All Three", priority = 25)]
         public static void BuildAllPico() => BuildAllFor(Vendor.Pico);
