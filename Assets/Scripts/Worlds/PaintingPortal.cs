@@ -22,8 +22,15 @@ namespace MuseXR.Worlds
     public sealed class PaintingPortal : MonoBehaviour, ITransitionStep
     {
         [Header("Painting")]
-        [Tooltip("The canvas: a Unity Quad, picture on its -Z side.")]
+        [Tooltip("The whole painting (the grabbable root: canvas, back, frame). Hidden until the visitor " +
+                 "has crossed into the world it hangs in — it is a mesh, so it would otherwise stand in the " +
+                 "worlds before that too — and destroyed at the end.")]
+        public GameObject paintingRoot;
+        [Tooltip("The canvas: a Unity Quad, picture on its -Z side. Its size is the tear's.")]
         public Transform canvas;
+        [Tooltip("What the tear removes and the far side must not see: the picture and the canvas back. " +
+                 "Not the frame, which stays round the opening.")]
+        public Renderer[] surfaces;
 
         [Header("Worlds")]
         [Tooltip("The world the painting hangs in. Destroyed once the tear has closed behind the visitor.")]
@@ -78,8 +85,11 @@ namespace MuseXR.Worlds
 
         public TearSequence Sequence => _tear;
         public bool IsDone => _tear.Phase == TearPhase.Done;
+        public bool HasCrossed => _tear.Phase != TearPhase.Waiting;
 
         bool Ready => after == null || !(after is ITransitionStep step) || step.IsDone;
+        bool AfterCrossed => after == null || !(after is ITransitionStep step) || step.HasCrossed;
+        bool _paintingShown;
 
         void OnEnable()
         {
@@ -92,6 +102,8 @@ namespace MuseXR.Worlds
                 nextWorld.m_DrawLimit = 0;                 // loaded, not drawn, until the canvas tears
                 _sortNthBefore = nextWorld.m_SortNthFrame;
             }
+            _paintingShown = AfterCrossed;
+            if (paintingRoot != null) paintingRoot.SetActive(_paintingShown);
         }
 
         void OnDestroy()
@@ -101,6 +113,12 @@ namespace MuseXR.Worlds
 
         void LateUpdate()
         {
+            // The painting belongs to the world it hangs in: it appears once the visitor is there.
+            if (!_paintingShown && AfterCrossed)
+            {
+                _paintingShown = true;
+                if (paintingRoot != null) paintingRoot.SetActive(true);
+            }
             if (_tear.Phase == TearPhase.Done || !Ready || canvas == null) return;
             if (head == null) { var cam = Camera.main; if (cam == null) return; head = cam.transform; }
 
@@ -202,9 +220,12 @@ namespace MuseXR.Worlds
 
         void SetCanvasHidden(bool hidden)
         {
-            if (hidden == _canvasHidden || canvas == null) return;
+            if (hidden == _canvasHidden) return;
             _canvasHidden = hidden;
-            foreach (var r in canvas.GetComponentsInChildren<Renderer>(true)) r.enabled = !hidden;
+            if (surfaces != null && surfaces.Length > 0)
+                foreach (var r in surfaces) { if (r != null) r.enabled = !hidden; }
+            else if (canvas != null)
+                foreach (var r in canvas.GetComponentsInChildren<Renderer>(true)) r.enabled = !hidden;
         }
 
         void Finish()
@@ -213,7 +234,9 @@ namespace MuseXR.Worlds
             SplatPortal.EraseMeshes = false;
             if (nextWorld != null) nextWorld.m_PortalRole = SplatPortalRole.None;
             if (currentWorld != null) { Destroy(currentWorld.gameObject); currentWorld = null; }
-            if (canvas != null) { Destroy(canvas.gameObject); canvas = null; }
+            var painting = paintingRoot != null ? paintingRoot : canvas != null ? canvas.gameObject : null;
+            if (painting != null) Destroy(painting);
+            canvas = null;
         }
     }
 }

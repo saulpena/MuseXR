@@ -6,6 +6,9 @@ namespace MuseXR.Worlds
     /// <summary>A step on the journey that has to finish before the next one starts.</summary>
     public interface ITransitionStep
     {
+        /// <summary>The visitor has stepped through: they now stand in the next world.</summary>
+        bool HasCrossed { get; }
+        /// <summary>Finished: the previous world is gone.</summary>
         bool IsDone { get; }
     }
 

@@ -30,6 +30,7 @@ namespace MuseXR.Worlds
     public sealed class SplatPortalDoor : MonoBehaviour, ITransitionStep
     {
         public bool IsDone => _sequence.Phase == PortalPhase.Done;
+        public bool HasCrossed => _sequence.Phase >= PortalPhase.Closing;
 
         [Header("Worlds")]
         [Tooltip("The world the visitor starts in. Destroyed once the door has shut behind them.")]
