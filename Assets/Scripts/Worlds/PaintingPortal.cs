@@ -1,5 +1,6 @@
 using GaussianSplatting.Runtime;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace MuseXR.Worlds
 {
@@ -104,11 +105,44 @@ namespace MuseXR.Worlds
             }
             _paintingShown = AfterCrossed;
             if (paintingRoot != null) paintingRoot.SetActive(_paintingShown);
+            LetTheVisitorThrough();
+        }
+
+        /// <summary>
+        /// The painting's colliders exist for grabbing, but the visitor's CharacterController
+        /// collided with them too: walking into the painting with a thumbstick (or WASD in the
+        /// Editor) stopped 0.2 m short of the canvas, so the crossing never registered - only a
+        /// physical step, which moves the head and not the body, got through (found 29 Sep 2026).
+        /// Pointing rays are raycasts and are unaffected.
+        /// </summary>
+        void LetTheVisitorThrough()
+        {
+            var origin = FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>();
+            var body = origin != null ? origin.GetComponent<CharacterController>() : null;
+            var painting = paintingRoot != null ? paintingRoot : canvas != null ? canvas.gameObject : null;
+            if (body == null || painting == null) return;
+            foreach (var c in painting.GetComponentsInChildren<Collider>(true))
+                Physics.IgnoreCollision(body, c, true);
         }
 
         void OnDestroy()
         {
             if (_mask != null) Destroy(_mask);
+        }
+
+        void Update()
+        {
+            // Desktop test key, like the door's O and the water's M. Without controllers the
+            // painting cannot be pulled apart to walk-in size, so P grows it there; walk up to it
+            // and it tears as it would in the hands.
+            if (Keyboard.current != null && Keyboard.current.pKey.wasPressedThisFrame
+                && _paintingShown && _tear.Phase == TearPhase.Waiting && canvas != null)
+            {
+                float height = Mathf.Abs(canvas.lossyScale.y);
+                var grow = paintingRoot != null ? paintingRoot.transform : canvas;
+                if (height > 1e-3f && height < minHeight + 0.3f)
+                    grow.localScale *= (minHeight + 0.3f) / height;
+            }
         }
 
         void LateUpdate()
@@ -118,6 +152,7 @@ namespace MuseXR.Worlds
             {
                 _paintingShown = true;
                 if (paintingRoot != null) paintingRoot.SetActive(true);
+                LetTheVisitorThrough();   // ignore pairs are dropped while a collider is inactive
             }
             if (_tear.Phase == TearPhase.Done || !Ready || canvas == null) return;
             if (head == null) { var cam = Camera.main; if (cam == null) return; head = cam.transform; }

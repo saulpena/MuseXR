@@ -35,6 +35,10 @@ namespace MusePico.Dialogue
         [Tooltip("Which masters to invite. Empty uses the authored defaults (Monet, Van Gogh, Socrates).")]
         public List<string> invitedMasterIds = new List<string>();
 
+        [Tooltip("Ask exactly the invited masters, with no topping up to three. On for scenes whose " +
+                 "masters stand in the room as bodies; off for the journey, which always hears three.")]
+        public bool exactlyInvited;
+
         [Header("Scene")]
         public VoiceCapture voice;
         public AudioSource speaker;
@@ -76,7 +80,7 @@ namespace MusePico.Dialogue
             try { _roster = MasterRoster.Parse(mastersJson.text); }
             catch (System.Exception ex) { Report("masters.json could not be read: " + ex.Message); return; }
 
-            Masters = MasterRoster.Select(_roster, invitedMasterIds);
+            Masters = ChooseMasters();
 
             var openAiKey = await FallbackKeySource.ForOpenAi().GetKeyAsync();
             var miniMaxKey = await new FallbackKeySource(
@@ -193,6 +197,10 @@ namespace MusePico.Dialogue
 
             IsBusy = true;
             _cancel = new CancellationTokenSource();
+            // Re-read who is invited on every question. Computing this once in Start meant a caller
+            // changing invitedMasterIds afterwards (the journey does, before every ask) was ignored
+            // and the defaults answered instead (found 29 Sep 2026).
+            Masters = ChooseMasters();
             Report("“" + question + "” — asking " + Masters.Count + " masters…");
 
             try
@@ -249,6 +257,10 @@ namespace MusePico.Dialogue
                 _cancel = null;
             }
         }
+
+        List<MasterLens> ChooseMasters() => exactlyInvited
+            ? MasterRoster.SelectExactly(_roster, invitedMasterIds)
+            : MasterRoster.Select(_roster, invitedMasterIds);
 
         /// <summary>Kicks off every synthesis at once and returns the tasks in speaking order.</summary>
         Task<AudioClip>[] StartSynthesis(List<Perspective> perspectives, CancellationToken ct)

@@ -119,6 +119,103 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &20105802
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 20105803}
+  - component: {fileID: 20105806}
+  - component: {fileID: 20105805}
+  - component: {fileID: 20105804}
+  m_Layer: 8
+  m_Name: Buddha Collision
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &20105803
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 20105802}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.08170602, y: 0.08170602, z: 0.08170602}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2009494711}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &20105804
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 20105802}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.6, y: 4, z: 8.487888}
+  m_Center: {x: 0, y: 2, z: 0.74962616}
+--- !u!65 &20105805
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 20105802}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 3.414562, y: 4, z: 9.987888}
+  m_Center: {x: 3.0072806, y: 2, z: -0.00037384033}
+--- !u!65 &20105806
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 20105802}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 3.414562, y: 4, z: 9.987888}
+  m_Center: {x: -3.0072806, y: 2, z: -0.00037384033}
 --- !u!1 &20341183 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8293539273036085412, guid: a23267c443842e04b9f9ab2f76fcde11, type: 3}
@@ -1100,6 +1197,103 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 212686410}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1001 &245707800
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1783489765}
+    m_Modifications:
+    - target: {fileID: 467374876940409772, guid: d13722da93a02dc4fbbd9fe19466a6fe, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -1.5390004
+      objectReference: {fileID: 0}
+    - target: {fileID: 467374876940409772, guid: d13722da93a02dc4fbbd9fe19466a6fe, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 467374876940409772, guid: d13722da93a02dc4fbbd9fe19466a6fe, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 4.2907667
+      objectReference: {fileID: 0}
+    - target: {fileID: 467374876940409772, guid: d13722da93a02dc4fbbd9fe19466a6fe, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.93358046
+      objectReference: {fileID: 0}
+    - target: {fileID: 467374876940409772, guid: d13722da93a02dc4fbbd9fe19466a6fe, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 467374876940409772, guid: d13722da93a02dc4fbbd9fe19466a6fe, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.35836798
+      objectReference: {fileID: 0}
+    - target: {fileID: 467374876940409772, guid: d13722da93a02dc4fbbd9fe19466a6fe, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 467374876940409772, guid: d13722da93a02dc4fbbd9fe19466a6fe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 467374876940409772, guid: d13722da93a02dc4fbbd9fe19466a6fe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 467374876940409772, guid: d13722da93a02dc4fbbd9fe19466a6fe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 952408336300097814, guid: d13722da93a02dc4fbbd9fe19466a6fe, type: 3}
+      propertyPath: m_Name
+      value: Picasso
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 952408336300097814, guid: d13722da93a02dc4fbbd9fe19466a6fe, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 245707804}
+  m_SourcePrefab: {fileID: 100100000, guid: d13722da93a02dc4fbbd9fe19466a6fe, type: 3}
+--- !u!95 &245707801 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 5808621170685395414, guid: d13722da93a02dc4fbbd9fe19466a6fe, type: 3}
+  m_PrefabInstance: {fileID: 245707800}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &245707802 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 952408336300097814, guid: d13722da93a02dc4fbbd9fe19466a6fe, type: 3}
+  m_PrefabInstance: {fileID: 245707800}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &245707803 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 467374876940409772, guid: d13722da93a02dc4fbbd9fe19466a6fe, type: 3}
+  m_PrefabInstance: {fileID: 245707800}
+  m_PrefabAsset: {fileID: 0}
+--- !u!195 &245707804
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 245707802}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
 --- !u!1 &267537122
 GameObject:
   m_ObjectHideFlags: 0
@@ -1318,6 +1512,80 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 295676713}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &303592299
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 303592301}
+  - component: {fileID: 303592300}
+  - component: {fileID: 303592302}
+  m_Layer: 0
+  m_Name: Painter Dialogue
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &303592300
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 303592299}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68e544dde5561c44994be1d29156489c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Dialogue::MusePico.Dialogue.MuseumDialogue
+  mastersJson: {fileID: 4900000, guid: c620092dcb4441a4892fc3a6d36023c5, type: 3}
+  invitedMasterIds:
+  - monet
+  - picasso
+  exactlyInvited: 1
+  voice: {fileID: 303592302}
+  speaker: {fileID: 533187893}
+  artworkTitle: 
+  artworkArtist: 
+  artworkDate: 
+  speakReplies: 1
+--- !u!4 &303592301
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 303592299}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 533187894}
+  m_Father: {fileID: 1783489765}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &303592302
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 303592299}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8271e4e67216d4d499c4222697aa6a96, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Generation::MusePico.Generation.VoiceCapture
+  maxSeconds: 12
+  captureSampleRate: 16000
+  autoStopOnSilence: 1
+  silenceThreshold: 0.01
+  silenceTimeout: 1.5
 --- !u!1 &348052350
 GameObject:
   m_ObjectHideFlags: 0
@@ -1564,7 +1832,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1.7, y: 1.7, z: 1.7}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 2065686322}
   m_Father: {fileID: 833634381}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &422268452
@@ -1894,6 +2163,135 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 519516203}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &533187892
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 533187894}
+  - component: {fileID: 533187893}
+  m_Layer: 0
+  m_Name: Painter Voice
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!82 &533187893
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 533187892}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 0
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1.5
+  MaxDistance: 25
+  Pan2D: 0
+  rolloffMode: 1
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0.85
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!4 &533187894
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 533187892}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 303592301}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &649790378
 GameObject:
   m_ObjectHideFlags: 0
@@ -2186,6 +2584,62 @@ Transform:
   m_Children: []
   m_Father: {fileID: 208309228}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &711720527
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 711720528}
+  - component: {fileID: 711720530}
+  - component: {fileID: 711720529}
+  m_Layer: 0
+  m_Name: Walk Area
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &711720528
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 711720527}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1167185510}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &711720529
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 711720527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b8efb2ee36efb94390ec8e6af56d9e2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Worlds::MusePico.Worlds.SplatWalkArea
+  extraSeeds: []
+  bakeReport: 2026-09-29 07:34 - 300,398 of 500,000 splats opaque; 865 m2 walkable
+    (3458 cells of 0.5 m); 242 triangles.
+--- !u!33 &711720530
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 711720527}
+  m_Mesh: {fileID: 4300000, guid: b2797603ac191c54fa7d1b75c83150eb, type: 2}
 --- !u!1 &795254875
 GameObject:
   m_ObjectHideFlags: 0
@@ -2570,6 +3024,7 @@ GameObject:
   - component: {fileID: 881885530}
   - component: {fileID: 881885532}
   - component: {fileID: 881885531}
+  - component: {fileID: 881885533}
   m_Layer: 0
   m_Name: Post R
   m_TagString: Untagged
@@ -2649,6 +3104,22 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 881885529}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!208 &881885533
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 881885529}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.5, y: 0.5, z: 0.5}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 1
+  m_Center: {x: 0, y: 0, z: 0}
+  m_TimeToStationary: 0.5
 --- !u!1 &916305836
 GameObject:
   m_ObjectHideFlags: 0
@@ -3305,9 +3776,66 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 2.63, y: 2.63, z: 2.63}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 711720528}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1282484319
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1282484320}
+  - component: {fileID: 1282484322}
+  - component: {fileID: 1282484321}
+  m_Layer: 0
+  m_Name: Walk Area
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1282484320
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1282484319}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1928299009}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1282484321
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1282484319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b8efb2ee36efb94390ec8e6af56d9e2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Worlds::MusePico.Worlds.SplatWalkArea
+  extraSeeds: []
+  bakeReport: 2026-09-29 07:34 - 350,936 of 500,000 splats opaque; 411 m2 walkable
+    (1645 cells of 0.5 m); 132 triangles.
+--- !u!33 &1282484322
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1282484319}
+  m_Mesh: {fileID: 4300000, guid: e04214c1918d9b74ab95ef56c142465d, type: 2}
 --- !u!1 &1409781467
 GameObject:
   m_ObjectHideFlags: 0
@@ -3908,7 +4436,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 2.5}
   m_LocalScale: {x: 1.7, y: 1.7, z: 1.7}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 2119318737}
   m_Father: {fileID: 833634381}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1608023718
@@ -4091,6 +4620,103 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1617733188}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1001 &1618480302
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1783489765}
+    m_Modifications:
+    - target: {fileID: 3540961834178044443, guid: 158e9574aa52bd04ba784177070d198a, type: 3}
+      propertyPath: m_Name
+      value: Monet
+      objectReference: {fileID: 0}
+    - target: {fileID: 4210820209156929697, guid: 158e9574aa52bd04ba784177070d198a, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1.5390004
+      objectReference: {fileID: 0}
+    - target: {fileID: 4210820209156929697, guid: 158e9574aa52bd04ba784177070d198a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4210820209156929697, guid: 158e9574aa52bd04ba784177070d198a, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 4.2907667
+      objectReference: {fileID: 0}
+    - target: {fileID: 4210820209156929697, guid: 158e9574aa52bd04ba784177070d198a, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.93358046
+      objectReference: {fileID: 0}
+    - target: {fileID: 4210820209156929697, guid: 158e9574aa52bd04ba784177070d198a, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4210820209156929697, guid: 158e9574aa52bd04ba784177070d198a, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.35836798
+      objectReference: {fileID: 0}
+    - target: {fileID: 4210820209156929697, guid: 158e9574aa52bd04ba784177070d198a, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4210820209156929697, guid: 158e9574aa52bd04ba784177070d198a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4210820209156929697, guid: 158e9574aa52bd04ba784177070d198a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4210820209156929697, guid: 158e9574aa52bd04ba784177070d198a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3540961834178044443, guid: 158e9574aa52bd04ba784177070d198a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1618480306}
+  m_SourcePrefab: {fileID: 100100000, guid: 158e9574aa52bd04ba784177070d198a, type: 3}
+--- !u!95 &1618480303 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 7822746501647983323, guid: 158e9574aa52bd04ba784177070d198a, type: 3}
+  m_PrefabInstance: {fileID: 1618480302}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1618480304 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3540961834178044443, guid: 158e9574aa52bd04ba784177070d198a, type: 3}
+  m_PrefabInstance: {fileID: 1618480302}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1618480305 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4210820209156929697, guid: 158e9574aa52bd04ba784177070d198a, type: 3}
+  m_PrefabInstance: {fileID: 1618480302}
+  m_PrefabAsset: {fileID: 0}
+--- !u!195 &1618480306
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1618480304}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
 --- !u!1 &1674156704
 GameObject:
   m_ObjectHideFlags: 0
@@ -4192,6 +4818,7 @@ GameObject:
   - component: {fileID: 1675129684}
   - component: {fileID: 1675129686}
   - component: {fileID: 1675129685}
+  - component: {fileID: 1675129687}
   m_Layer: 0
   m_Name: Post L
   m_TagString: Untagged
@@ -4271,6 +4898,22 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1675129683}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!208 &1675129687
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1675129683}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.5, y: 0.5, z: 0.5}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 1
+  m_Center: {x: 0, y: 0, z: 0}
+  m_TimeToStationary: 0.5
 --- !u!1 &1694903805
 GameObject:
   m_ObjectHideFlags: 0
@@ -4520,6 +5163,154 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1777383720}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1783489763
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1783489765}
+  - component: {fileID: 1783489764}
+  - component: {fileID: 1783489766}
+  - component: {fileID: 1783489767}
+  m_Layer: 0
+  m_Name: Painters (escort)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1783489764
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1783489763}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e438a32188e85e54283157983723df6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Worlds::MusePico.Worlds.PainterEscort
+  painters:
+  - animator: {fileID: 1618480303}
+    side: -1
+    strollStyle: 1
+    briskStyle: 4
+    avoidancePriority: 50
+  - animator: {fileID: 245707801}
+    side: 1
+    strollStyle: 0
+    briskStyle: 4
+    avoidancePriority: 51
+  settings:
+    followDistance: 2.2
+    trailBack: 1.8
+    trailSide: 0.75
+    personalSpace: 1.2
+    separation: 1
+    restDistance: 2.3
+    minRestDistance: 1.8
+    maxRestDistance: 3
+    peripheralAngle: 42
+    minRestAngle: 34
+    maxRestAngle: 55
+    centralCone: 30
+    lookedAtCone: 14
+    lookedAtRange: 3.5
+    outOfViewAngle: 70
+    outOfViewDelay: 2.5
+    inTheWayDelay: 1
+    stillSpeed: 0.25
+    stillDelay: 0.6
+    warpDistance: 12
+    arriveRadius: 0.2
+    retargetStep: 0.5
+    artClearance: 1.5
+    artSightCone: 15
+  clipGroundSpeed:
+  - 0.78
+  - 0.65
+  - 0.56
+  - 0.76
+  - 1.32
+  briskBeyond: 3
+  hurryBeyond: 5
+  playbackRange: {x: 0.75, y: 1.45}
+  runBeyond: 5
+  runUntil: 3
+  runClipSpeed: 4.1
+  runPlaybackRange: {x: 0.75, y: 1.05}
+  turnDeadband: 25
+  turnRate: 110
+  art:
+  - {fileID: 2009494711}
+  - {fileID: 95260300}
+  - {fileID: 1892590106}
+  - {fileID: 208309228}
+  visitorRadius: 0.35
+--- !u!4 &1783489765
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1783489763}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1618480305}
+  - {fileID: 245707803}
+  - {fileID: 303592301}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1783489766
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1783489763}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea56211da66c456478c4a8e3f8d5e5ad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Worlds::MusePico.Worlds.EscortNavMesh
+  stages:
+  - area: {fileID: 711720529}
+    leaveWhen: {fileID: 161287415}
+  - area: {fileID: 1282484321}
+    leaveWhen: {fileID: 2082045944}
+  - area: {fileID: 2065686323}
+    leaveWhen: {fileID: 1694903806}
+  - area: {fileID: 2119318738}
+    leaveWhen: {fileID: 0}
+  moveTolerance: 0.05
+--- !u!114 &1783489767
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1783489763}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 476758d2818a7d940b76b5bedc78f982, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Journey::MusePico.Journey.PainterConversation
+  escort: {fileID: 1783489764}
+  navMesh: {fileID: 1783489766}
+  dialogue: {fileID: 303592300}
+  masterIds:
+  - monet
+  - picasso
+  bubbleAbove: 0.3
+  bubblesLinger: 20
 --- !u!1 &1790621420
 GameObject:
   m_ObjectHideFlags: 0
@@ -5366,7 +6157,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 3.3200006}
   m_LocalScale: {x: 2.8, y: 2.8, z: 2.8}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1282484320}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1931198613
@@ -5663,14 +6455,41 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 1979998169252606117, guid: c454b997e99031746ae31917769290d2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 20105803}
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: -1209548060638391340, guid: c454b997e99031746ae31917769290d2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2009494712}
   m_SourcePrefab: {fileID: 3150474306388093854, guid: c454b997e99031746ae31917769290d2, type: 3}
 --- !u!1 &2009494710 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -1209548060638391340, guid: c454b997e99031746ae31917769290d2, type: 3}
   m_PrefabInstance: {fileID: 2009494709}
   m_PrefabAsset: {fileID: 0}
+--- !u!4 &2009494711 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1979998169252606117, guid: c454b997e99031746ae31917769290d2, type: 3}
+  m_PrefabInstance: {fileID: 2009494709}
+  m_PrefabAsset: {fileID: 0}
+--- !u!208 &2009494712
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2009494710}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.3852081, y: 0.49024963, z: 0.40803528}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 1
+  m_Center: {x: -0.00018310547, y: 0.49040222, z: -0.000030517578}
+  m_TimeToStationary: 0.5
 --- !u!1 &2049576605
 GameObject:
   m_ObjectHideFlags: 0
@@ -5851,6 +6670,62 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2055811803}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &2065686321
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2065686322}
+  - component: {fileID: 2065686324}
+  - component: {fileID: 2065686323}
+  m_Layer: 0
+  m_Name: Walk Area
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2065686322
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2065686321}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 422268451}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2065686323
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2065686321}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b8efb2ee36efb94390ec8e6af56d9e2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Worlds::MusePico.Worlds.SplatWalkArea
+  extraSeeds: []
+  bakeReport: 2026-09-29 07:34 - 382,640 of 500,000 splats opaque; 349 m2 walkable
+    (1394 cells of 0.5 m); 142 triangles.
+--- !u!33 &2065686324
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2065686321}
+  m_Mesh: {fileID: 4300000, guid: dd081c795eff4434b81a42d03c38b395, type: 2}
 --- !u!1 &2082045943
 GameObject:
   m_ObjectHideFlags: 0
@@ -6096,6 +6971,62 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2117266956}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &2119318736
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2119318737}
+  - component: {fileID: 2119318739}
+  - component: {fileID: 2119318738}
+  m_Layer: 0
+  m_Name: Walk Area
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2119318737
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2119318736}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1597136414}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2119318738
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2119318736}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b8efb2ee36efb94390ec8e6af56d9e2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Worlds::MusePico.Worlds.SplatWalkArea
+  extraSeeds: []
+  bakeReport: 2026-09-29 07:34 - 317,174 of 500,000 splats opaque; 828 m2 walkable
+    (3313 cells of 0.5 m); 364 triangles.
+--- !u!33 &2119318739
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2119318736}
+  m_Mesh: {fileID: 4300000, guid: 19d77263d6240df4589a6ca08c93faf9, type: 2}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -6112,3 +7043,4 @@ SceneRoots:
   - {fileID: 833634381}
   - {fileID: 2082045945}
   - {fileID: 208309228}
+  - {fileID: 1783489765}
