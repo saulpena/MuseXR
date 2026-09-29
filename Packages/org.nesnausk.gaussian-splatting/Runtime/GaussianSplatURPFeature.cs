@@ -33,6 +33,7 @@ namespace GaussianSplatting.Runtime
             static readonly int s_outputSize = Shader.PropertyToID("_GaussianSplatOutputSize");
             static readonly int s_srcDepth = Shader.PropertyToID("_GaussianSplatSrcDepth");
             static readonly int s_srcDepthSize = Shader.PropertyToID("_GaussianSplatSrcDepthSize");
+            static readonly int s_portalMask = Shader.PropertyToID("_GaussianPortalMask");
 
             class PassData
             {
@@ -43,6 +44,14 @@ namespace GaussianSplatting.Runtime
                 internal bool Scaled;
                 internal TextureHandle LowResDepth;
                 internal Vector4 ScreenSize, OutputSize, SrcDepthSize;
+                // MuseXR portal mask (SplatPortal)
+                internal bool Portal;
+                internal bool PortalFullScreen;
+                internal bool PortalErase;
+                internal TextureHandle PortalMask;
+                internal Mesh PortalMesh;
+                internal Material PortalMaterial;
+                internal Matrix4x4 PortalMatrix;
             }
 
             static int s_DiagPasses;
@@ -96,13 +105,32 @@ namespace GaussianSplatting.Runtime
                     passData.SrcDepthSize = new Vector4(full.width, full.height, (float)full.width / rtDesc.width, 0);
                 }
 
+                // MuseXR portal: the door's aperture, drawn for this eye at the splat layer's size.
+                passData.Portal = SplatPortal.Drawable;
+                passData.PortalFullScreen = false;   // pass data is pooled: reset every frame
+                passData.PortalErase = false;
+                if (passData.Portal)
+                {
+                    var maskDesc = rtDesc;
+                    maskDesc.graphicsFormat = GraphicsFormat.R8_UNorm;
+                    passData.PortalMask = UniversalRenderer.CreateRenderGraphTexture(renderGraph, maskDesc, "_GaussianPortalMask", false, FilterMode.Point);
+                    builder.UseTexture(passData.PortalMask, AccessFlags.ReadWrite);
+                    var eyeDoor = SplatPortal.ToDoor(cameraData.camera.transform.position);
+                    passData.PortalFullScreen = PortalGeometry.InCrossingZone(eyeDoor, SplatPortal.HalfSize, SplatPortal.CrossingZone);
+                    passData.PortalErase = SplatPortal.EraseMeshes && !passData.PortalFullScreen;
+                    passData.PortalMesh = SplatPortal.MaskMesh;
+                    passData.PortalMaterial = SplatPortal.MaskMaterial;
+                    passData.PortalMatrix = SplatPortal.MaskMatrix;
+                }
+
                 passData.CameraData = cameraData;
                 passData.SourceTexture = resourceData.activeColorTexture;
                 passData.SourceDepth = resourceData.activeDepthTexture;
                 passData.GaussianSplatRT = textureHandle;
 
                 builder.UseTexture(resourceData.activeColorTexture, AccessFlags.ReadWrite);
-                builder.UseTexture(resourceData.activeDepthTexture);
+                // MuseXR portal: the erase passes write the camera's depth (and its stencil).
+                builder.UseTexture(resourceData.activeDepthTexture, passData.PortalErase ? AccessFlags.ReadWrite : AccessFlags.Read);
                 builder.UseTexture(textureHandle, AccessFlags.Write);
                 builder.AllowPassCulling(false);
                 builder.SetRenderFunc(static (PassData data, UnsafeGraphContext context) =>
@@ -111,6 +139,29 @@ namespace GaussianSplatting.Runtime
                     using var _ = new ProfilingScope(commandBuffer, s_profilingSampler);
                     commandBuffer.SetGlobalTexture(s_gaussianSplatRT, data.GaussianSplatRT);
                     commandBuffer.SetGlobalFloat(s_scaled, data.Scaled ? 1f : 0f);
+                    if (data.Portal)
+                    {
+                        // Within a few centimetres of the plane, inside the door, the aperture fills
+                        // the view and can fall behind the near clip: the whole screen is door.
+                        CoreUtils.SetRenderTarget(commandBuffer, data.PortalMask, ClearFlag.Color,
+                            data.PortalFullScreen ? Color.white : Color.clear);
+                        if (!data.PortalFullScreen)
+                            commandBuffer.DrawMesh(data.PortalMesh, data.PortalMatrix, data.PortalMaterial, 0, 0);
+                        commandBuffer.SetGlobalTexture(s_portalMask, data.PortalMask);
+                        if (data.PortalErase)
+                        {
+                            // Before the splats (and before the reduced-resolution depth copy
+                            // below, which must see the erased depth): solid geometry beyond the
+                            // door plane inside the shape is taken out of colour and depth.
+                            CoreUtils.SetRenderTarget(commandBuffer, data.SourceTexture, data.SourceDepth, ClearFlag.None);
+                            commandBuffer.DrawMesh(data.PortalMesh, data.PortalMatrix, data.PortalMaterial, 0, 1);
+                            commandBuffer.DrawProcedural(Matrix4x4.identity, data.PortalMaterial, 2, MeshTopology.Triangles, 3, 1);
+                        }
+                    }
+                    else
+                    {
+                        commandBuffer.SetGlobalTexture(s_portalMask, Texture2D.blackTexture);
+                    }
                     Material depthMat = data.Scaled ? GaussianSplatRenderSystem.instance.CompositeMaterialForActiveSplats() : null;
                     if (depthMat != null)
                     {

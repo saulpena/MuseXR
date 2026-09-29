@@ -27,6 +27,12 @@ namespace GaussianSplatting.Runtime
         public Vector3 boundsMax => m_BoundsMax;
         public Hash128 dataHash => m_DataHash;
 
+        // MuseXR: the first priorityCount splats were ordered ahead of the rest at conversion
+        // (for a portal: the ones seen through the door). 0 = no priority group.
+        [SerializeField] int m_PriorityCount;
+        public int priorityCount => m_PriorityCount;
+        public void SetPriorityCount(int count) => m_PriorityCount = count;
+
         // Match VECTOR_FMT_* in HLSL
         public enum VectorFormat
         {

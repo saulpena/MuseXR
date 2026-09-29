@@ -155,6 +155,10 @@ namespace MuseXR.EditorTools
             // Every artwork in a ring round the visitor, each one grabbable and two-hand scalable.
             // No worlds, so no Addressables group.
             new Target { Name = "Grab",      Scene = "Assets/Scenes/Tests/GrabPaintings.unity", AddressableGroup = null },
+
+            // The splat portal test: Buddha Hall -> door -> Van Gogh Gallery. Both worlds are
+            // direct references in the scene (both must be resident at once), so no group.
+            new Target { Name = "Portal",    Scene = "Assets/Scenes/Tests/SplatPortal.unity",   AddressableGroup = null },
         };
 
         /// <summary>
@@ -223,6 +227,8 @@ namespace MuseXR.EditorTools
         [MenuItem("MuseXR/Build/Quest/Small", priority = 46)]     static void Q9() => BuildOne(Vendor.Quest, T("Small"));
         [MenuItem("MuseXR/Build/Quest/Bench", priority = 48)]     static void Q11() => BuildOne(Vendor.Quest, T("Bench"));
         [MenuItem("MuseXR/Build/Quest/Grab", priority = 49)]      static void Q12() => BuildOne(Vendor.Quest, T("Grab"));
+        [MenuItem("MuseXR/Build/PICO/Portal", priority = 50)]    static void P13() => BuildOne(Vendor.Pico, T("Portal"));
+        [MenuItem("MuseXR/Build/Quest/Portal", priority = 50)]   static void Q13() => BuildOne(Vendor.Quest, T("Portal"));
 
         [MenuItem("MuseXR/Build/PICO/All Three", priority = 25)]
         public static void BuildAllPico() => BuildAllFor(Vendor.Pico);

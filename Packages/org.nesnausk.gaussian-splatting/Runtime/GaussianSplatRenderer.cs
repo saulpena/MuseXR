@@ -94,6 +94,8 @@ namespace GaussianSplatting.Runtime
                 var gs = kvp.Key;
                 if (gs == null || !gs.isActiveAndEnabled || !gs.HasValidAsset || !gs.HasValidRenderSetup)
                     continue;
+                if (gs.splatCount == 0) // MuseXR: nothing uploaded or drawable yet (see m_DrawLimit)
+                    continue;
                 m_ActiveSplats.Add((kvp.Key, kvp.Value));
             }
             if (m_ActiveSplats.Count == 0)
@@ -103,6 +105,13 @@ namespace GaussianSplatting.Runtime
             var camTr = cam.transform;
             m_ActiveSplats.Sort((a, b) =>
             {
+                // MuseXR portal: blending is front-to-back ("under"), so whatever draws first is
+                // in front. The world the visitor stands in must therefore draw before the world
+                // seen through the door, whatever their origins' distances.
+                int throughA = a.Item1.portalMode == 2 ? 1 : 0;
+                int throughB = b.Item1.portalMode == 2 ? 1 : 0;
+                if (throughA != throughB)
+                    return throughA.CompareTo(throughB);
                 var orderA = a.Item1.m_RenderOrder;
                 var orderB = b.Item1.m_RenderOrder;
                 if (orderA != orderB)
@@ -168,6 +177,7 @@ namespace GaussianSplatting.Runtime
                 mpb.SetInteger(GaussianSplatRenderer.Props.SHOnly, gs.m_SHOnly ? 1 : 0);
                 mpb.SetInteger(GaussianSplatRenderer.Props.DisplayIndex, gs.m_RenderMode == GaussianSplatRenderer.RenderMode.DebugPointIndices ? 1 : 0);
                 mpb.SetInteger(GaussianSplatRenderer.Props.DisplayChunks, gs.m_RenderMode == GaussianSplatRenderer.RenderMode.DebugChunkBounds ? 1 : 0);
+                mpb.SetInteger(GaussianSplatRenderer.Props.PortalMode, gs.portalMode);
 
                 cmb.BeginSample(s_ProfCalcView);
                 gs.CalcViewData(cmb, cam);
@@ -264,6 +274,33 @@ namespace GaussianSplatting.Runtime
 
         public GaussianCutout[] m_Cutouts;
 
+        [Tooltip("MuseXR: this world's side of the active SplatPortal. None draws everywhere.")]
+        public SplatPortalRole m_PortalRole = SplatPortalRole.None;
+        [Tooltip("MuseXR: this world's side of the active SplatReveal front. None draws everywhere.")]
+        public SplatRevealRole m_RevealRole = SplatRevealRole.None;
+        [Tooltip("MuseXR: colour multiplied into every splat (white = unchanged). Night, dawn.")]
+        public Color m_Tint = Color.white;
+        [Range(0f, 1f)] [Tooltip("MuseXR: how far the brightest splats (stars, lamps) are spared the tint.")]
+        public float m_TintSparesBright;
+        [Tooltip("MuseXR: draw only the asset's first N splats; -1 draws all that are uploaded. With an asset ordered for a door, the first priorityCount splats are exactly the ones seen through it.")]
+        public int m_DrawLimit = -1;
+        [Tooltip("MuseXR: upload to the GPU a slice per frame, priority splats first, instead of all at once on enable.")]
+        public bool m_ProgressiveUpload;
+        [Min(1)] public int m_UploadSplatsPerFrame = 50000;
+
+        int m_UploadedCount;
+        /// <summary>MuseXR: how many of the asset's splats are on the GPU.</summary>
+        public int uploadedCount => m_UploadedCount;
+        public bool fullyUploaded => m_GpuView != null && m_UploadedCount >= m_GpuView.count;
+
+        /// <summary>MuseXR: 0 no portal, 1 the world outside the door, 2 the world through it.</summary>
+        internal int portalMode => !SplatPortal.Active ? 0 : m_PortalRole switch
+        {
+            SplatPortalRole.Outside => 1,
+            SplatPortalRole.Through => 2,
+            _ => 0
+        };
+
         public Shader m_ShaderSplats;
         public Shader m_ShaderComposite;
         public Shader m_ShaderDebugPoints;
@@ -350,6 +387,14 @@ namespace GaussianSplatting.Runtime
             public static readonly int SelectionMode = Shader.PropertyToID("_SelectionMode");
             public static readonly int SplatPosMouseDown = Shader.PropertyToID("_SplatPosMouseDown");
             public static readonly int SplatOtherMouseDown = Shader.PropertyToID("_SplatOtherMouseDown");
+            public static readonly int PortalMode = Shader.PropertyToID("_PortalMode");
+            public static readonly int PortalWorldToDoor = Shader.PropertyToID("_PortalWorldToDoor");
+            public static readonly int PortalParams = Shader.PropertyToID("_PortalParams");
+            public static readonly int PortalEye = Shader.PropertyToID("_PortalEye");
+            public static readonly int RevealMode = Shader.PropertyToID("_RevealMode");
+            public static readonly int RevealPlane = Shader.PropertyToID("_RevealPlane");
+            public static readonly int RevealParams = Shader.PropertyToID("_RevealParams");
+            public static readonly int SplatTint = Shader.PropertyToID("_SplatTint");
         }
 
         [field: NonSerialized] public bool editModified { get; private set; }
@@ -399,11 +444,15 @@ namespace GaussianSplatting.Runtime
 
             m_SplatCount = asset.splatCount;
             m_GpuPosData = new GraphicsBuffer(GraphicsBuffer.Target.Raw | GraphicsBuffer.Target.CopySource, (int) (asset.posData.dataSize / 4), 4) { name = "GaussianPosData" };
-            m_GpuPosData.SetData(asset.posData.GetData<uint>());
             m_GpuOtherData = new GraphicsBuffer(GraphicsBuffer.Target.Raw | GraphicsBuffer.Target.CopySource, (int) (asset.otherData.dataSize / 4), 4) { name = "GaussianOtherData" };
-            m_GpuOtherData.SetData(asset.otherData.GetData<uint>());
             m_GpuSHData = new GraphicsBuffer(GraphicsBuffer.Target.Raw, (int) (asset.shData.dataSize / 4), 4) { name = "GaussianSHData" };
-            m_GpuSHData.SetData(asset.shData.GetData<uint>());
+            // MuseXR: per-splat data may go up in slices (see UploadSplatsTo); the colour texture
+            // and the chunk table are small and always go up whole, right here.
+            m_UploadedCount = 0;
+            int firstUpload = asset.splatCount;
+            if (m_ProgressiveUpload && CanUploadInSlices(asset))
+                firstUpload = Mathf.Clamp(asset.priorityCount > 0 ? asset.priorityCount : m_UploadSplatsPerFrame, 1, asset.splatCount);
+            UploadSplatsTo(firstUpload);
             var (texWidth, texHeight) = GaussianSplatAsset.CalcTextureSize(asset.splatCount);
             var texFormat = GaussianSplatAsset.ColorFormatToGraphics(asset.colorFormat);
             var tex = new Texture2D(texWidth, texHeight, texFormat, TextureCreationFlags.DontInitializePixels | TextureCreationFlags.IgnoreMipmapLimit | TextureCreationFlags.DontUploadUponCreate) { name = "GaussianColorData" };
@@ -439,7 +488,63 @@ namespace GaussianSplatting.Runtime
                 2, 3, 6, 3, 7, 6
             });
 
-            InitSortBuffers(splatCount);
+            InitSortBuffers(asset.splatCount);
+            RefreshDrawCount();
+        }
+
+        // MuseXR: per-splat buffers can be uploaded by index range only when every splat takes the
+        // same whole number of 32-bit words in each. True for the project's Medium quality (pos 4,
+        // other 8, SH Norm6 32 bytes); false for clustered SH, whose table is not per splat.
+        static bool CanUploadInSlices(GaussianSplatAsset asset)
+        {
+            long n = asset.splatCount;
+            bool PerSplat(TextAsset t) => t != null && t.dataSize % (n * 4) == 0;
+            return n > 0 && PerSplat(asset.posData) && PerSplat(asset.otherData) && PerSplat(asset.shData);
+        }
+
+        void UploadSplatsTo(int count)
+        {
+            var asset = m_Asset;
+            count = Mathf.Clamp(count, 0, asset.splatCount);
+            if (count <= m_UploadedCount)
+                return;
+            if (m_UploadedCount == 0 && count == asset.splatCount)
+            {
+                m_GpuPosData.SetData(asset.posData.GetData<uint>());
+                m_GpuOtherData.SetData(asset.otherData.GetData<uint>());
+                m_GpuSHData.SetData(asset.shData.GetData<uint>());
+            }
+            else
+            {
+                UploadRange(m_GpuPosData, asset.posData, m_UploadedCount, count, asset.splatCount);
+                UploadRange(m_GpuOtherData, asset.otherData, m_UploadedCount, count, asset.splatCount);
+                UploadRange(m_GpuSHData, asset.shData, m_UploadedCount, count, asset.splatCount);
+            }
+            m_UploadedCount = count;
+        }
+
+        static void UploadRange(GraphicsBuffer buffer, TextAsset data, int from, int to, int splatCount)
+        {
+            int words = (int)(data.dataSize / 4 / splatCount);
+            buffer.SetData(data.GetData<uint>(), from * words, from * words, (to - from) * words);
+        }
+
+        // MuseXR: the number of splats sorted and drawn this frame — the uploaded ones, capped by
+        // m_DrawLimit. Growing it makes the new splats part of the NEXT sort, so it forces one.
+        void RefreshDrawCount()
+        {
+            if (m_GpuSortKeys == null)
+                return;
+            int count = m_DrawLimit < 0 ? m_UploadedCount : Mathf.Min(m_DrawLimit, m_UploadedCount);
+            if (count == m_SplatCount && m_SorterArgs.count == (uint)count)
+                return;
+            // Sorting only ever permutes the first N keys, so after growing, keys [0,N) still hold
+            // exactly the indices [0,N). Shrinking breaks that: start again from the identity.
+            if (count < m_SplatCount)
+                ResetSortKeys();
+            m_SplatCount = count;
+            m_SorterArgs.count = (uint)count;
+            m_LastSortCamera = null;
         }
 
         void InitSortBuffers(int count)
@@ -455,17 +560,23 @@ namespace GaussianSplatting.Runtime
             m_GpuSortDistances = new GraphicsBuffer(GraphicsBuffer.Target.Structured, count, 4) { name = "GaussianSplatSortDistances" };
             m_GpuSortKeys = new GraphicsBuffer(GraphicsBuffer.Target.Structured, count, 4) { name = "GaussianSplatSortIndices" };
 
-            // init keys buffer to splat indices
-            m_CSSplatUtilities.SetBuffer((int)KernelIndices.SetIndices, Props.SplatSortKeys, m_GpuSortKeys);
-            m_CSSplatUtilities.SetInt(Props.SplatCount, m_GpuSortDistances.count);
-            m_CSSplatUtilities.GetKernelThreadGroupSizes((int)KernelIndices.SetIndices, out uint gsX, out _, out _);
-            m_CSSplatUtilities.Dispatch((int)KernelIndices.SetIndices, (m_GpuSortDistances.count + (int)gsX - 1)/(int)gsX, 1, 1);
+            ResetSortKeys();
 
             m_SorterArgs.inputKeys = m_GpuSortDistances;
             m_SorterArgs.inputValues = m_GpuSortKeys;
             m_SorterArgs.count = (uint)count;
             if (m_Sorter.Valid)
                 m_SorterArgs.resources = GpuSorting.SupportResources.Load((uint)count);
+        }
+
+        // init keys buffer to splat indices
+        void ResetSortKeys()
+        {
+            m_CSSplatUtilities.SetBuffer((int)KernelIndices.SetIndices, Props.SplatSortKeys, m_GpuSortKeys);
+            m_CSSplatUtilities.SetInt(Props.SplatCount, m_GpuSortDistances.count);
+            m_CSSplatUtilities.GetKernelThreadGroupSizes((int)KernelIndices.SetIndices, out uint gsX, out _, out _);
+            m_CSSplatUtilities.Dispatch((int)KernelIndices.SetIndices, (m_GpuSortDistances.count + (int)gsX - 1)/(int)gsX, 1, 1);
+            m_LastSortCamera = null;
         }
 
         bool resourcesAreSetUp => m_ShaderSplats != null && m_ShaderComposite != null && m_ShaderDebugPoints != null &&
@@ -630,6 +741,38 @@ namespace GaussianSplatting.Runtime
             cmb.SetComputeIntParam(m_CSSplatUtilities, Props.SHOrder, m_SHOrder);
             cmb.SetComputeIntParam(m_CSSplatUtilities, Props.SHOnly, m_SHOnly ? 1 : 0);
 
+            // MuseXR portal. The eye used for which side of the door a splat is on is the camera's
+            // own position: in Multi Pass the two eyes differ by the IPD, which only matters within
+            // centimetres of the plane, and the crossing zone makes the mask full-screen there.
+            int mode = portalMode;
+            cmb.SetComputeIntParam(m_CSSplatUtilities, Props.PortalMode, mode);
+            if (mode != 0)
+            {
+                Vector3 eyeDoor = SplatPortal.ToDoor(cam.transform.position);
+                cmb.SetComputeMatrixParam(m_CSSplatUtilities, Props.PortalWorldToDoor, SplatPortal.WorldToDoor);
+                cmb.SetComputeVectorParam(m_CSSplatUtilities, Props.PortalParams,
+                    new Vector4(SplatPortal.HalfSize.x, SplatPortal.HalfSize.y, SplatPortal.CullMargin, PortalGeometry.Side(eyeDoor)));
+                cmb.SetComputeVectorParam(m_CSSplatUtilities, Props.PortalEye, eyeDoor);
+            }
+
+            // MuseXR reveal front (SplatReveal) and tint.
+            int reveal = !SplatReveal.Active ? 0 : m_RevealRole switch
+            {
+                SplatRevealRole.Leaving => 1,
+                SplatRevealRole.Arriving => 2,
+                _ => 0
+            };
+            cmb.SetComputeIntParam(m_CSSplatUtilities, Props.RevealMode, reveal);
+            if (reveal != 0)
+            {
+                var n = SplatReveal.Normal.normalized;
+                cmb.SetComputeVectorParam(m_CSSplatUtilities, Props.RevealPlane, new Vector4(n.x, n.y, n.z, SplatReveal.Front));
+                cmb.SetComputeVectorParam(m_CSSplatUtilities, Props.RevealParams,
+                    new Vector4(SplatReveal.Band, SplatReveal.NoiseAmplitude, SplatReveal.NoiseScale, SplatReveal.DabGrow));
+            }
+            cmb.SetComputeVectorParam(m_CSSplatUtilities, Props.SplatTint,
+                new Vector4(m_Tint.r, m_Tint.g, m_Tint.b, m_TintSparesBright));
+
             m_CSSplatUtilities.GetKernelThreadGroupSizes((int)KernelIndices.CalcViewData, out uint gsX, out _, out _);
             cmb.DispatchCompute(m_CSSplatUtilities, (int)KernelIndices.CalcViewData, (m_GpuView.count + (int)gsX - 1)/(int)gsX, 1, 1);
         }
@@ -679,6 +822,15 @@ namespace GaussianSplatting.Runtime
                 {
                     Debug.LogError($"{nameof(GaussianSplatRenderer)} component is not set up correctly (Resource references are missing), or platform does not support compute shaders");
                 }
+            }
+
+            // MuseXR: stream the rest of the asset up a slice per frame, then settle the count
+            // drawn this frame.
+            if (HasValidAsset && HasValidRenderSetup)
+            {
+                if (!fullyUploaded)
+                    UploadSplatsTo(m_UploadedCount + m_UploadSplatsPerFrame);
+                RefreshDrawCount();
             }
         }
 
@@ -1052,6 +1204,7 @@ namespace GaussianSplatting.Runtime
             DisposeBuffer(ref m_GpuEditOtherMouseDown);
 
             m_SplatCount = newSplatCount;
+            m_UploadedCount = newSplatCount; // MuseXR: the copy is complete on the GPU
             editModified = true;
         }
 

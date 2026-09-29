@@ -57,6 +57,60 @@ namespace GaussianSplatting.Editor
             m_FormatColor != GaussianSplatAsset.ColorFormat.Float32x4 ||
             m_FormatSH != GaussianSplatAsset.SHFormat.Float32;
 
+        // MuseXR: splats this accepts are stored FIRST (each group keeps its Morton order), and
+        // their count is recorded as the asset's priorityCount. Null keeps the upstream order.
+        Func<Vector3, bool> m_Priority;
+
+        /// <summary>
+        /// MuseXR: convert without the window, at Medium quality (Norm11 / Norm11 / Norm8x4 / Norm6,
+        /// the project's standard). <paramref name="priority"/> is tested against each splat's
+        /// position in the asset's own object space. Returns the saved asset, or null with
+        /// <paramref name="error"/> set.
+        /// </summary>
+        public static GaussianSplatAsset CreateMedium(string inputFile, string outputFolder,
+            Func<Vector3, bool> priority, out string error)
+        {
+            var creator = CreateInstance<GaussianSplatAssetCreator>();
+            try
+            {
+                creator.m_InputFile = inputFile;
+                creator.m_OutputFolder = outputFolder;
+                creator.m_ImportCameras = false;
+                creator.m_Quality = DataQuality.Medium;
+                creator.ApplyQualityLevel();
+                creator.m_Priority = priority;
+                creator.CreateAsset();
+                error = creator.m_ErrorMessage;
+                if (error != null) return null;
+                string baseName = Path.GetFileNameWithoutExtension(inputFile);
+                return AssetDatabase.LoadAssetAtPath<GaussianSplatAsset>($"{outputFolder}/{baseName}.asset");
+            }
+            finally
+            {
+                EditorUtility.ClearProgressBar();
+                DestroyImmediate(creator);
+            }
+        }
+
+        // MuseXR: stable partition, accepted splats first. Returns how many were accepted.
+        static int PartitionByPriority(NativeArray<InputSplatData> splatData, Func<Vector3, bool> priority)
+        {
+            var accepted = new bool[splatData.Length];
+            int count = 0;
+            for (int i = 0; i < splatData.Length; ++i)
+            {
+                accepted[i] = priority(splatData[i].pos);
+                if (accepted[i]) ++count;
+            }
+
+            var copy = new NativeArray<InputSplatData>(splatData, Allocator.Persistent);
+            int front = 0, back = count;
+            for (int i = 0; i < copy.Length; ++i)
+                splatData[accepted[i] ? front++ : back++] = copy[i];
+            copy.Dispose();
+            return count;
+        }
+
         [MenuItem("Tools/Gaussian Splats/Create GaussianSplatAsset")]
         public static void Init()
         {
@@ -281,6 +335,13 @@ namespace GaussianSplatting.Editor
             EditorUtility.DisplayProgressBar(kProgressTitle, "Morton reordering", 0.05f);
             ReorderMorton(inputSplats, boundsMin, boundsMax);
 
+            int priorityCount = 0;
+            if (m_Priority != null)
+            {
+                EditorUtility.DisplayProgressBar(kProgressTitle, "Priority ordering", 0.1f);
+                priorityCount = PartitionByPriority(inputSplats, m_Priority);
+            }
+
             // cluster SHs
             NativeArray<int> splatSHIndices = default;
             NativeArray<GaussianSplatAsset.SHTableItemFloat16> clusteredSHs = default;
@@ -296,6 +357,7 @@ namespace GaussianSplatting.Editor
             GaussianSplatAsset asset = ScriptableObject.CreateInstance<GaussianSplatAsset>();
             asset.Initialize(inputSplats.Length, m_FormatPos, m_FormatScale, m_FormatColor, m_FormatSH, boundsMin, boundsMax, cameras);
             asset.name = baseName;
+            asset.SetPriorityCount(priorityCount);
 
             var dataHash = new Hash128((uint)asset.splatCount, (uint)asset.formatVersion, 0, 0);
             string pathChunk = $"{m_OutputFolder}/{baseName}_chk.bytes";
