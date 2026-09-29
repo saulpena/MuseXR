@@ -318,4 +318,92 @@ namespace MusePico.Tests
             Assert.AreEqual(1f, SplatReveal.Presence(SplatRevealRole.None, -5f, band));
         }
     }
+
+    public class PaintingPortalTests
+    {
+        // A canvas on a wall facing -Z toward a viewer standing at z = -3.
+        static readonly Vector3 Centre = new(0, 1.6f, 0);
+        static readonly Vector3 Eye = new(0, 1.6f, -3);
+
+        static bool May(Vector3 up, Vector3 forward, float height = 2.5f, Vector3? eye = null) =>
+            PaintingPortalRules.MayOpen(eye ?? Eye, Centre, forward, up, height, 1.8f, 25f, 5f);
+
+        [Test]
+        public void ABigUprightPaintingSeenFromTheFrontMayOpen()
+        {
+            Assert.IsTrue(May(Vector3.up, Vector3.forward));
+        }
+
+        [Test]
+        public void TooSmallStaysAPainting()
+        {
+            Assert.IsFalse(May(Vector3.up, Vector3.forward, height: 0.85f));
+        }
+
+        [Test]
+        public void TiltedOrRolledTooFarStaysAPainting()
+        {
+            var rolled = Quaternion.Euler(0, 0, 40) * Vector3.up;
+            var slightlyRolled = Quaternion.Euler(0, 0, 15) * Vector3.up;
+            Assert.IsFalse(May(rolled, Vector3.forward));
+            Assert.IsTrue(May(slightlyRolled, Vector3.forward));
+            Assert.IsFalse(May(Vector3.down, Vector3.back), "upside down");
+        }
+
+        [Test]
+        public void LyingFlatHasNoFacingAndStaysAPainting()
+        {
+            Assert.IsFalse(PaintingPortalRules.Heading(Vector3.down, out _));
+            Assert.IsFalse(May(Vector3.forward, Vector3.down));
+        }
+
+        [Test]
+        public void FromBehindOrFromAfarItStaysAPainting()
+        {
+            Assert.IsFalse(May(Vector3.up, Vector3.forward, eye: new Vector3(0, 1.6f, 3)));
+            Assert.IsFalse(May(Vector3.up, Vector3.forward, eye: new Vector3(0, 1.6f, -9)));
+        }
+
+        [Test]
+        public void TheWorldInsideStandsBehindTheCanvasUprightAndOnTheFloor()
+        {
+            // Canvas held high and pitched back: the world still stands on the floor, turned only.
+            var forward = Quaternion.Euler(-20, 90, 0) * Vector3.forward;
+            PaintingPortalRules.FollowPose(new Vector3(2, 2.3f, 5), forward, 0.4f, 0f, out var pos, out var yaw);
+            Assert.AreEqual(0f, pos.y);
+            Assert.That(Mathf.DeltaAngle(yaw, 90f), Is.EqualTo(0f).Within(1e-3f));
+            Assert.That(pos.x, Is.EqualTo(2.4f).Within(1e-3f));
+            Assert.That(pos.z, Is.EqualTo(5f).Within(1e-3f));
+        }
+
+        static readonly Vector2 Half = new(1.2f, 1.8f);
+
+        [Test]
+        public void TheTearOpensWhileAllowedAndHealsWhenNot()
+        {
+            var s = new TearSequence { TearSeconds = 1f, HealSeconds = 1f };
+            var far = new Vector3(0, 0, -3);
+            for (int i = 0; i < 5; ++i) s.Step(0.1f, true, far, far, Half);
+            Assert.That(s.Tear, Is.EqualTo(0.5f).Within(1e-4f));
+            for (int i = 0; i < 3; ++i) s.Step(0.1f, false, far, far, Half);
+            Assert.That(s.Tear, Is.EqualTo(0.2f).Within(1e-4f));
+            Assert.AreEqual(TearPhase.Waiting, s.Phase);
+        }
+
+        [Test]
+        public void StepThroughAnOpenTearAndItClosesForGood()
+        {
+            var s = new TearSequence { TearSeconds = 1f, CloseSeconds = 1f, PassableTear = 0.7f };
+            var far = new Vector3(0, 0, -3);
+            for (int i = 0; i < 5; ++i) s.Step(0.1f, true, far, far, Half);   // half open: not yet
+            Assert.AreEqual(TearEvent.None, s.Step(0.01f, true, new Vector3(0, 0, -0.1f), new Vector3(0, 0, 0.1f), Half));
+            for (int i = 0; i < 10; ++i) s.Step(0.1f, true, far, far, Half);
+            Assert.AreEqual(TearEvent.Crossed, s.Step(0.01f, true, new Vector3(0, 0, -0.1f), new Vector3(0, 0, 0.1f), Half));
+            TearEvent last = TearEvent.None;
+            for (int i = 0; i < 20 && last != TearEvent.Closed; ++i) last = s.Step(0.1f, true, far, far, Half);
+            Assert.AreEqual(TearEvent.Closed, last);
+            Assert.AreEqual(TearPhase.Done, s.Phase);
+            Assert.AreEqual(TearEvent.None, s.Step(0.1f, true, far, far, Half));
+        }
+    }
 }

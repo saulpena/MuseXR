@@ -27,8 +27,10 @@ namespace MuseXR.Worlds
     /// next world. Everything of the door itself must stay at door-space z &lt; 0 (on the
     /// visitor's side), or it would be erased with the geometry behind it.
     /// </summary>
-    public sealed class SplatPortalDoor : MonoBehaviour
+    public sealed class SplatPortalDoor : MonoBehaviour, ITransitionStep
     {
+        public bool IsDone => _sequence.Phase == PortalPhase.Done;
+
         [Header("Worlds")]
         [Tooltip("The world the visitor starts in. Destroyed once the door has shut behind them.")]
         public GaussianSplatRenderer currentWorld;

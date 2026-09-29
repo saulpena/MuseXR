@@ -22,6 +22,7 @@ Shader "Hidden/Gaussian Splatting/Portal Mask"
         _DoorOn ("Door aperture on", Float) = 1
         _Seep ("Seep amount 0..1", Float) = 0
         _SeepRadius ("Seep radius at 1 (m)", Float) = 2.5
+        _ClipSeepToDoor ("Seep only inside the aperture (a tear in a canvas)", Float) = 0
     }
 
     CGINCLUDE
@@ -32,6 +33,7 @@ Shader "Hidden/Gaussian Splatting/Portal Mask"
     float _DoorOn;
     float _Seep;
     float _SeepRadius;
+    float _ClipSeepToDoor;
 
     struct v2f
     {
@@ -64,7 +66,8 @@ Shader "Hidden/Gaussian Splatting/Portal Mask"
 
     bool InShape (float2 p)
     {
-        if (_DoorOn > 0.5 && all(abs(p) <= _DoorHalf.xy))
+        bool inDoor = all(abs(p) <= _DoorHalf.xy);
+        if (_DoorOn > 0.5 && inDoor)
             return true;
         if (_Seep <= 0.001)
             return false;
@@ -72,7 +75,8 @@ Shader "Hidden/Gaussian Splatting/Portal Mask"
         float t = _Time.y * 0.15;
         float n = valueNoise(p * 1.1 + t) * 0.65 + valueNoise(p * 2.7 - t) * 0.35;
         float r = length(p * float2(1.0, 0.8)) / max(1e-3, _SeepRadius * _Seep);
-        return r + (n - 0.5) * 0.6 < 1.0;
+        bool inSeep = r + (n - 0.5) * 0.6 < 1.0;
+        return _ClipSeepToDoor > 0.5 ? inSeep && inDoor : inSeep;
     }
 
     float fragMask (v2f i) : SV_Target

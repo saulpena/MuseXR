@@ -25,14 +25,17 @@ namespace MuseXR.Worlds
         [Header("Worlds")]
         public GaussianSplatRenderer leavingWorld;
         public GaussianSplatRenderer arrivingWorld;
-        [Tooltip("Wait for this door to finish first (it is how the visitor got here). Optional.")]
-        public SplatPortalDoor after;
+        [Tooltip("Wait for this step (a door, a painting) to finish first: it is how the visitor got here. Optional.")]
+        public MonoBehaviour after;
 
         [Header("Trigger")]
         [Tooltip("Centre of the area the visitor must stand in. Defaults to this transform.")]
         public Transform triggerCentre;
         public float triggerRadius = 4f;
-        [Tooltip("Looking up means the head's forward has at least this much upward component.")]
+        [Tooltip("If set, the visitor must look at this (within Look Degrees) instead of looking up.")]
+        public Transform lookTarget;
+        public float lookDegrees = 30f;
+        [Tooltip("Without a Look Target: looking up means the head's forward has at least this much upward component.")]
         [Range(0f, 1f)] public float lookUpMin = 0.45f;
 
         [Header("Front")]
@@ -86,7 +89,7 @@ namespace MuseXR.Worlds
                 _sequence.Request();
         }
 
-        bool Ready => after == null || after.Phase == PortalPhase.Done;
+        bool Ready => after == null || !(after is ITransitionStep step) || step.IsDone;
 
         void LateUpdate()
         {
@@ -96,7 +99,9 @@ namespace MuseXR.Worlds
             var centre = triggerCentre != null ? triggerCentre.position : transform.position;
             var offset = head.position - centre;
             bool inPlace = new Vector2(offset.x, offset.z).magnitude <= triggerRadius;
-            bool lookingUp = head.forward.y >= lookUpMin;
+            bool lookingUp = lookTarget != null
+                ? Vector3.Angle(Flat(head.forward), Flat(lookTarget.position - head.position)) <= lookDegrees
+                : head.forward.y >= lookUpMin;
 
             switch (_sequence.Step(Time.deltaTime, inPlace, lookingUp))
             {
@@ -125,6 +130,8 @@ namespace MuseXR.Worlds
             PushFront();
             ApplyLight();
         }
+
+        static Vector3 Flat(Vector3 v) => new(v.x, 0f, v.z);
 
         void PushFront()
         {
