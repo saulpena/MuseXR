@@ -110,6 +110,24 @@ namespace MusePico.Dialogue
             return chosen;
         }
 
+        /// <summary>
+        /// Exactly the invited masters that exist and are usable, in the order given - no topping
+        /// up. For a scene whose masters are bodies standing in it (SplatPortal's two painters): a
+        /// third voice answering from nowhere is worse than two answers.
+        /// </summary>
+        public static List<MasterLens> SelectExactly(MasterRosterData roster, IEnumerable<string> invitedIds)
+        {
+            var chosen = new List<MasterLens>();
+            var seen = new HashSet<string>();
+            if (invitedIds == null) return chosen;
+            foreach (var id in invitedIds)
+            {
+                var m = Find(roster, id);
+                if (m != null && m.IsUsable && seen.Add(m.id)) chosen.Add(m);
+            }
+            return chosen;
+        }
+
         public static MasterLens Find(MasterRosterData roster, string id)
         {
             if (roster?.masters == null || string.IsNullOrEmpty(id)) return null;
