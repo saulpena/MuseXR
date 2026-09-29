@@ -44,6 +44,7 @@ namespace MusePico.EditorTools
             { "TRIPO_API_KEY", "tripo.key" },       // generation
             { "OPENAI_API_KEY", "openai.key" },     // transcription and the masters' readings
             { "MINIMAX_API_KEY", "minimax.key" },   // the masters' voices
+            { "WORLDLABS_API_KEY", "worldlabs.key" }, // Marble worlds generated on the headset (DynamicWorldRunner)
         };
 
         const string StreamingAssets = "Assets/StreamingAssets";

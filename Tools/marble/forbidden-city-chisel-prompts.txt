@@ -1,0 +1,57 @@
+FORBIDDEN CITY PALACE COURTYARD - Marble Chisel, step by step
+Made 29 Sep 2026 in marble.worldlabs.ai (Marble 1.1). World is Private.
+World: https://marble.worldlabs.ai/world/6b77a851-7eb0-484e-ae92-ab08620b8951
+
+------------------------------------------------------------------
+0. SETTINGS
+------------------------------------------------------------------
+Settings icon in the prompt box -> Visibility -> Private.
+(Marble resets this to Public each time, so check it every time.)
+Then choose "3D input".
+
+------------------------------------------------------------------
+1. GENERATE THE ROOM
+   Where: the layout box on "3D input", then press "Start Chisel"
+------------------------------------------------------------------
+A Forbidden City palace courtyard, 24 m wide and 30 m deep, enclosed on three sides by walls 6 m high. At the far end, a three-tier stone terrace 3 m high with a wide central staircase leads up to a long palace hall 24 m wide and 12 m tall with a hipped roof. Flat open paved floor, nothing standing in the middle of the courtyard.
+
+After the layout appeared: Marble had added two trees on its own.
+Deleted both by hand (Geometry list -> "tree" -> Delete key).
+Free-standing objects smear in the finished world.
+
+------------------------------------------------------------------
+2. THE PANORAMA
+   Where: "Describe what to generate" (bottom of the editor),
+          then press "Generate panorama"   (~20 s)
+------------------------------------------------------------------
+The Forbidden City in Beijing on a clear afternoon. Vermilion red walls topped with golden yellow glazed roof tiles. At the far end, white marble terraces with carved balustrades and a carved dragon stairway lead up to the palace hall: red lacquered columns, golden lattice doors, colourful painted eaves under a double golden roof. Grey stone paved courtyard, matte with no reflections. Clear blue sky. No people, no text or lettering, nothing standing in the middle of the courtyard.
+
+Result: good, but the floor came out polished (it reflected the walls)
+and a pink signboard with lettering appeared above the left doorway.
+
+------------------------------------------------------------------
+3. THE FIX
+   Where: "Edit panorama" -> "Edit the entire scene" box,
+          then press "Apply edit"   (~20 s)
+------------------------------------------------------------------
+Make the floor matte, unpolished grey stone with no reflections and no shine. Remove the pink signboard above the left doorway so the wall is plain red there. Keep everything else the same.
+
+------------------------------------------------------------------
+4. CREATE WORLD
+   Where: "Create world", model Marble 1.1   (~5.5 min)
+------------------------------------------------------------------
+No text needed.
+
+Still in the final world: pseudo-lettering on the plaque above the
+palace doors. To remove it, add to the fix in step 3:
+  "Remove all writing from the plaque above the palace doors."
+
+------------------------------------------------------------------
+TIPS THAT MADE THE DIFFERENCE
+------------------------------------------------------------------
+- Room text: shape only, in exact metres. Say "nothing standing in the middle".
+- Look text: describe surfaces and materials, not views through walls.
+- Always ask for a matte floor and "no text or lettering" - and still check.
+- Look at the panorama all the way round before Create world:
+  fixing it there is much cheaper than making the world twice.
+- Use Marble 1.1, not 1.1 Plus, to keep the room its drawn size.

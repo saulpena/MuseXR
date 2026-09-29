@@ -1,0 +1,15 @@
+{
+    "z_min": 1.6000019311904908,
+    "z_max": 21.501251220703126,
+    "width": 2048,
+    "height": 1024,
+    "misses": 0,
+    "capture_point": {
+        "x": 0.0,
+        "y": 1.600000023841858,
+        "z": 0.0
+    },
+    "capture_yaw": 0.0,
+    "scene": "Assets/Scenes/Tests/DepthRoom.unity",
+    "encoding": "world-labs log: 1 - (ln d - ln z_min)/(ln z_max - ln z_min); near white, miss black; centre = +Z"
+}

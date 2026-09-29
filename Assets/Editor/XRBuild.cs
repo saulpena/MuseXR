@@ -159,6 +159,10 @@ namespace MuseXR.EditorTools
             // The splat portal test: Buddha Hall -> door -> Van Gogh Gallery. Both worlds are
             // direct references in the scene (both must be resident at once), so no group.
             new Target { Name = "Portal",    Scene = "Assets/Scenes/Tests/SplatPortal.unity",   AddressableGroup = null },
+
+            // A world generated on the headset from the DepthRoom depth pano: nothing shipped but the
+            // pano in StreamingAssets, so no group. Needs WORLDLABS_API_KEY (KeyInjectionBuildStep).
+            new Target { Name = "Dynamic",   Scene = "Assets/Scenes/Tests/DynamicWorld.unity",  AddressableGroup = null },
         };
 
         /// <summary>
@@ -229,6 +233,8 @@ namespace MuseXR.EditorTools
         [MenuItem("MuseXR/Build/Quest/Grab", priority = 49)]      static void Q12() => BuildOne(Vendor.Quest, T("Grab"));
         [MenuItem("MuseXR/Build/PICO/Portal", priority = 50)]    static void P13() => BuildOne(Vendor.Pico, T("Portal"));
         [MenuItem("MuseXR/Build/Quest/Portal", priority = 50)]   static void Q13() => BuildOne(Vendor.Quest, T("Portal"));
+        [MenuItem("MuseXR/Build/PICO/Dynamic", priority = 51)]   static void P14() => BuildOne(Vendor.Pico, T("Dynamic"));
+        [MenuItem("MuseXR/Build/Quest/Dynamic", priority = 51)]  static void Q14() => BuildOne(Vendor.Quest, T("Dynamic"));
 
         [MenuItem("MuseXR/Build/PICO/All Three", priority = 25)]
         public static void BuildAllPico() => BuildAllFor(Vendor.Pico);
