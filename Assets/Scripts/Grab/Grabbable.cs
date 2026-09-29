@@ -12,7 +12,11 @@ namespace MusePico.Grab
     {
         /// <summary>It stays where the ray struck it and moves on the end of the ray.</summary>
         AtRayEnd,
-        /// <summary>It is pulled into the controller, to be handled and scaled close up.</summary>
+        /// <summary>
+        /// Held where the ray struck it, then reeled in toward the controller at
+        /// <see cref="Grabbable.ReelSpeed"/> for as long as the trigger stays down — let go and it
+        /// stops where it is. Reach into it and it is simply in your hand.
+        /// </summary>
         PullToHand,
     }
 
@@ -28,9 +32,12 @@ namespace MusePico.Grab
     [DisallowMultipleComponent]
     public sealed class Grabbable : MonoBehaviour
     {
-        /// <summary>Two-hand scaling limits, relative to the size it was placed at.</summary>
+        /// <summary>
+        /// Two-hand scaling limits, relative to the size it was placed at. x8 takes a 0.85 m
+        /// painting to about 6.8 m: tall enough to stand on the floor and walk into.
+        /// </summary>
         public const float MinScaleRatio = 0.25f;
-        public const float MaxScaleRatio = 4f;
+        public const float MaxScaleRatio = 8f;
 
         /// <summary>
         /// Measured in Play Mode on the real Near-Far interactors, with nothing moving between
@@ -44,11 +51,20 @@ namespace MusePico.Grab
         public const XRGeneralGrabTransformer.TwoHandedRotationMode TwoHandRotation =
             XRGeneralGrabTransformer.TwoHandedRotationMode.FirstHandDirectedTowardsSecondHand;
 
-        /// <summary>How long a pulled object takes to arrive in the hand. Instant reads as a teleport.</summary>
-        public const float PullSeconds = 0.15f;
+        /// <summary>
+        /// How fast a ray-held object comes to the hand while the trigger is held, m/s. The first
+        /// version eased it in over 0.15 s regardless of distance, which in the headset read as the
+        /// object flying at your face. A steady speed makes the pull something you control: hold
+        /// to bring it closer, let go to leave it there. A painting 4 m out takes about 4 s.
+        /// </summary>
+        public const float ReelSpeed = 1f;
 
         /// <summary>What a tap does. Null means a tap does nothing but restore the pose.</summary>
         public Action Tapped;
+
+        /// <summary>Serialized so a scene keeps it: whether a one-hand ray grab reels in.</summary>
+        [SerializeField] GrabReach m_Reach = GrabReach.AtRayEnd;
+        public GrabReach Reach => m_Reach;
 
         XRGrabInteractable _grab;
         float _pressedAt;
@@ -75,6 +91,7 @@ namespace MusePico.Grab
             if (existing != null)
             {
                 existing.Tapped = onTap;
+                existing.m_Reach = reach;
                 Configure(existing.Interactable, reach);
                 var list = existing.Interactable.colliders;
                 for (var i = 0; i < list.Count; i++) list[i] = Solid(list[i]);
@@ -122,6 +139,7 @@ namespace MusePico.Grab
             var grabbable = root.AddComponent<Grabbable>();
             grabbable._grab = grab;
             grabbable.Tapped = onTap;
+            grabbable.m_Reach = reach;
 
             root.SetActive(wasActive);
             return grabbable;
@@ -162,17 +180,20 @@ namespace MusePico.Grab
         static void Configure(XRGrabInteractable grab, GrabReach reach)
         {
             var transformer = grab.GetComponent<XRGeneralGrabTransformer>();
+            // Both reaches take hold at the ray end; PullToHand then reels it in (Update).
+            grab.farAttachMode = InteractableFarAttachMode.Far;
+            grab.attachEaseInTime = 0f;
+            if (transformer != null)
+            {
+                transformer.minimumScaleRatio = MinScaleRatio;
+                transformer.maximumScaleRatio = MaxScaleRatio;
+            }
             if (reach == GrabReach.PullToHand)
             {
-                grab.farAttachMode = InteractableFarAttachMode.Near;
-                grab.attachEaseInTime = PullSeconds;
                 if (transformer != null) transformer.scaleMultiplier = CloseScaleMultiplier;
             }
             else
             {
-                // Near would fly a 1.4 m canvas into the visitor's face from across a room.
-                grab.farAttachMode = InteractableFarAttachMode.Far;
-                grab.attachEaseInTime = 0f;
                 if (transformer != null) transformer.scaleMultiplier = FarScaleMultiplier;
             }
         }
@@ -202,6 +223,27 @@ namespace MusePico.Grab
             var body = FindFirstObjectByType<CharacterController>();
             if (body == null) return;
             foreach (var c in _grab.colliders) if (c != null) Physics.IgnoreCollision(body, c, true);
+        }
+
+        /// <summary>
+        /// Reel a one-hand ray grab in toward the controller. The grip point is the Near-Far
+        /// interactor's attach anchor, sitting on the ray at the hit; walking it toward the hand
+        /// walks the object with it. Only for ONE hand: with two, shortening one grip would shorten
+        /// the hand-to-hand bar the scaler reads, and the object would shrink as it came.
+        /// </summary>
+        void Update()
+        {
+            if (m_Reach != GrabReach.PullToHand || _grab == null || _grab.interactorsSelecting.Count != 1) return;
+            if (!(_grab.interactorsSelecting[0] is UnityEngine.XR.Interaction.Toolkit.Interactors.NearFarInteractor nearFar)) return;
+            var attach = nearFar.interactionAttachController;
+            if (attach == null || !attach.hasOffset || attach.transformToFollow == null) return;
+
+            var hand = attach.transformToFollow.position;
+            var grip = nearFar.GetAttachTransform(_grab).position;
+            var distance = Vector3.Distance(hand, grip);
+            var next = GrabGesture.ReelStep(distance, ReelSpeed, Time.deltaTime);
+            if (next <= 0.01f) attach.ResetOffset();                     // arrived: held in the hand
+            else attach.MoveTo(hand + (grip - hand) * (next / distance));
         }
 
         void OnSelectEntered(SelectEnterEventArgs args)

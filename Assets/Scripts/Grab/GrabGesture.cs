@@ -26,6 +26,18 @@ namespace MusePico.Grab
         /// <summary>The controller may turn this much during a tap (degrees).</summary>
         public const float TapTurn = 6f;
 
+        /// <summary>
+        /// One frame of reeling a far-held object in: its distance from the hand after
+        /// <paramref name="deltaTime"/> at <paramref name="speed"/> m/s. Never overshoots, never
+        /// goes backwards, and a bad frame (negative time) moves nothing.
+        /// </summary>
+        public static float ReelStep(float distance, float speed, float deltaTime)
+        {
+            if (distance <= 0f) return 0f;
+            if (speed <= 0f || deltaTime <= 0f) return distance;
+            return System.Math.Max(0f, distance - speed * deltaTime);
+        }
+
         public static GrabRelease Classify(float heldSeconds, float handTravel, float handTurnDegrees, int mostHands)
         {
             if (mostHands > 1) return GrabRelease.Moved;          // two hands is always a scale

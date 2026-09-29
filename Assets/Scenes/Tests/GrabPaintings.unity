@@ -370,6 +370,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &38250416
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -452,7 +453,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -496,7 +497,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -522,7 +523,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &38250418
 Rigidbody:
@@ -600,6 +601,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &63068485
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -682,7 +684,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -726,7 +728,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -752,7 +754,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &63068487
 Rigidbody:
@@ -1010,6 +1012,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &92933953
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1092,7 +1095,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -1136,7 +1139,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -1162,7 +1165,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &92933955
 Rigidbody:
@@ -1532,6 +1535,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &138543911
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1614,7 +1618,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -1658,7 +1662,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -1684,7 +1688,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &138543913
 Rigidbody:
@@ -1874,6 +1878,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.Grabbable
+  m_Reach: 1
 --- !u!114 &187311185
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1956,7 +1961,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 1720768488}
   m_VelocityDamping: 1
@@ -2000,7 +2005,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -2026,7 +2031,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &187311187
 Rigidbody:
@@ -2237,6 +2242,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &229553931
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2319,7 +2325,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -2363,7 +2369,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -2389,7 +2395,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &229553933
 Rigidbody:
@@ -2467,6 +2473,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &234534878
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2549,7 +2556,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -2593,7 +2600,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -2619,7 +2626,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &234534880
 Rigidbody:
@@ -3431,6 +3438,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.Grabbable
+  m_Reach: 1
 --- !u!114 &303064168
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3513,7 +3521,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 2096123628}
   m_VelocityDamping: 1
@@ -3557,7 +3565,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -3583,7 +3591,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &303064170
 Rigidbody:
@@ -3862,6 +3870,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &330129740
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3944,7 +3953,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -3988,7 +3997,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -4014,7 +4023,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &330129742
 Rigidbody:
@@ -4331,6 +4340,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &432196332
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4413,7 +4423,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -4457,7 +4467,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -4483,7 +4493,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &432196334
 Rigidbody:
@@ -4561,6 +4571,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &441151879
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4643,7 +4654,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -4687,7 +4698,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -4713,7 +4724,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &441151881
 Rigidbody:
@@ -5197,6 +5208,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &470947658
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5279,7 +5291,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -5323,7 +5335,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -5349,7 +5361,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &470947660
 Rigidbody:
@@ -5858,6 +5870,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.Grabbable
+  m_Reach: 1
 --- !u!114 &544197919
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5940,7 +5953,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 273038219}
   m_VelocityDamping: 1
@@ -5984,7 +5997,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -6010,7 +6023,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &544197921
 Rigidbody:
@@ -6313,6 +6326,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &584653362
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6395,7 +6409,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -6439,7 +6453,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -6465,7 +6479,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &584653364
 Rigidbody:
@@ -6543,6 +6557,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &634074884
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6625,7 +6640,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -6669,7 +6684,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -6695,7 +6710,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &634074886
 Rigidbody:
@@ -8505,6 +8520,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &802247355
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8587,7 +8603,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -8631,7 +8647,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -8657,7 +8673,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &802247357
 Rigidbody:
@@ -9163,6 +9179,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &883029078
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9245,7 +9262,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -9289,7 +9306,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -9315,7 +9332,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &883029080
 Rigidbody:
@@ -9781,6 +9798,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &941070767
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9863,7 +9881,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -9907,7 +9925,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -9933,7 +9951,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &941070769
 Rigidbody:
@@ -10011,6 +10029,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &972570962
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10093,7 +10112,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -10137,7 +10156,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -10163,7 +10182,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &972570964
 Rigidbody:
@@ -10353,6 +10372,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.Grabbable
+  m_Reach: 1
 --- !u!114 &991277380
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10435,7 +10455,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 2089947249}
   m_VelocityDamping: 1
@@ -10479,7 +10499,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -10505,7 +10525,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &991277382
 Rigidbody:
@@ -10604,6 +10624,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.Grabbable
+  m_Reach: 1
 --- !u!114 &1009011784
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10686,7 +10707,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 891533427}
   m_VelocityDamping: 1
@@ -10730,7 +10751,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -10756,7 +10777,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1009011786
 Rigidbody:
@@ -10855,6 +10876,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1010914775
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10937,7 +10959,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -10981,7 +11003,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -11007,7 +11029,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1010914777
 Rigidbody:
@@ -11085,6 +11107,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.Grabbable
+  m_Reach: 1
 --- !u!114 &1021685523
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11167,7 +11190,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 243931472}
   m_VelocityDamping: 1
@@ -11211,7 +11234,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -11237,7 +11260,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1021685525
 Rigidbody:
@@ -11426,6 +11449,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.Grabbable
+  m_Reach: 1
 --- !u!114 &1049749681
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11508,7 +11532,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 1895008612}
   m_VelocityDamping: 1
@@ -11552,7 +11576,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -11578,7 +11602,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1049749683
 Rigidbody:
@@ -11767,6 +11791,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1080589172
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11849,7 +11874,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -11893,7 +11918,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -11919,7 +11944,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1080589174
 Rigidbody:
@@ -12221,6 +12246,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1173538254
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12303,7 +12329,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -12347,7 +12373,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -12373,7 +12399,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1173538256
 Rigidbody:
@@ -12563,6 +12589,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1195535157
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12645,7 +12672,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -12689,7 +12716,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -12715,7 +12742,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1195535159
 Rigidbody:
@@ -12793,6 +12820,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1212999860
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12875,7 +12903,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -12919,7 +12947,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -12945,7 +12973,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1212999862
 Rigidbody:
@@ -13113,6 +13141,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1270464418
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13195,7 +13224,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -13239,7 +13268,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -13265,7 +13294,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1270464420
 Rigidbody:
@@ -14122,6 +14151,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1392875233
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14204,7 +14234,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -14248,7 +14278,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -14274,7 +14304,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1392875235
 Rigidbody:
@@ -14352,6 +14382,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1393881055
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14434,7 +14465,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -14478,7 +14509,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -14504,7 +14535,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1393881057
 Rigidbody:
@@ -14878,6 +14909,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.Grabbable
+  m_Reach: 1
 --- !u!114 &1411130973
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14960,7 +14992,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 1314394992}
   m_VelocityDamping: 1
@@ -15004,7 +15036,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -15030,7 +15062,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1411130975
 Rigidbody:
@@ -15129,6 +15161,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1427046545
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15211,7 +15244,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -15255,7 +15288,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -15281,7 +15314,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1427046547
 Rigidbody:
@@ -15471,6 +15504,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1474975294
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15553,7 +15587,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -15597,7 +15631,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -15623,7 +15657,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1474975296
 Rigidbody:
@@ -15701,6 +15735,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1511655215
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15783,7 +15818,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -15827,7 +15862,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -15853,7 +15888,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1511655217
 Rigidbody:
@@ -15931,6 +15966,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1530281213
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16013,7 +16049,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -16057,7 +16093,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -16083,7 +16119,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1530281215
 Rigidbody:
@@ -16161,6 +16197,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1532052753
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16243,7 +16280,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -16287,7 +16324,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -16313,7 +16350,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1532052755
 Rigidbody:
@@ -16503,6 +16540,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.Grabbable
+  m_Reach: 1
 --- !u!114 &1599475798
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16585,7 +16623,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 1889324336}
   m_VelocityDamping: 1
@@ -16629,7 +16667,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -16655,7 +16693,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1599475800
 Rigidbody:
@@ -16956,6 +16994,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1637181648
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17038,7 +17077,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -17082,7 +17121,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -17108,7 +17147,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1637181650
 Rigidbody:
@@ -17522,6 +17561,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1698388855
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17604,7 +17644,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -17648,7 +17688,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -17674,7 +17714,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1698388857
 Rigidbody:
@@ -18254,6 +18294,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1798273233
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18336,7 +18377,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -18380,7 +18421,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -18406,7 +18447,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1798273235
 Rigidbody:
@@ -18484,6 +18525,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1856523858
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18566,7 +18608,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -18610,7 +18652,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -18636,7 +18678,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1856523860
 Rigidbody:
@@ -18826,6 +18868,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1865056694
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18908,7 +18951,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -18952,7 +18995,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -18978,7 +19021,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1865056696
 Rigidbody:
@@ -19316,6 +19359,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1905295579
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19398,7 +19442,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -19442,7 +19486,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -19468,7 +19512,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1905295581
 Rigidbody:
@@ -19658,6 +19702,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &1973433623
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19740,7 +19785,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -19784,7 +19829,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -19810,7 +19855,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &1973433625
 Rigidbody:
@@ -20180,6 +20225,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &2048571267
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20262,7 +20308,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -20306,7 +20352,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -20332,7 +20378,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &2048571269
 Rigidbody:
@@ -20524,6 +20570,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &2057366114
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20606,7 +20653,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -20650,7 +20697,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -20676,7 +20723,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &2057366116
 Rigidbody:
@@ -21284,6 +21331,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 1
 --- !u!114 &2108913675
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -21366,7 +21414,7 @@ MonoBehaviour:
   m_MatchAttachRotation: 1
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
-  m_AttachEaseInTime: 0.15
+  m_AttachEaseInTime: 0
   m_MovementType: 2
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
@@ -21410,7 +21458,7 @@ MonoBehaviour:
   m_StartingSingleGrabTransformers: []
   m_StartingMultipleGrabTransformers: []
   m_AddDefaultGrabTransformers: 0
-  m_FarAttachMode: 1
+  m_FarAttachMode: 2
   m_LimitLinearVelocity: 0
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
@@ -21436,7 +21484,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 1
 --- !u!54 &2108913677
 Rigidbody:

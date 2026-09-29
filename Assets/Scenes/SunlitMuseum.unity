@@ -459,6 +459,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 0
 --- !u!114 &255747043
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -611,7 +612,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 0.25
 --- !u!54 &255747045
 Rigidbody:
@@ -688,6 +689,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 0
 --- !u!114 &260659832
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -840,7 +842,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 0.25
 --- !u!54 &260659834
 Rigidbody:
@@ -1044,6 +1046,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 0
 --- !u!114 &540504325
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1196,7 +1199,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 0.25
 --- !u!54 &540504327
 Rigidbody:
@@ -1544,6 +1547,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 0
 --- !u!114 &636607568
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1696,7 +1700,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 0.25
 --- !u!54 &636607570
 Rigidbody:
@@ -1951,6 +1955,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 0
 --- !u!114 &679367697
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2103,7 +2108,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 0.25
 --- !u!54 &679367699
 Rigidbody:
@@ -2180,6 +2185,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 0
 --- !u!114 &684765992
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2332,7 +2338,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 0.25
 --- !u!54 &684765994
 Rigidbody:
@@ -2409,6 +2415,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 0
 --- !u!114 &772161843
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2561,7 +2568,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 0.25
 --- !u!54 &772161845
 Rigidbody:
@@ -3094,6 +3101,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 0
 --- !u!114 &947686955
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3246,7 +3254,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 0.25
 --- !u!54 &947686957
 Rigidbody:
@@ -3323,6 +3331,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 0
 --- !u!114 &1051786223
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3475,7 +3484,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 0.25
 --- !u!54 &1051786225
 Rigidbody:
@@ -3776,6 +3785,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 0
 --- !u!114 &1136239002
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3928,7 +3938,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 0.25
 --- !u!54 &1136239004
 Rigidbody:
@@ -4341,6 +4351,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 0
 --- !u!114 &1417226607
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4493,7 +4504,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 0.25
 --- !u!54 &1417226609
 Rigidbody:
@@ -4682,6 +4693,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 0
 --- !u!114 &1449810161
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4834,7 +4846,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 0.25
 --- !u!54 &1449810163
 Rigidbody:
@@ -4911,6 +4923,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 0
 --- !u!114 &1541445982
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5063,7 +5076,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 0.25
 --- !u!54 &1541445984
 Rigidbody:
@@ -5321,6 +5334,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 0
 --- !u!114 &1772962588
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5473,7 +5487,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 0.25
 --- !u!54 &1772962590
 Rigidbody:
@@ -5550,6 +5564,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 0
 --- !u!114 &1939715899
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5702,7 +5717,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 0.25
 --- !u!54 &1939715901
 Rigidbody:
@@ -6003,6 +6018,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f9190bdf28cdfc459edbd91466d2e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Grab::MusePico.Grab.GrabbablePainting
+  m_Reach: 0
 --- !u!114 &2064646630
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6155,7 +6171,7 @@ MonoBehaviour:
   m_ThresholdMoveRatioForScale: 0.05
   m_ClampScaling: 1
   m_MinimumScaleRatio: 0.25
-  m_MaximumScaleRatio: 4
+  m_MaximumScaleRatio: 8
   m_ScaleMultiplier: 0.25
 --- !u!54 &2064646632
 Rigidbody:

@@ -116,9 +116,13 @@ namespace MusePico.Tests
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             try
             {
-                var grab = Grabbable.Make(go, null, GrabReach.PullToHand, go.GetComponent<Collider>()).Interactable;
-                Assert.AreEqual(UnityEngine.XR.Interaction.Toolkit.Attachment.InteractableFarAttachMode.Near, grab.farAttachMode);
-                Assert.Greater(grab.attachEaseInTime, 0f, "an instant pull reads as a teleport");
+                var grabbable = Grabbable.Make(go, null, GrabReach.PullToHand, go.GetComponent<Collider>());
+                var grab = grabbable.Interactable;
+                // It takes hold at the ray end and is REELED in while held (Update), not flown in:
+                // the 0.15 s ease read as the object rushing at the visitor's face.
+                Assert.AreEqual(UnityEngine.XR.Interaction.Toolkit.Attachment.InteractableFarAttachMode.Far, grab.farAttachMode);
+                Assert.AreEqual(0f, grab.attachEaseInTime);
+                Assert.AreEqual(GrabReach.PullToHand, grabbable.Reach);
                 var transformer = go.GetComponent<UnityEngine.XR.Interaction.Toolkit.Transformers.XRGeneralGrabTransformer>();
                 Assert.AreEqual(Grabbable.CloseScaleMultiplier, transformer.scaleMultiplier,
                                 "held close, size must follow the hands; XRI's 0.25 needed a 1.74x spread for x1.13");
@@ -126,12 +130,31 @@ namespace MusePico.Tests
                 Grabbable.Make(go, null, GrabReach.AtRayEnd);   // re-making re-configures, it does not stack
                 Assert.AreEqual(UnityEngine.XR.Interaction.Toolkit.Attachment.InteractableFarAttachMode.Far, grab.farAttachMode);
                 Assert.AreEqual(Grabbable.FarScaleMultiplier, transformer.scaleMultiplier);
+                Assert.AreEqual(GrabReach.AtRayEnd, grabbable.Reach);
                 Assert.AreEqual(1, go.GetComponents<UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable>().Length);
             }
             finally
             {
                 Object.DestroyImmediate(go);
             }
+        }
+
+        [Test]
+        public void AReelIsSteadyAndStopsAtTheHand()
+        {
+            // 4 m at 1 m/s in 50 ms frames: 0.05 m a frame, whatever the distance — steady, not eased.
+            Assert.AreEqual(3.95f, GrabGesture.ReelStep(4f, 1f, 0.05f), 1e-5f);
+            Assert.AreEqual(0.95f, GrabGesture.ReelStep(1f, 1f, 0.05f), 1e-5f);
+            Assert.AreEqual(0f, GrabGesture.ReelStep(0.02f, 1f, 0.05f), "never overshoots past the hand");
+            Assert.AreEqual(2f, GrabGesture.ReelStep(2f, 1f, -0.1f), "a bad frame moves nothing");
+            Assert.AreEqual(2f, GrabGesture.ReelStep(2f, 0f, 0.1f));
+        }
+
+        [Test]
+        public void APaintingCanGrowTallEnoughToWalkInto()
+        {
+            // The lower-row canvases are 0.85 m tall; a person is ~1.8 m; stepping inside wants 4 m+.
+            Assert.GreaterOrEqual(0.85f * Grabbable.MaxScaleRatio, 4f);
         }
     }
 }
