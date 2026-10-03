@@ -43,6 +43,8 @@ namespace MuseXR.Interaction
                 yield break;
             }
 
+            RaiseCourt(courtT);
+
             // The court's slot sits on its surface; the station hangs off the court object.
             var slot = new GameObject("Court Slot").transform;
             slot.SetParent(courtT, false);
@@ -73,13 +75,13 @@ namespace MuseXR.Interaction
             // on the other side they crossed his body), never between the eye and the court on the floor.
             var right = Vector3.Cross(Vector3.up, -toViewer).normalized;
             var side = figures.TryGetValue(Masters.Socrates, out var soc) && Vector3.Dot(soc.position - courtT.position, right) > 0f ? -1f : 1f;
-            var chipsAt = courtT.position + right * (1.0f * side) + toViewer * 0.3f + Vector3.up * 0.95f;
+            var chipsAt = courtT.position + right * (0.9f * side) + toViewer * 0.3f + Vector3.up * 0.15f;   // about 1.0 m: hand height, beside the court
             Chapter = PalaceChapter.Make(courtT.gameObject, Court, null, null, Record, chipsAt,
                                          Quaternion.LookRotation((chipsAt - spawn).WithY0().normalized, Vector3.up));
             Chapter.Group = Companions;
 
             // The board to the visitor's left of the court, readable from the spawn.
-            Board = EventBoard.Make(transform, courtT.position - right * (1.6f * side) + toViewer * 0.6f + Vector3.up * 1.5f, spawn,
+            Board = EventBoard.Make(transform, courtT.position - right * (1.6f * side) + toViewer * 0.6f + Vector3.up * 0.65f, spawn,
                                     "PALACE · what just happened");
             Chapter.Note += Board.Note;
             Chapter.Saved += _ => Board.Note("[Record] " + Record.SummaryJson());
@@ -105,7 +107,38 @@ namespace MuseXR.Interaction
             floor.transform.position = Vector3.zero;
             floor.transform.localScale = new Vector3(4f, 1f, 4f);   // 40 x 40 m
             floor.GetComponent<Renderer>().enabled = false;          // the world is the splat; this only catches teleports
-            floor.AddComponent<TeleportationArea>();
+            floor.SetActive(false);                                  // XRI registers an area once, with its settings
+            var area = floor.AddComponent<TeleportationArea>();
+            // The rig's teleport rays select ONLY on the "Teleport" interaction layer (bit 31). Measured in
+            // Saul's headset test: an area on the default layer is never a valid target, so teleport did
+            // nothing at all.
+            area.interactionLayers = TeleportLayer;
+            area.filterSelectionByHitNormal = true;
+            floor.SetActive(true);
+        }
+
+        /// <summary>The interaction layer the rig's teleport interactors select on.</summary>
+        public const int TeleportLayer = 1 << 31;
+
+        /// <summary>The court's top, at hand height: her rule puts what you handle at 0.8-1.3 m.</summary>
+        public const float CourtHeight = 0.85f;
+
+        /// <summary>
+        /// Her "miniature court" is a small model of the palace court where the kept piece is set. The
+        /// layout marks it on the floor; it stands on a pale-stone table at hand height instead.
+        /// </summary>
+        void RaiseCourt(Transform court)
+        {
+            var floorAt = court.position;
+            var table = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            table.name = "Court Table";
+            table.transform.SetParent(transform, false);
+            table.transform.position = new Vector3(floorAt.x, CourtHeight * 0.5f, floorAt.z);
+            table.transform.localScale = new Vector3(0.7f, CourtHeight, 0.5f);
+            var m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            m.SetColor("_BaseColor", new Color(0.86f, 0.83f, 0.77f));   // her pale-stone interaction zone
+            table.GetComponent<Renderer>().sharedMaterial = m;
+            court.position = new Vector3(floorAt.x, CourtHeight + 0.005f, floorAt.z);
         }
 
         static Transform Find(string name)
