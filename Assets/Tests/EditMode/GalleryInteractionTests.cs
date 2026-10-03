@@ -208,15 +208,13 @@ namespace MusePico.Tests
         }
 
         [Test]
-        public void ThePopupListensThenOffersHerAnswersThenOneReplyAndTheWalk()
+        public void ThePopupOffersHerAnswersAtOnceThenOneReplyAndTheWalk()
         {
             // Saul, 27 Sep: the masters speak about it, you choose, one replies, you walk on.
-            var looking = JourneyScript.ArtDialogue("The Great Buddha", JourneyScript.ArtPhase.Looking, "MONET IS SPEAKING (1 / 3)");
-            Assert.IsEmpty(looking.Choices, "no answers while the readings are still being spoken");
-            Assert.IsEmpty(looking.Action, "no NOT NOW button");
-            StringAssert.Contains("MONET IS SPEAKING", looking.Lede);
-
-            var choosing = JourneyScript.ArtDialogue("The Great Buddha", JourneyScript.ArtPhase.Choosing, "ALL THREE HAVE SPOKEN");
+            // Saul, 1 Oct: the answers are there from the start (the readings go above the
+            // masters' heads as they arrive), and the panel carries no running commentary.
+            var choosing = JourneyScript.ArtDialogue("The Great Buddha", JourneyScript.ArtPhase.Choosing, string.Empty);
+            Assert.IsEmpty(choosing.Lede, "no 'every master has spoken' line");
             Assert.AreEqual(3, choosing.Choices.Count);
             StringAssert.StartsWith("01", choosing.Choices[0].Label);
             Assert.AreEqual("perception", choosing.Choices[0].Id);
@@ -227,6 +225,7 @@ namespace MusePico.Tests
                 youSaid: "It makes me feel something I don't have words for yet.", reactor: Monet, reply: "What you feel is the weather.");
             Assert.IsEmpty(done.Choices);
             Assert.AreEqual("CLAUDE MONET REPLIES", done.Eyebrow);
+            Assert.AreEqual(Monet.id, done.SpeakerImageId, "the replying master's portrait, beside the words");
             StringAssert.Contains("CONTINUE THE WALK", done.Action);
             StringAssert.Contains("It makes me feel something", done.Lede, "the reply is shown with the answer it replies to");
             StringAssert.Contains("What you feel is the weather.", done.Lede);

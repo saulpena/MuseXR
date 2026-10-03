@@ -80,7 +80,18 @@ namespace MuseXR.Worlds
         public Vector3 ScaledSpawn =>
             new Vector3(spawn.x * worldScale, groundY * worldScale, spawn.y * worldScale);
 
-        public Quaternion SpawnRotation => Quaternion.Euler(0f, yawDegrees, 0f);
+        /// <summary>
+        /// True for a world whose yaw is copied from muse-infinity's worlds.js. Her camera at yaw y
+        /// looks along (sin y, 0, -cos y) (three.js looks down -Z); Unity's Euler(0, a) looks along
+        /// (sin a, 0, cos a). So her yaw is Unity's 180 - y. Measured 1 Oct 2026 in her running app:
+        /// at the conservatory, yaw 0, her paintings run toward -Z.
+        /// </summary>
+        public bool yawFromWeb;
+
+        /// <summary>The yaw as entered, before the web conversion. Door spots are bearings from this.</summary>
+        public Quaternion EnteredRotation => Quaternion.Euler(0f, yawDegrees, 0f);
+
+        public Quaternion SpawnRotation => Quaternion.Euler(0f, yawFromWeb ? 180f - yawDegrees : yawDegrees, 0f);
 
         /// <summary>Uniform scale for the splat object. Every world shipped in the release uses
         /// the pre-baked .spz convention, so this is the ONLY transform they need — no rotation,

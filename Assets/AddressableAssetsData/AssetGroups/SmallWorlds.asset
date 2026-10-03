@@ -30,6 +30,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2054aac6e11ec6243ae6b1939648c060
+    m_Address: vangogh-gallery-chisel-500k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 2b75cfebefc836d46914107fbba5097d
     m_Address: mexican-courtyard-bedroom-fantasy-500k
     m_ReadOnly: 0
@@ -50,8 +55,18 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 90fa83f37e0b1e84cbcf3320f76c0d4e
+    m_Address: pissarro-woman-bathing-brook-500k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 98cabd6921518c141a39ae55e243a53c
     m_Address: grand-conservatory-with-lush-gardens-500k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9ef820685e8d2e84b9635a4851021bc3
+    m_Address: garden-courtyard-chisel-500k
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -75,6 +90,16 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: beb94caf1516dfb44975e91c8ce89fd8
+    m_Address: buddha-hall-chisel-500k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e10eae55b6946e644959f289d2f74ff5
+    m_Address: ornate-temple-hall-chisel-500k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ed4271df558724a48bab5837b06311b3
     m_Address: fantasy-realm-of-shimmering-spheres-500k
     m_ReadOnly: 0
@@ -89,5 +114,5 @@ MonoBehaviour:
     m_SchemaDisplayOrder:
     - SmallWorlds_BundledAssetGroupSchema
     - SmallWorlds_ContentUpdateGroupSchema
-  m_IncludeInBuild: 0
+  m_IncludeInBuild: 1
   m_IncludeInBuildMigrated: 1

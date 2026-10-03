@@ -43,6 +43,24 @@ namespace MusePico.Dialogue
 
         public PhilosophyAxes Philosophy { get; private set; } = new PhilosophyAxes();
 
+        readonly List<string> _answers = new List<string>();
+
+        /// <summary>
+        /// Each answer given at a painting, as "work — answer — who replied". Hers never stores
+        /// these (only the axes move); this is for the Editor tracker, and is sent nowhere.
+        /// </summary>
+        public IReadOnlyList<string> AnswerLog => _answers;
+
+        /// <summary>The stage-07 answer id (her state.transformationChoice), or empty before it.</summary>
+        public string TransformationChoice { get; private set; } = string.Empty;
+
+        public void RecordAnswer(string work, string answer, string replier)
+        {
+            _answers.Add((work ?? "?") + " — " + (answer ?? "?") + " — " + (replier ?? "?"));
+        }
+
+        public void SetTransformationChoice(string id) => TransformationChoice = id ?? string.Empty;
+
         /// <summary>True once anything has been recorded. The roundtable is offered only then.</summary>
         public bool HasAnything => _artworks.Count > 0 || _questions.Count > 0 || _log.Count > 0;
 
@@ -105,6 +123,8 @@ namespace MusePico.Dialogue
             _artworks.Clear();
             _questions.Clear();
             _log.Clear();
+            _answers.Clear();
+            TransformationChoice = string.Empty;
             Philosophy = new PhilosophyAxes();
         }
 

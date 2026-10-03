@@ -148,6 +148,14 @@ namespace MuseXR.EditorTools
             // carry all nine.
             new Target { Name = "Small",     Scene = "Assets/Scenes/Tests/SmallWorlds.unity",   AddressableGroup = AddressableWorldSetup.SmallGroup },
 
+            // Only muse-infinity's own worlds at 500k, as exported, 5 s each (WorldSet.Original).
+            // Streams from SmallGroup, so the APK carries the other Small bundles unused.
+            new Target { Name = "Original",  Scene = "Assets/Scenes/Tests/OriginalWorlds.unity", AddressableGroup = AddressableWorldSetup.SmallGroup },
+
+            // muse-infinity's exhibition walk with a door per world instead of her navigator
+            // (WorldDoorsRunner). Same worlds as Original; nothing advances on its own.
+            new Target { Name = "Doors",     Scene = "Assets/Scenes/Tests/WorldDoors.unity",     AddressableGroup = AddressableWorldSetup.SmallGroup },
+
             // The visual-quality benchmark: several versions of the same environment, labelled,
             // with the frame rate on the panel. See QualityBenchCatalog.
             new Target { Name = "Bench",     Scene = "Assets/Scenes/Tests/QualityBench.unity",  AddressableGroup = AddressableWorldSetup.BenchGroup },
@@ -231,6 +239,10 @@ namespace MuseXR.EditorTools
         [MenuItem("MuseXR/Build/Quest/Small", priority = 46)]     static void Q9() => BuildOne(Vendor.Quest, T("Small"));
         [MenuItem("MuseXR/Build/Quest/Bench", priority = 48)]     static void Q11() => BuildOne(Vendor.Quest, T("Bench"));
         [MenuItem("MuseXR/Build/Quest/Grab", priority = 49)]      static void Q12() => BuildOne(Vendor.Quest, T("Grab"));
+        [MenuItem("MuseXR/Build/PICO/Original", priority = 52)]  static void P15() => BuildOne(Vendor.Pico, T("Original"));
+        [MenuItem("MuseXR/Build/Quest/Original", priority = 52)] static void Q15() => BuildOne(Vendor.Quest, T("Original"));
+        [MenuItem("MuseXR/Build/PICO/Doors", priority = 53)]     static void P16() => BuildOne(Vendor.Pico, T("Doors"));
+        [MenuItem("MuseXR/Build/Quest/Doors", priority = 53)]    static void Q16() => BuildOne(Vendor.Quest, T("Doors"));
         [MenuItem("MuseXR/Build/PICO/Portal", priority = 50)]    static void P13() => BuildOne(Vendor.Pico, T("Portal"));
         [MenuItem("MuseXR/Build/Quest/Portal", priority = 50)]   static void Q13() => BuildOne(Vendor.Quest, T("Portal"));
         [MenuItem("MuseXR/Build/PICO/Dynamic", priority = 51)]   static void P14() => BuildOne(Vendor.Pico, T("Dynamic"));

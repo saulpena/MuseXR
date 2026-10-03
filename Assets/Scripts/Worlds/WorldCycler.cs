@@ -63,6 +63,15 @@ namespace MuseXR.Worlds
         /// </summary>
         public bool drivenExternally;
 
+        /// <summary>
+        /// Optional: the height the visitor lands at in a world with a measured spawn, instead of its
+        /// flat groundY. Null (the default, and every scene but WorldDoors) keeps groundY. A scene that
+        /// knows the capture's real floor sets this; returning null for a world keeps groundY there.
+        /// The fallback walking floor is built at the same height, so the visitor can walk where they
+        /// stand. Not serialized: a scene cannot carry a stale copy of it.
+        /// </summary>
+        [System.NonSerialized] public System.Func<WorldDefinition, float?> landingFloor;
+
         /// <summary>The world currently loaded, or null before the first one arrives.</summary>
         public WorldDefinition Current { get; private set; }
 
@@ -78,6 +87,9 @@ namespace MuseXR.Worlds
         int _index = -1;
         GameObject _current;
         GameObject _bounds;
+
+        /// <summary>The current world's physics floor and walls (PhysicsBounds), or null.</summary>
+        public GameObject CurrentBounds => _bounds;
         Camera _camera;
         AsyncOperationHandle<GaussianSplatAsset> _handle;
         bool _hasHandle;
@@ -138,6 +150,7 @@ namespace MuseXR.Worlds
             var startedAt = Time.realtimeSinceStartup;
 
             SetLabel($"{world.displayName}\nloading…");
+            CancelBeside();
             Unload();
 
             var handle = Addressables.LoadAssetAsync<GaussianSplatAsset>(world.Address);
@@ -153,21 +166,8 @@ namespace MuseXR.Worlds
             }
 
             var asset = handle.Result;
-            _current = new GameObject($"World_{world.key}");
-            _current.transform.localScale = world.SplatScale;
-
-            var renderer = _current.AddComponent<GaussianSplatRenderer>();
-            renderer.m_Asset = asset;
-            renderer.m_ShaderSplats = shaderSplats;
-            renderer.m_ShaderComposite = shaderComposite;
-            renderer.m_ShaderDebugPoints = shaderDebugPoints;
-            renderer.m_ShaderDebugBoxes = shaderDebugBoxes;
-            renderer.m_CSSplatUtilities = csSplatUtilities;
-            SplatRenderTuning.Apply(renderer);
-            // Resources are built in OnEnable, which ran before the asset and shaders were
-            // assigned — without this toggle the renderer draws nothing at all, silently.
-            renderer.enabled = false;
-            renderer.enabled = true;
+            _current = CreateWorldObject(world, asset, null);
+            var renderer = _current.GetComponent<GaussianSplatRenderer>();
 
             Place(world, asset);
             Current = world;
@@ -179,16 +179,118 @@ namespace MuseXR.Worlds
             WorldChanged?.Invoke(world);
         }
 
+        /// <summary>A world's splat object, ready to draw, under <paramref name="parent"/> (null: the root).</summary>
+        GameObject CreateWorldObject(WorldDefinition world, GaussianSplatAsset asset, Transform parent)
+        {
+            var go = new GameObject($"World_{world.key}");
+            go.transform.SetParent(parent, false);
+            go.transform.localScale = world.SplatScale;
+
+            var renderer = go.AddComponent<GaussianSplatRenderer>();
+            renderer.m_Asset = asset;
+            renderer.m_ShaderSplats = shaderSplats;
+            renderer.m_ShaderComposite = shaderComposite;
+            renderer.m_ShaderDebugPoints = shaderDebugPoints;
+            renderer.m_ShaderDebugBoxes = shaderDebugBoxes;
+            renderer.m_CSSplatUtilities = csSplatUtilities;
+            SplatRenderTuning.Apply(renderer);
+            // Resources are built in OnEnable, which ran before the asset and shaders were
+            // assigned — without this toggle the renderer draws nothing at all, silently.
+            renderer.enabled = false;
+            renderer.enabled = true;
+            return go;
+        }
+
+        // ---- a world beside the current one: the next chapter, behind a door ----------------
+
+        GameObject _beside;
+        AsyncOperationHandle<GaussianSplatAsset> _besideHandle;
+        bool _hasBeside;
+        WorldDefinition _besideWorld;
+
+        /// <summary>The current world's splat renderer, or null.</summary>
+        public GaussianSplatRenderer CurrentRenderer => _current != null ? _current.GetComponent<GaussianSplatRenderer>() : null;
+
+        /// <summary>The world waiting beside the current one, or null.</summary>
+        public WorldDefinition Beside => _hasBeside ? _besideWorld : null;
+
+        /// <summary>
+        /// Load <paramref name="world"/> as well as the current one, under <paramref name="parent"/>
+        /// (a door's pivot), without touching the current world or moving the visitor. The renderer
+        /// is handed to <paramref name="done"/>, or null if the load failed. One at a time: a second
+        /// call cancels the first.
+        /// </summary>
+        public IEnumerator LoadBeside(WorldDefinition world, Transform parent, System.Action<GaussianSplatRenderer> done)
+        {
+            CancelBeside();
+            if (world == null) { done?.Invoke(null); yield break; }
+            var handle = Addressables.LoadAssetAsync<GaussianSplatAsset>(world.Address);
+            _besideHandle = handle; _hasBeside = true; _besideWorld = world;
+            yield return handle;
+
+            if (!_hasBeside || !_besideHandle.Equals(handle)) yield break;   // cancelled meanwhile
+            if (handle.Status != AsyncOperationStatus.Succeeded || handle.Result == null)
+            {
+                Debug.LogError($"[WorldCycler] failed to load '{world.Address}' beside the current world.");
+                CancelBeside();
+                done?.Invoke(null);
+                yield break;
+            }
+            _beside = CreateWorldObject(world, handle.Result, parent);
+            Debug.Log($"[WorldCycler] {world.displayName} loaded beside {(Current != null ? Current.displayName : "nothing")}");
+            done?.Invoke(_beside.GetComponent<GaussianSplatRenderer>());
+        }
+
+        /// <summary>Drop the world waiting beside the current one.</summary>
+        public void CancelBeside()
+        {
+            if (_beside != null) { if (Application.isPlaying) Destroy(_beside); else DestroyImmediate(_beside); }
+            _beside = null;
+            if (_hasBeside) Addressables.Release(_besideHandle);
+            _hasBeside = false;
+            _besideWorld = null;
+        }
+
+        /// <summary>
+        /// The visitor has walked through a door into the world loaded beside, and that world now
+        /// stands at the origin (the door system moved it and the visitor back together). Make it
+        /// the current world: release the old one, keep <paramref name="bounds"/> as its walking
+        /// floor, and announce it. The visitor is not moved — they are already standing in it.
+        /// </summary>
+        public void AdoptBeside(GameObject bounds, float floorY)
+        {
+            if (!_hasBeside || _beside == null) { Debug.LogError("[WorldCycler] nothing beside to adopt"); return; }
+            Unload();   // the old splat may already be gone (the door destroys it); its handle and floor are ours
+
+            _beside.transform.SetParent(null, true);
+            _current = _beside; _beside = null;
+            _handle = _besideHandle; _hasHandle = true; _hasBeside = false;
+            if (bounds != null) bounds.transform.SetParent(null, true);
+            _bounds = bounds;
+
+            Current = _besideWorld; _besideWorld = null;
+            FloorY = floorY;
+            if (_camera != null) _camera.farClipPlane = Current.cameraFar;
+            Debug.Log($"[WorldCycler] walked into {Current.displayName}");
+            WorldChanged?.Invoke(Current);
+        }
+
+        /// <summary>Where the visitor's floor is in the current world: the landed floor, or groundY.</summary>
+        public float FloorY { get; private set; }
+
         /// <summary>In an XR rig the headset owns the camera pose, so the ORIGIN moves.</summary>
         void Place(WorldDefinition world, GaussianSplatAsset asset)
         {
             Vector3 pos;
             Quaternion rot;
 
+            float? landed = null;
             if (world.hasMeasuredSpawn)
             {
                 pos = world.ScaledSpawn;
                 rot = world.SpawnRotation;
+                landed = landingFloor != null ? landingFloor(world) : null;
+                if (landed.HasValue) pos.y = landed.Value;
             }
             else
             {
@@ -220,7 +322,8 @@ namespace MuseXR.Worlds
             // heuristic's own Y is the best guess there is.
             if (buildFallbackBounds)
             {
-                float floorY = world.hasMeasuredSpawn ? world.groundY * world.worldScale : pos.y;
+                float floorY = world.hasMeasuredSpawn ? (landed ?? world.groundY * world.worldScale) : pos.y;
+                FloorY = floorY;
                 _bounds = PhysicsBounds.BuildFromSplatBounds(
                     "World Bounds (physics only)", asset.boundsMin, asset.boundsMax,
                     world.worldScale, floorY, boundsInset, wallHeight);
@@ -267,7 +370,7 @@ namespace MuseXR.Worlds
             }
         }
 
-        void OnDestroy() => Unload();
+        void OnDestroy() { CancelBeside(); Unload(); }
 
         void SetLabel(string text) { if (label != null) label.text = text; }
     }

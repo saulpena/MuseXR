@@ -282,6 +282,14 @@ namespace GaussianSplatting.Runtime
         public Color m_Tint = Color.white;
         [Range(0f, 1f)] [Tooltip("MuseXR: how far the brightest splats (stars, lamps) are spared the tint.")]
         public float m_TintSparesBright;
+        [Tooltip("MuseXR: colour splats fade toward with distance from the eye (mist). Alpha unused.")]
+        public Color m_HazeColor = Color.white;
+        [Min(0f)] [Tooltip("MuseXR: haze density per metre. 0 = no haze.")]
+        public float m_HazeDensity;
+        [Min(0f)] [Tooltip("MuseXR: colour saturation. 1 = as captured, 0 = grey.")]
+        public float m_Saturation = 1f;
+        [Min(0f)] [Tooltip("MuseXR: brightness multiplier applied with the saturation grade.")]
+        public float m_Exposure = 1f;
         [Tooltip("MuseXR: draw only the asset's first N splats; -1 draws all that are uploaded. With an asset ordered for a door, the first priorityCount splats are exactly the ones seen through it.")]
         public int m_DrawLimit = -1;
         [Tooltip("MuseXR: upload to the GPU a slice per frame, priority splats first, instead of all at once on enable.")]
@@ -395,6 +403,8 @@ namespace GaussianSplatting.Runtime
             public static readonly int RevealPlane = Shader.PropertyToID("_RevealPlane");
             public static readonly int RevealParams = Shader.PropertyToID("_RevealParams");
             public static readonly int SplatTint = Shader.PropertyToID("_SplatTint");
+            public static readonly int SplatHaze = Shader.PropertyToID("_SplatHaze");
+            public static readonly int SplatGrade = Shader.PropertyToID("_SplatGrade");
         }
 
         [field: NonSerialized] public bool editModified { get; private set; }
@@ -772,6 +782,10 @@ namespace GaussianSplatting.Runtime
             }
             cmb.SetComputeVectorParam(m_CSSplatUtilities, Props.SplatTint,
                 new Vector4(m_Tint.r, m_Tint.g, m_Tint.b, m_TintSparesBright));
+            cmb.SetComputeVectorParam(m_CSSplatUtilities, Props.SplatHaze,
+                new Vector4(m_HazeColor.r, m_HazeColor.g, m_HazeColor.b, m_HazeDensity));
+            cmb.SetComputeVectorParam(m_CSSplatUtilities, Props.SplatGrade,
+                new Vector4(m_Saturation, m_Exposure, 0, 0));
 
             m_CSSplatUtilities.GetKernelThreadGroupSizes((int)KernelIndices.CalcViewData, out uint gsX, out _, out _);
             cmb.DispatchCompute(m_CSSplatUtilities, (int)KernelIndices.CalcViewData, (m_GpuView.count + (int)gsX - 1)/(int)gsX, 1, 1);

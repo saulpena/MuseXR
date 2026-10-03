@@ -54,6 +54,9 @@ namespace MusePico.Dialogue
         /// <summary>Fires as each master's reading arrives, in the order they are spoken.</summary>
         public event System.Action<Perspective> PerspectiveReady;
 
+        /// <summary>A master's voice starts: who is speaking now (the text was shown before).</summary>
+        public event System.Action<Perspective> SpeakerStarted;
+
         /// <summary>Fires with a one-line status for a panel: listening, thinking, speaking, failed.</summary>
         public event System.Action<string> StatusChanged;
 
@@ -235,12 +238,15 @@ namespace MusePico.Dialogue
                     ? StartSynthesis(result.Perspectives, _cancel.Token)
                     : null;
 
+                // Every reading's text at once, the moment the model answers: each appears above its
+                // master straight away, and nobody waits for the voice before them to finish
+                // (Saul, 1 Oct 2026). The voices still play one after another.
                 for (var i = 0; i < result.Perspectives.Count; i++)
-                {
-                    // Text first, always. The reading appears above the master whether or not a
-                    // voice ever arrives for it.
                     PerspectiveReady?.Invoke(result.Perspectives[i]);
-                    if (pending != null) await PlayAsync(await pending[i], _cancel.Token);
+                for (var i = 0; pending != null && i < result.Perspectives.Count; i++)
+                {
+                    SpeakerStarted?.Invoke(result.Perspectives[i]);
+                    await PlayAsync(await pending[i], _cancel.Token);
                 }
 
                 return result;

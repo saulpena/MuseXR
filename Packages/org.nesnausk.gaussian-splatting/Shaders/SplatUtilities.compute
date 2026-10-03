@@ -123,6 +123,10 @@ float4 _RevealPlane;
 float4 _RevealParams;
 // rgb multiplied into every splat; a = how far the brightest splats are spared it.
 float4 _SplatTint;
+// MuseXR time of day. Haze: rgb = colour splats fade toward with distance from the eye,
+// a = density per metre (0 off). Grade: x = saturation (1 unchanged), y = exposure multiplier.
+float4 _SplatHaze;
+float4 _SplatGrade;
 
 float RevealHash(float3 p)
 {
@@ -326,6 +330,14 @@ void CSCalcViewData (uint3 id : SV_DispatchThreadID)
         // MuseXR tint (night, dawn); the brightest splats can be spared it, so stars keep shining.
         float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
         col.rgb *= lerp(_SplatTint.rgb, 1.0, _SplatTint.a * smoothstep(0.55, 0.9, lum));
+        // MuseXR time of day: grade (saturation, exposure), then distance haze toward a colour.
+        float gradedLum = dot(col.rgb, float3(0.299, 0.587, 0.114));
+        col.rgb = lerp(gradedLum.xxx, col.rgb, _SplatGrade.x) * _SplatGrade.y;
+        if (_SplatHaze.a > 0)
+        {
+            float hazeAmount = 1.0 - exp(-_SplatHaze.a * length(worldViewDir));
+            col.rgb = lerp(col.rgb, _SplatHaze.rgb, hazeAmount);
+        }
         col.a = min(splat.opacity * opacityScale, 65000);
         view.color.x = (f32tof16(col.r) << 16) | f32tof16(col.g);
         view.color.y = (f32tof16(col.b) << 16) | f32tof16(col.a);

@@ -405,5 +405,36 @@ namespace MusePico.Tests
             Assert.AreEqual(TearPhase.Done, s.Phase);
             Assert.AreEqual(TearEvent.None, s.Step(0.1f, true, far, far, Half));
         }
+
+        [Test]
+        public void LeaningIntoAPaintingIsNotWalkingIn()
+        {
+            // The eye 0.5 m past the canvas is a head poked in: still in the gallery. Only past the
+            // 0.8 m band is the visitor inside, and then only back in front of -0.8 m are they out.
+            Assert.IsFalse(PaintingPortalRules.InsideAfter(false, 0.5f, 0.8f));
+            Assert.IsTrue(PaintingPortalRules.InsideAfter(false, 1.0f, 0.8f));
+            Assert.IsTrue(PaintingPortalRules.InsideAfter(true, -0.5f, 0.8f), "leaning back out to look is not leaving");
+            Assert.IsFalse(PaintingPortalRules.InsideAfter(true, -1.0f, 0.8f));
+        }
+
+        [Test]
+        public void ATwoWayPaintingOpensFromEitherSide()
+        {
+            var half = new Vector2(2f, 1f);
+            Assert.IsTrue(PaintingPortalRules.NearTwoWay(new Vector3(0f, 0f, -3f), half, 3.5f, 1.5f), "in front");
+            Assert.IsTrue(PaintingPortalRules.NearTwoWay(new Vector3(0f, 0f, 3f), half, 3.5f, 1.5f), "inside, coming back");
+            Assert.IsFalse(PaintingPortalRules.NearTwoWay(new Vector3(0f, 0f, -5f), half, 3.5f, 1.5f), "too far");
+            Assert.IsFalse(PaintingPortalRules.NearTwoWay(new Vector3(4f, 0f, -1f), half, 3.5f, 1.5f), "off to the side");
+        }
+
+        [Test]
+        public void TouchingThePaintingMeansTheCentreAndThePaint()
+        {
+            var half = new Vector2(0.58f, 0.29f);   // a hung 1.15 x 0.58 m work
+            Assert.IsTrue(PaintingPortalRules.TouchesCentre(new Vector3(0.05f, -0.05f, -0.03f), half, 0.2f, 0.12f), "on the centre");
+            Assert.IsFalse(PaintingPortalRules.TouchesCentre(new Vector3(0.45f, 0f, -0.03f), half, 0.2f, 0.12f), "near the edge");
+            Assert.IsFalse(PaintingPortalRules.TouchesCentre(new Vector3(0f, 0f, -0.4f), half, 0.2f, 0.12f), "a hand held in front");
+            Assert.IsFalse(PaintingPortalRules.TouchesCentre(new Vector3(0f, 0f, 0.3f), half, 0.2f, 0.12f), "pushed far through");
+        }
     }
 }

@@ -89,11 +89,11 @@ namespace MusePico.Dialogue
             // stay in WorldKey, so clearing ChosenWorldKey is the revert.
             new ExhibitionChapter { Id = "threshold-conservatory", Chapter = "01 / ARRIVAL",
                 Title = "The Threshold Conservatory", WorldKey = "grand-conservatory-with-lush-gardens",
-                ChosenWorldKey = "empty-chinese-imperial-temple-hall", Artist = "A cross-temporal salon",
+                Artist = "A cross-temporal salon",
                 Prompt = "What must become visible before an answer can begin?" , CollectionId = "threshold-conservatory" },
             new ExhibitionChapter { Id = "court-of-light", Chapter = "02 / QUESTION",
                 Title = "The Court of Light", WorldKey = "elegant-floral-palace-interior",
-                ChosenWorldKey = "celestial-peach-blossom-paradise", Artist = "Sigmund Freud",
+                Artist = "Sigmund Freud",
                 Prompt = "Which part of your question belongs to you, and which part was inherited?" , CollectionId = "court-of-light" },
             new ExhibitionChapter { Id = "garden-of-water-and-light", Chapter = "03 / PERCEPTION",
                 Title = "The Garden of Water and Light", WorldKey = "enchanted-water-garden-sanctuary", Artist = "Claude Monet",

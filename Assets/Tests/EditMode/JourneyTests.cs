@@ -179,35 +179,35 @@ namespace MusePico.Tests
         }
 
         [Test]
-        public void AtMostThreeCompanionsAndAFourthIsIgnored()
+        public void AtMostTwoCompanionsAndAThirdIsIgnored()
         {
-            // Her opening company is ALREADY three - `selectedCompanions: new Set(["monet",
-            // "van_gogh","socrates"])` - so the ceiling is reached before the visitor touches
-            // anything, and the fourth click is the first one that can be refused.
+            // The opening company is ALREADY the two rigged painters, so the ceiling is reached
+            // before the visitor touches anything, and the third click is the first that can be
+            // refused. (Hers was three; two since 1 Oct 2026, while only two masters can walk.)
             var j = new MuseumJourney();
-            Assert.AreEqual(3, j.InvitedMasterIds.Count, "her opening company is pre-invited");
+            Assert.AreEqual(MuseumJourney.MaxCompanions, j.InvitedMasterIds.Count, "the opening company is pre-invited");
 
-            Assert.IsFalse(j.ToggleCompanion("picasso"), "the fourth is refused, not swapped in");
-            Assert.AreEqual(3, j.InvitedMasterIds.Count);
-            Assert.IsFalse(j.IsInvited("picasso"));
+            Assert.IsFalse(j.ToggleCompanion("socrates"), "the third is refused, not swapped in");
+            Assert.AreEqual(2, j.InvitedMasterIds.Count);
+            Assert.IsFalse(j.IsInvited("socrates"));
 
             // Withdrawing frees exactly one slot, and no more.
             j.ToggleCompanion("monet");
-            Assert.IsTrue(j.ToggleCompanion("picasso"));
-            Assert.AreEqual(3, j.InvitedMasterIds.Count);
+            Assert.IsTrue(j.ToggleCompanion("socrates"));
+            Assert.AreEqual(2, j.InvitedMasterIds.Count);
         }
 
         [Test]
         public void InvitingTwiceWithdrawsTheInvitation()
         {
             var j = new MuseumJourney();
-            j.ToggleCompanion("monet");                  // free a slot in her opening three
+            j.ToggleCompanion("monet");                  // free a slot in the opening two
             Assert.IsTrue(j.ToggleCompanion("hilma"));
             Assert.IsTrue(j.IsInvited("hilma"));
 
             j.ToggleCompanion("HILMA");
             Assert.IsFalse(j.IsInvited("hilma"), "case-insensitive, and it frees the slot");
-            Assert.AreEqual(2, j.InvitedMasterIds.Count);
+            Assert.AreEqual(1, j.InvitedMasterIds.Count);
         }
 
         [Test]
@@ -334,23 +334,17 @@ namespace MusePico.Tests
         }
 
         [Test]
-        public void ChaptersOneAndTwo_AreTheBuddhaHallThenPeachGarden_AndKeepHersOnRecord()
+        public void ChaptersOneAndTwo_AreHerOriginalWorlds()
         {
-            // Skylar's brief (27 Sep): the opening stands in the Forbidden-City courtyard (the
-            // scene's home world, not a chapter); entering the exhibition is chapter 01, the
-            // Buddha hall; chapter 02 the Peach Garden. Her worlds stay in WorldKey, so clearing
-            // ChosenWorldKey is the whole revert.
+            // Back to muse-infinity's own worlds (Saul, 1 Oct 2026). Skylar's 27 Sep brief had swapped
+            // in the Buddha hall and the Peach Garden through ChosenWorldKey; clearing it was the revert.
             var ch01 = ExhibitionSpine.Chapters[0];
-            Assert.AreEqual("grand-conservatory-with-lush-gardens", ch01.WorldKey, "her world, preserved");
-            Assert.IsTrue(ch01.IsChosen);
-            Assert.IsFalse(ch01.IsPlaceholder, "a choice is not a stand-in for a missing export");
-            Assert.AreEqual("empty-chinese-imperial-temple-hall", ch01.EffectiveWorldKey, "what actually loads");
-            Assert.AreSame(ch01, ExhibitionSpine.ByWorldKey("empty-chinese-imperial-temple-hall"));
+            Assert.IsFalse(ch01.IsChosen);
+            Assert.AreEqual("grand-conservatory-with-lush-gardens", ch01.EffectiveWorldKey);
 
             var ch02 = ExhibitionSpine.Chapters[1];
-            Assert.AreEqual("elegant-floral-palace-interior", ch02.WorldKey, "her world, preserved");
-            Assert.AreEqual("celestial-peach-blossom-paradise", ch02.EffectiveWorldKey, "what actually loads");
-            Assert.AreSame(ch02, ExhibitionSpine.ByWorldKey("celestial-peach-blossom-paradise"));
+            Assert.IsFalse(ch02.IsChosen);
+            Assert.AreEqual("elegant-floral-palace-interior", ch02.EffectiveWorldKey);
         }
 
         [Test]
@@ -461,13 +455,13 @@ namespace MusePico.Tests
         }
     
         [Test]
-        public void TheOpeningCompanyIsHers()
+        public void TheOpeningCompanyIsTheTwoRiggedPainters()
         {
-            // app.js: `selectedCompanions: new Set(["monet", "van_gogh", "socrates"])`, both at
-            // boot and in reset(). Starting empty is a divergence, not a simplification: it makes
-            // stage 02 arrive with a dead forward button.
-            CollectionAssert.AreEquivalent(
-                new[] { "monet", "van_gogh", "socrates" }, MuseumJourney.DefaultCompany);
+            // Hers was `new Set(["monet", "van_gogh", "socrates"])`; since 1 Oct 2026 it is the two
+            // masters with rigged bodies that can walk with the visitor. Starting empty is still a
+            // divergence, not a simplification: it makes stage 02 arrive with a dead forward button.
+            CollectionAssert.AreEquivalent(new[] { "monet", "picasso" }, MuseumJourney.DefaultCompany);
+            Assert.AreEqual(2, MuseumJourney.MaxCompanions);
             CollectionAssert.AreEquivalent(
                 MuseumJourney.DefaultCompany, new MuseumJourney().InvitedMasterIds);
         }
