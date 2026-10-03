@@ -26,8 +26,8 @@ namespace MuseXR.Journey
         public GameObject[] masterPrefabs = new GameObject[6];
 
         [Tooltip("How far down the walk from the Gate spawn the row stands. A Marble capture is sharp only within ~15 m of its centre; the doors are ~50 m out, in its fog.")]
-        public float rowFromSpawn = 7f;
-        public float rowSpacing = 1.0f;
+        [System.NonSerialized] public float rowFromSpawn = 7f;   // not serialized: a scene copy silently beat the code default
+        [System.NonSerialized] public float rowSpacing = 1.45f;   // room for each master's name card, read from the spawn
 
         public CompanyStage Company { get; private set; }
         public IReadOnlyList<string> Companions { get; private set; } = new string[0];
@@ -37,6 +37,10 @@ namespace MuseXR.Journey
         // Her explicit prompt at the row: what to do, in her kit (icon, words and the controller letter).
         GameObject _prompt;
         TextMeshProUGUI _promptTitle, _promptHint;
+        // Who is who, and who is invited: a fixed name over each master and a ring at their feet.
+        readonly Dictionary<string, (MeshRenderer ring, TextMeshProUGUI state)> _marks =
+            new Dictionary<string, (MeshRenderer, TextMeshProUGUI)>();
+        Material _ringIdle, _ringChosen;
 
         void Start()
         {
@@ -88,6 +92,7 @@ namespace MuseXR.Journey
                 var box = slot.gameObject.AddComponent<BoxCollider>();
                 box.center = new Vector3(0f, 0.9f, 0f); box.size = new Vector3(0.6f, 1.8f, 0.4f);
                 standees[id] = slot;
+                BuildMark(id, slot, toVisitor);
             }
 
             Company = CompanyStage.Make(root.gameObject, standees);
@@ -98,23 +103,97 @@ namespace MuseXR.Journey
             Company.PhaseChanged += OnCompanyPhase;
             Company.Completed += ids => Companions = ids;
             root.gameObject.AddComponent<SubtitleRig>().Group = Company.Group;
-            Company.Preselect(new[] { Masters.Monet, Masters.VanGogh, Masters.Socrates });   // her demo preset
+            // No preset: with Monet, Van Gogh and Socrates preselected a single A chose for the visitor
+            // (headset test). Her demo preset is for the 3-minute demo route, not this walk.
+            Company.Group.FollowVisitor = false;   // placed once beside the visitor, then they stand still
             AddFill(eye);
             gate.HidePrompt();   // the Gate is answered; its "hold X to speak" must not linger
             BuildPrompt(centre, facing, toVisitor);
-            Company.Toggled += (id, r) => RefreshPrompt(r == Invitation.Result.Refused ? "Three is the most. Point at one to let them go first." : null);
+            Company.Toggled += (id, r) =>
+            {
+                RefreshMarks();
+                RefreshPrompt(r == Invitation.Result.Refused ? "Three is the most. Point at one you have invited to release them first." : null);
+            };
             RefreshPrompt();
             Debug.Log("[Opening] the Company stands on the walk; the question is: " + Company.Question);
+        }
+
+        void BuildMark(string id, Transform slot, Vector3 toVisitor)
+        {
+            if (_ringIdle == null)
+            {
+                _ringIdle = new Material(Shader.Find("Universal Render Pipeline/Unlit")); _ringIdle.SetColor("_BaseColor", MuseTheme.Ink3);
+                _ringChosen = new Material(Shader.Find("Universal Render Pipeline/Unlit")); _ringChosen.SetColor("_BaseColor", MuseTheme.Gold);
+                _ringIdle.SetFloat("_Cull", 0f); _ringChosen.SetFloat("_Cull", 0f);   // reads from above whatever the winding
+            }
+            // The ring on the floor: thin grey while waiting, wide gold once invited (shape and colour).
+            var ringGo = new GameObject("Ring");
+            ringGo.transform.SetParent(slot, false);
+            ringGo.transform.localPosition = new Vector3(0f, 0.04f, 0f);
+            ringGo.AddComponent<MeshFilter>().sharedMesh = Annulus(0.36f, 0.42f);
+            var ring = ringGo.AddComponent<MeshRenderer>(); ring.sharedMaterial = _ringIdle;
+
+            // The name and the state, fixed in the world, set once toward where the visitor stands.
+            var tag = new GameObject("Name").transform;
+            tag.SetParent(slot, false);
+            tag.position = slot.position + Vector3.up * 2.05f;
+            tag.rotation = Quaternion.LookRotation(-toVisitor, Vector3.up);   // +Z away from the viewer reads
+            var c = MuseUi.Canvas(tag, "Name", rowFromSpawn, 96f);
+            var card = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 10f, padY: 6f, gap: 2f, name: "Name Card");
+            card.GetComponent<UnityEngine.UI.VerticalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;
+            var name = MuseUi.Text(card, Masters.Name(id), MuseUi.Face.SansSemi, 12.5f, MuseTheme.Ink, name: "Master");
+            name.alignment = TextAlignmentOptions.Center; name.enableWordWrapping = false;
+            var state = MuseUi.Text(card, "Point to invite", MuseUi.Face.Sans, 10f, MuseTheme.Ink3, name: "State");
+            state.alignment = TextAlignmentOptions.Center; state.enableWordWrapping = false;
+            _marks[id] = (ring, state);
+        }
+
+        const float PromptAhead = 3f;
+
+        void RefreshMarks()
+        {
+            if (Company == null) return;
+            foreach (var kv in _marks)
+            {
+                bool chosen = Company.Invitation.IsChosen(kv.Key);
+                kv.Value.ring.sharedMaterial = chosen ? _ringChosen : _ringIdle;
+                kv.Value.ring.GetComponent<MeshFilter>().sharedMesh = chosen ? Annulus(0.3f, 0.44f) : Annulus(0.36f, 0.42f);
+                kv.Value.state.text = chosen ? "Invited" : "Point to invite";
+                kv.Value.state.color = chosen ? MuseTheme.GoldInk : MuseTheme.Ink3;
+                kv.Value.state.fontStyle = chosen ? FontStyles.Bold : FontStyles.Normal;
+            }
+        }
+
+        static Mesh Annulus(float inner, float outer)
+        {
+            const int n = 48;
+            var v = new Vector3[(n + 1) * 2]; var t = new int[n * 6];
+            for (int i = 0; i <= n; i++)
+            {
+                float a = i * Mathf.PI * 2f / n;
+                v[i * 2] = new Vector3(Mathf.Cos(a) * inner, 0f, Mathf.Sin(a) * inner);
+                v[i * 2 + 1] = new Vector3(Mathf.Cos(a) * outer, 0f, Mathf.Sin(a) * outer);
+                if (i < n) { int k = i * 2, j = i * 6; t[j] = k; t[j + 1] = k + 1; t[j + 2] = k + 2; t[j + 3] = k + 1; t[j + 4] = k + 3; t[j + 5] = k + 2; }
+            }
+            var m = new Mesh { vertices = v, triangles = t }; m.RecalculateBounds(); return m;
         }
 
         void BuildPrompt(Vector3 centre, Quaternion facing, Vector3 toVisitor)
         {
             var anchor = new GameObject("Company Prompt").transform;
             anchor.SetParent(transform, false);
-            // Above the middle of the row, facing the visitor: +Z away from them (a flat thing reads that way).
-            anchor.SetPositionAndRotation(centre + Vector3.up * 2.35f, Quaternion.LookRotation(-toVisitor, Vector3.up));
-            var c = MuseUi.Canvas(anchor, "Prompt", rowFromSpawn, 420f);
-            var glass = MuseUi.Glass(c, 420f, gap: 8f);
+            // Near the visitor, where the Gate's prompt stood: 3 m ahead and to the right of the walk, at eye
+            // height, read at arm's reach of the walk. By the row it had to be ~5 m wide to be read from
+            // the spawn and covered the name cards. Facing the visitor: +Z away from them.
+            var spawn = gate.spawn != null ? gate.spawn.position : centre + toVisitor * rowFromSpawn;
+            var toRow = -toVisitor;
+            var visitorRight = Vector3.Cross(Vector3.up, toRow).normalized;
+            // ~40 degrees right: outside the row's span (+/-27 degrees from the spawn), so it never covers a master.
+            var at = spawn + toRow * (PromptAhead - 0.8f) + visitorRight * 2.6f + Vector3.up * 1.4f;
+            var toEye = spawn - at; toEye.y = 0f;
+            anchor.SetPositionAndRotation(at, Quaternion.LookRotation(-toEye.normalized, Vector3.up));
+            var c = MuseUi.Canvas(anchor, "Prompt", PromptAhead, 380f);
+            var glass = MuseUi.Glass(c, 380f, gap: 8f);
             MuseUi.Kicker(glass, "Invite companions", MuseTheme.Gold);
             _promptTitle = MuseUi.Title(glass, "Choose up to three", 22f);
             _promptHint = MuseUi.Body(glass, "");
@@ -157,6 +236,8 @@ namespace MuseXR.Journey
         async void OnCompanyPhase(CompanyStage.Phase phase)
         {
             RefreshPrompt();
+            if (phase == CompanyStage.Phase.Stepping)
+                foreach (var kv in _marks) { kv.Value.ring.gameObject.SetActive(false); kv.Value.state.transform.parent.parent.parent.gameObject.SetActive(false); }
             if (phase != CompanyStage.Phase.Stepping || _asked) return;
             _asked = true;
             var chosen = Company.Invitation.SpeakingOrder();

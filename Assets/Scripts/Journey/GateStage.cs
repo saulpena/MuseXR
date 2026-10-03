@@ -74,6 +74,9 @@ namespace MusePico.Journey
         {
             _promptHidden = true;
             if (_promptRoot != null) _promptRoot.SetActive(false);
+            // The faded question cards still took the trigger, so pointing at a master behind them
+            // re-chose the question and shut the doors (headset test). They go with the prompt.
+            foreach (var a in _plateAnchors) if (a != null) a.gameObject.SetActive(false);
             if (_undoPill != null) _undoPill.SetActive(false);
         }
         bool _promptHidden;
@@ -441,6 +444,7 @@ namespace MusePico.Journey
 
         public void Choose(int index)
         {
+            if (_promptHidden) return;   // the question is settled once the journey has moved on
             Flow.ChooseSample(index);
         }
 

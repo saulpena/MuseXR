@@ -11,6 +11,9 @@ namespace MuseXR.UI
     public sealed class SubtitleRig : MonoBehaviour
     {
         public CompanionGroup Group;
+        /// <summary>Her lazy follow past 35 degrees. Off: a panel that slides and turns itself every frame made
+        /// the visitor sick (headset test, 3 Oct). It is placed once, over its speaker, and stays.</summary>
+        public bool Follow;
         const float HeadHeight = 1.7f;   // above a figure's feet, for a master or a standee alike
 
         readonly SubtitleFollow _follow = new SubtitleFollow();
@@ -74,7 +77,7 @@ namespace MuseXR.UI
 
         void LateUpdate()
         {
-            if (_panel == null || _speaker == null || _eye == null) return;
+            if (!Follow || _panel == null || _speaker == null || _eye == null) return;
             _panel.position = _follow.Tick(SpeakerHead(), _eye.position, _eye.forward, Time.deltaTime);
             Face();
         }
