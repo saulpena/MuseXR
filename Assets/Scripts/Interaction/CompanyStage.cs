@@ -12,7 +12,8 @@ namespace MuseXR.Interaction
     ///   Choosing   point and pull the trigger to toggle a master. An invited standee steps forward
     ///              out of the row (shape, not colour). A fourth is refused: the standee shakes, the
     ///              hand buzzes hard and a dull knock sounds. A proceeds once at least one is chosen.
-    ///   Stepping   the chosen walk out to their flank marks (<see cref="CompanionMarks"/>) in 0.8 s.
+    ///   Stepping   the chosen walk out to their flank marks (<see cref="CompanionMarks"/>) in 0.8 s;
+    ///              the uninvited fade out and are switched off.
     ///   Answering  each speaks one line in her fixed order, behind the gaze gate (<see cref="CompanionGroup"/>).
     ///   Done       <see cref="Completed"/> carries companions[] for the record.
     ///
@@ -24,7 +25,7 @@ namespace MuseXR.Interaction
     {
         public enum Phase { Choosing, Stepping, Answering, Done }
 
-        public const float StepForward = 0.3f, StepSeconds = 0.8f, ShakeSeconds = 0.35f;
+        public const float StepForward = 0.45f, StepSeconds = 0.8f, ShakeSeconds = 0.35f;
 
         public Phase Current { get; private set; } = Phase.Choosing;
         public Invitation Invitation { get; } = new Invitation();
@@ -71,6 +72,9 @@ namespace MuseXR.Interaction
         {
             if (Current != Phase.Choosing) return Invitation.Result.Unknown;
             var r = Invitation.Toggle(id);
+            // Choosing here takes A and B. Measured in the test scene: with a piece placed at the
+            // Palace a moment before, A confirmed the Palace instead of sending the companions.
+            if (r != Invitation.Result.Unknown) ConfirmInput.Take(this);
             var hand = pointer != null ? pointer.Source : null;
             switch (r)
             {
@@ -108,6 +112,8 @@ namespace MuseXR.Interaction
                 _walk[order[i]] = (t.position, to, t.rotation, Quaternion.LookRotation(face.normalized, Vector3.up));
             }
             _walkT = 0f;
+            // The uninvited fade out (Saul, 3 Oct 2026), so none is left standing half-hidden behind a companion.
+            foreach (var kv in _standees) if (!Invitation.IsChosen(kv.Key)) Fader.FadeOut(kv.Value.gameObject);
             Go(Phase.Stepping);
             return true;
         }

@@ -322,6 +322,41 @@ namespace MusePico.Tests
                 Assert.AreEqual(0f, kv.Value.position.y, 0.01f, kv.Key + " stands on the floor");
         }
 
+        [UnityTest]
+        public IEnumerator TheUninvitedFadeOutAndTheInvitedStay()
+        {
+            var (stage, standees, _) = Company();
+            stage.Preselect(new[] { Masters.Monet, Masters.Hilma });
+            ConfirmInput.PressA();
+            yield return new WaitForSeconds(Fader.DefaultSeconds * 0.5f);
+            var a = standees[Masters.Socrates].GetComponent<Renderer>().material.GetColor("_BaseColor").a;
+            Assert.That(a, Is.InRange(0.05f, 0.95f), "Socrates is mid-fade, not cut");
+            yield return new WaitForSeconds(Fader.DefaultSeconds);
+            foreach (var kv in standees)
+                Assert.AreEqual(stage.Invitation.IsChosen(kv.Key), kv.Value.gameObject.activeSelf,
+                                kv.Key + (stage.Invitation.IsChosen(kv.Key) ? " stays" : " is gone"));
+        }
+
+        [UnityTest]
+        public IEnumerator AGoesToWhatWasChosenLastNotToAnEarlierStation()
+        {
+            // Measured in the test scene: a crane placed at the Palace, then three masters invited -
+            // and A kept the crane instead of sending the companions.
+            // Built first, as in the scene: the stage exists before anything is placed elsewhere.
+            var (stage, _, _) = Company();
+            var (station, crane, _, slot) = Palace();
+            var h = Hand();
+            h.aim.position = crane.transform.position; h.source.Grip = true; yield return Frames(2);
+            h.aim.position += slot.position - crane.BasePoint; yield return Frames(2);
+            h.source.Grip = false; yield return Frames(3);
+            Assert.AreEqual(SlotState.Placed, station.Board.StateOf(0));
+
+            stage.Preselect(Masters.DefaultTrio);
+            Assert.IsTrue(ConfirmInput.PressA());
+            Assert.AreEqual(CompanyStage.Phase.Stepping, stage.Current, "A sent the companions");
+            Assert.IsFalse(station.Board.Choice.IsConfirmed, "and did not keep the crane");
+        }
+
         // ---- artwork, cards, plinth, dial ------------------------------------------------
 
         [UnityTest]

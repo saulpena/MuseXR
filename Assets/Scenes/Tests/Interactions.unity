@@ -169,6 +169,10 @@ MonoBehaviour:
   - {fileID: 2800000, guid: c002177d04e73a14ebf971d701fd3ec2, type: 3}
   - {fileID: 2800000, guid: 9db8369bf17d8a0478e293badf8e8ef4, type: 3}
   artwork: {fileID: 2800000, guid: bde640907196b6e42bb121f21f80f271, type: 3}
+  cranePrefab: {fileID: 9185290678141925076, guid: a185428e382cd4a4f862a5b85608a3ff, type: 3}
+  turtlePrefab: {fileID: -9016481938088117799, guid: 9549f0f7ecde78c4baa948c138ac7807, type: 3}
+  lampPrefab: {fileID: 794329958067514093, guid: b86e95cf7cf42014cbcc7869d4611165, type: 3}
+  reliefPrefab: {fileID: 2075909034529415132, guid: 1d71ce2deaba6cc42a5961c0c4a5e19d, type: 3}
 --- !u!4 &1011156016
 Transform:
   m_ObjectHideFlags: 0
