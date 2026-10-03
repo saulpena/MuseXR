@@ -152,6 +152,18 @@ namespace MusePico.Generation
             return WavEncoder.Encode(trimmed, 1, WavEncoder.SpeechSampleRate);
         }
 
+        /// <summary>
+        /// Hold-to-talk: the button was released, so end the utterance now with what was said,
+        /// exactly as if silence had ended it. Does nothing when not recording (silence may already
+        /// have ended it while the button was still held).
+        /// </summary>
+        public void FinishUtterance()
+        {
+            if (!IsRecording) return;
+            var wav = StopRecording();
+            UtteranceEnded?.Invoke(wav, SilenceDetector.StopReason.Released);
+        }
+
         public void Abort()
         {
             if (!IsRecording) return;

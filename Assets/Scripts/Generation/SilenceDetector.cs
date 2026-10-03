@@ -66,6 +66,8 @@ namespace MusePico.Generation
             MaxDuration,
             /// <summary>Nothing above threshold for the whole leading window. Probably no input at all.</summary>
             NeverHeardAnything,
+            /// <summary>The visitor let go of the talk button: the utterance is whatever was said.</summary>
+            Released,
         }
 
         /// <summary>

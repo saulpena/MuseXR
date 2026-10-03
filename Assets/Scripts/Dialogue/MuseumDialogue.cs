@@ -157,6 +157,12 @@ namespace MusePico.Dialogue
             Listen();
         }
 
+        /// <summary>Hold-to-talk released (her "hold X to speak"): send what was said so far.</summary>
+        public void FinishListening()
+        {
+            if (voice != null) voice.FinishUtterance();
+        }
+
         /// <summary>Starts listening. The utterance ends itself when they stop speaking.</summary>
         public void Listen()
         {
