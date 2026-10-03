@@ -156,7 +156,7 @@ namespace MuseXR.UI
                     Label(h, word, MuseTheme.Ink3);
                     break;
             }
-            var t = MuseUi.Text(card, title, MuseUi.Face.SansSemi, 12.5f, look == SlotVisual.Aligned ? MuseTheme.Rose : MuseTheme.Ink, name: "State");
+            var t = MuseUi.Text(card, title, MuseUi.Face.SansSemi, 12.5f, look == SlotVisual.Aligned ? MuseTheme.Rose : look == SlotVisual.Placed ? MuseTheme.GoldInk : MuseTheme.Ink, name: "State");
             t.alignment = TextAlignmentOptions.Center;
             var s = MuseUi.Text(card, hint, MuseUi.Face.Sans, 11.5f, MuseTheme.Ink3, name: "Hint");
             s.alignment = TextAlignmentOptions.Center;
@@ -183,6 +183,8 @@ namespace MuseXR.UI
         {
             var canvas = MuseUi.Canvas(parent, "Slot States", viewingDistance, 450f);
             var row = MuseUi.Row(canvas, 10f, TextAnchor.UpperCenter);
+            // Her three tiles stand the same height whatever their hint wraps to.
+            var hl = row.GetComponent<HorizontalLayoutGroup>(); hl.childControlHeight = true; hl.childForceExpandHeight = true;
             Slot(row, SlotVisual.Empty); Slot(row, SlotVisual.Aligned); Slot(row, SlotVisual.Placed);
             return canvas;
         }
@@ -231,7 +233,7 @@ namespace MuseXR.UI
                 MuseUi.Text(c, "Based on: " + t.BasedOn, MuseUi.Face.Sans, 11f, MuseTheme.Ink3, name: "BasedOn");
             }
             var a = MuseUi.Card(col, new Color(1f, 253f / 255f, 249f / 255f, 0.94f), 20f, MuseTheme.Gold, 1.5f, padX: 18f, padY: 16f, gap: 6f, name: "Answer");
-            MuseUi.Kicker(a, localFallback ? "Your answer · draft · local fallback" : "Your answer · draft", MuseTheme.Gold);
+            MuseUi.Kicker(a, localFallback ? "Your answer · draft · local fallback" : "Your answer · draft", MuseTheme.Gold, upper: false);   // her render: mixed case
             MuseUi.Text(a, draft, MuseUi.Face.SerifMedium, MuseTheme.QuotePx, MuseTheme.Ink, lineHeight: 1.35f, name: "Draft");
             var row2 = MuseUi.Row(a, 8f);
             MuseUi.Pill(row2, "A", "Keep", true, keep);
@@ -258,7 +260,7 @@ namespace MuseXR.UI
             }
             var body = MuseUi.Column(card, 4f, "Body");
             body.GetComponent<VerticalLayoutGroup>().padding = new RectOffset(16, 16, 14, 14);
-            MuseUi.Kicker(body, "MUSE∞ · Memento" + (m.Sample ? " · sample" : ""), MuseTheme.Gold);
+            MuseUi.Kicker(body, "MUSE∞ · Memento" + (m.Sample ? " · sample" : ""), MuseTheme.Gold, upper: false);
             MuseUi.Title(body, m.WorldTitle, 22f);
             MuseUi.Text(body, "“" + m.Question + "”", MuseUi.Face.SerifItalic, 13.5f, MuseTheme.Ink2, name: "Question");
             MuseUi.Space(body, 4f);

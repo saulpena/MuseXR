@@ -195,8 +195,8 @@ namespace MuseXR.UI
         }
 
         /// <summary>Her small tracked caps label (.gp .k / .eyebrow).</summary>
-        public static TextMeshProUGUI Kicker(Transform parent, string text, Color? colour = null) =>
-            Text(parent, text, Face.SansSemi, MuseTheme.KickerPx, colour ?? MuseTheme.Ink3, 0.12f, upper: true, name: "Kicker");
+        public static TextMeshProUGUI Kicker(Transform parent, string text, Color? colour = null, bool upper = true) =>
+            Text(parent, text, Face.SansSemi, MuseTheme.KickerPx, colour ?? MuseTheme.Ink3, upper ? 0.12f : 0.04f, upper: upper, name: "Kicker");
 
         /// <summary>Her serif heading (.gp h4).</summary>
         public static TextMeshProUGUI Title(Transform parent, string text, float px = MuseTheme.TitlePx) =>

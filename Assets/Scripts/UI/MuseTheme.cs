@@ -29,7 +29,7 @@ namespace MuseXR.UI
 
         /// <summary>Her .gp: rgba(255,253,249,.8) over a 22px blur. Unity has no backdrop blur, so a
         /// little more opacity keeps text readable over a busy splat.</summary>
-        public static readonly Color Glass = new Color(1f, 253f / 255f, 249f / 255f, 0.88f);
+        public static readonly Color Glass = new Color(1f, 253f / 255f, 249f / 255f, 0.8f);   // her --glass: rgba(255,253,249,.8)
         public static readonly Color GlassEdge = new Color(1f, 1f, 1f, 0.9f);
         public static readonly Color Shadow = new Color(40f / 255f, 30f / 255f, 15f / 255f, 0.22f);
 

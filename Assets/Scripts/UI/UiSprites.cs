@@ -22,7 +22,7 @@ namespace MuseXR.UI
         {
             int r = Mathf.Max(2, Mathf.RoundToInt(radiusPx));
             var key = kind + r;
-            if (Cache.TryGetValue(key, out var s)) return s;
+            if (Cache.TryGetValue(key, out var s) && s != null) return s;   // a scene load unloads "unused" assets: a dead entry is rebuilt
             const int ss = 4;                       // supersampled: 4x4 per pixel for clean edges
             int size = r * 2 + 4;
             var tex = NewTex(size, size, key);
@@ -48,6 +48,7 @@ namespace MuseXR.UI
             int border = r + 2;
             s = Sprite.Create(tex, new UnityEngine.Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0,
                               SpriteMeshType.FullRect, new Vector4(border, border, border, border));
+            Keep(s);
             Cache[key] = s;
             return s;
         }
@@ -57,7 +58,7 @@ namespace MuseXR.UI
         {
             int r = Mathf.RoundToInt(radiusPx), b = Mathf.RoundToInt(blurPx);
             var key = "shadow" + r + "_" + b;
-            if (Cache.TryGetValue(key, out var s)) return s;
+            if (Cache.TryGetValue(key, out var s) && s != null) return s;   // a scene load unloads "unused" assets: a dead entry is rebuilt
             int size = (r + b) * 2 + 4;
             var tex = NewTex(size, size, key);
             var px = new Color32[size * size];
@@ -73,6 +74,7 @@ namespace MuseXR.UI
             int border = r + b + 2;
             s = Sprite.Create(tex, new UnityEngine.Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0,
                               SpriteMeshType.FullRect, new Vector4(border, border, border, border));
+            Keep(s);
             Cache[key] = s;
             return s;
         }
@@ -82,7 +84,7 @@ namespace MuseXR.UI
         public static Sprite Sheen(float radiusPx)
         {
             var key = "sheen" + Mathf.RoundToInt(radiusPx);
-            if (Cache.TryGetValue(key, out var s)) return s;
+            if (Cache.TryGetValue(key, out var s) && s != null) return s;   // a scene load unloads "unused" assets: a dead entry is rebuilt
             const int w = 128, h = 96;
             var tex = NewTex(w, h, key);
             var px = new Color32[w * h];
@@ -99,6 +101,7 @@ namespace MuseXR.UI
             }
             tex.SetPixels32(px); tex.Apply();
             s = Sprite.Create(tex, new UnityEngine.Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
+            Keep(s);
             Cache[key] = s;
             return s;
         }
@@ -107,7 +110,7 @@ namespace MuseXR.UI
         public static Sprite Icon(string kind)
         {
             var key = "icon-" + kind;
-            if (Cache.TryGetValue(key, out var s)) return s;
+            if (Cache.TryGetValue(key, out var s) && s != null) return s;   // a scene load unloads "unused" assets: a dead entry is rebuilt
             const int n = 96, ss = 3;
             var tex = NewTex(n, n, key);
             var px = new Color32[n * n];
@@ -125,6 +128,7 @@ namespace MuseXR.UI
             }
             tex.SetPixels32(px); tex.Apply();
             s = Sprite.Create(tex, new UnityEngine.Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f);
+            Keep(s);
             Cache[key] = s;
             return s;
         }
@@ -170,7 +174,7 @@ namespace MuseXR.UI
         static Sprite Ring(string kind, float width, float dashes, float duty)
         {
             var key = kind + width + "_" + dashes;
-            if (Cache.TryGetValue(key, out var s)) return s;
+            if (Cache.TryGetValue(key, out var s) && s != null) return s;   // a scene load unloads "unused" assets: a dead entry is rebuilt
             const int size = 128, ss = 3;
             var tex = NewTex(size, size, key);
             var px = new Color32[size * size];
@@ -196,8 +200,18 @@ namespace MuseXR.UI
             }
             tex.SetPixels32(px); tex.Apply();
             s = Sprite.Create(tex, new UnityEngine.Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
+            Keep(s);
             Cache[key] = s;
             return s;
+        }
+
+        /// <summary>Generated sprites are referenced by no asset, so a scene load's UnloadUnusedAssets would
+        /// destroy them under live panels - every corner then fell back to a square, every shadow to a
+        /// grey bar. Marking them keeps them for the session.</summary>
+        static void Keep(Sprite s)
+        {
+            s.hideFlags |= HideFlags.DontUnloadUnusedAsset;
+            if (s.texture != null) s.texture.hideFlags |= HideFlags.DontUnloadUnusedAsset;
         }
 
         static Texture2D NewTex(int w, int h, string name) =>
