@@ -283,7 +283,8 @@ namespace MuseXR.Interaction
             {
                 _angle = new GameObject("Held Angle").AddComponent<TextMeshPro>();
                 _angle.fontSize = 0.6f; _angle.alignment = TextAlignmentOptions.Center;
-                _angle.rectTransform.sizeDelta = new Vector2(0.3f, 0.1f);
+                _angle.rectTransform.sizeDelta = new Vector2(0.6f, 0.1f);
+                _angle.enableWordWrapping = false;
                 _angle.color = new Color(0.75f, 0.29f, 0.42f);
             }
             _angle.gameObject.SetActive(true);
@@ -327,7 +328,8 @@ namespace MuseXR.Interaction
         {
             var p = GameObject.CreatePrimitive(type);
             p.name = name;
-            Object.Destroy(p.GetComponent<Collider>());
+            // Immediate: Holdable.Make runs this frame and must not see a collider that is about to vanish.
+            Object.DestroyImmediate(p.GetComponent<Collider>());
             p.transform.SetParent(parent.transform, false);
             p.transform.localPosition = local;
             p.transform.localRotation = Quaternion.Euler(euler);

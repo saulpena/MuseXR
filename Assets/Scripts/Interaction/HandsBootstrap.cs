@@ -23,7 +23,9 @@ namespace MuseXR.Interaction
 
         void Start()
         {
-            foreach (var nf in FindObjectsByType<NearFarInteractor>(FindObjectsSortMode.None))
+            // Inactive included: the rig's modality manager keeps a controller switched off until it is
+            // tracked, which on a headset can be after Start. A GripHand on it simply waits.
+            foreach (var nf in FindObjectsByType<NearFarInteractor>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
                 if (nf.handedness == InteractorHandedness.None) continue;
                 var hand = nf.handedness == InteractorHandedness.Left ? Hand.Left : Hand.Right;
