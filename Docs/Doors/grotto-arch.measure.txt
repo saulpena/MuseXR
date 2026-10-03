@@ -1,0 +1,8 @@
+yaw applied 0.0 deg (auto 0.0, extra 0)
+opening before scale: 0.960 x 1.599 (model units)
+scale x 2.5011 y 2.3760 z 2.2510  (non-uniformity 11.1% in XZ)
+triangles 14444
+bbox metres  x -2.014..2.017  y -0.358..0.358  z 0.000..4.281   size W 4.031 D 0.716 H 4.281
+opening metres: W 2.412 H 3.596  x -1.201..1.211  z 0.000..3.596  centre (x 0.005, z 1.798)  floor-open True  fill vs ideal arch 1.00
+textures ['Image_0:2048x2048', 'Image_1:2048x2048', 'normal:2048x2048']
+exported C:\Git\PicoHackathon\MuseXR\Tools\models\out\doors\grotto-arch\g1\fin\grotto-arch.glb 10047 KB

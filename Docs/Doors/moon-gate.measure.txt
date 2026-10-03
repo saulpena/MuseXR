@@ -1,0 +1,8 @@
+yaw applied -0.1 deg (auto -0.1, extra 0)
+opening before scale: 1.091 x 1.065 (model units)
+scale x 2.3840 y 2.3840 z 2.3840  (non-uniformity 0.0% in XZ)
+triangles 10745
+bbox metres  x -2.270..2.270  y -0.623..0.623  z 0.000..4.353   size W 4.540 D 1.247 H 4.353
+opening metres: W 2.603 H 2.557  x -1.301..1.301  z 0.741..3.299  centre (x 0.000, z 2.020)  floor-open False  fill vs ideal circle 1.00
+textures ['Image_0:2048x2048', 'Image_1:2048x2048', 'normal:2048x2048']
+exported C:\Git\PicoHackathon\MuseXR\Tools\models\out\doors\moon-gate\g1\fin\moon-gate.glb 10514 KB

@@ -1,0 +1,7 @@
+yaw applied -1.4 deg (auto -1.4, extra 0)
+scale x 2.4175 y 0.7194 z 2.4175  (non-uniformity 0.0% in XZ)
+widened by 0.208 m about x=-0.008 (halves slid apart, boards keep their width)
+triangles 3747
+bbox metres  x 0.000..1.200  y -0.060..0.060  z 0.000..4.600   size W 1.200 D 0.120 H 4.600
+textures ['Image_0:2048x2048', 'Image_1:2048x2048', 'normal:2048x2048']
+exported C:\Git\PicoHackathon\MuseXR\Tools\models\out\doors\pavilion-leaf\g1\fin\pavilion-leaf.glb 8850 KB

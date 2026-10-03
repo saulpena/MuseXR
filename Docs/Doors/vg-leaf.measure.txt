@@ -1,0 +1,7 @@
+yaw applied 180.2 deg (auto 0.2, extra 180)
+scale x 1.1510 y 0.3074 z 1.1510  (non-uniformity 0.0% in XZ)
+widened by 0.273 m about x=-0.017 (halves slid apart, boards keep their width)
+triangles 2079
+bbox metres  x 0.000..1.170  y -0.023..0.023  z 0.000..2.190   size W 1.170 D 0.045 H 2.190
+textures ['Image_0:1024x1024', 'Image_1:1024x1024', 'Image_2:1024x1024']
+exported C:\Git\PicoHackathon\MuseXR\Tools\models\out\doors\vg-leaf\r1\fin\vg-leaf.glb 348 KB

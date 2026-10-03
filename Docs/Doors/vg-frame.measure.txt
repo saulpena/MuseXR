@@ -1,0 +1,10 @@
+yaw applied -0.0 deg (auto -0.0, extra 0)
+opening before scale: 0.675 x 1.721 (model units)
+scale x 1.2780 y 1.2780 z 1.2780  (non-uniformity 0.0% in XZ)
+widened by 0.338 m about x=0.005 (halves slid apart, boards keep their width)
+triangles 4174
+bbox metres  x -0.785..0.780  y -0.081..0.081  z 0.000..2.432   size W 1.565 D 0.162 H 2.432
+opening metres: W 1.200 H 2.197  x -0.598..0.601  z 0.049..2.246  centre (x 0.001, z 1.147)  floor-open False  fill vs ideal rect 1.00
+muted orange in Image_0: 23.8% of texels, saturation x0.45, value x0.8
+textures ['Image_0:2048x2048', 'Image_1:2048x2048', 'Image_2:2048x2048']
+exported C:\Git\PicoHackathon\MuseXR\Tools\models\out\doors\vg-frame\r2\fin\vg-frame.glb 9343 KB
