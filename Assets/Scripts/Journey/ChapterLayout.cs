@@ -183,7 +183,7 @@ namespace MusePico.Journey
             work.transform.SetParent(transform, false);
             work.transform.SetPositionAndRotation(onWall, faces);
             var canvas = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            canvas.name = "Canvas"; Destroy(canvas.GetComponent<Collider>());
+            canvas.name = "Canvas"; Kill(canvas.GetComponent<Collider>());
             canvas.transform.SetParent(work.transform, false);
             canvas.transform.localScale = new Vector3(size.x, size.y, 1f);
             var shader = Shader.Find("MuseXR/Artwork");
@@ -221,7 +221,7 @@ namespace MusePico.Journey
             void Leg(Vector3 foot, Vector3 top)
             {
                 var b = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                b.name = "Leg"; Destroy(b.GetComponent<Collider>());
+                b.name = "Leg"; Kill(b.GetComponent<Collider>());
                 b.transform.SetParent(root, false);
                 var a = root.TransformPoint(foot); var t = root.TransformPoint(top);
                 b.transform.position = (a + t) / 2f;
@@ -236,7 +236,7 @@ namespace MusePico.Journey
             Leg(new Vector3(0f, 0f, 0.8f), new Vector3(0f, top - 0.1f, 0.12f));
             // The ledge the canvas sits on.
             var ledge = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            ledge.name = "Ledge"; Destroy(ledge.GetComponent<Collider>());
+            ledge.name = "Ledge"; Kill(ledge.GetComponent<Collider>());
             ledge.transform.SetParent(root, false);
             ledge.transform.localPosition = new Vector3(0f, FrameCentreHeight - 0.55f, -0.04f);
             ledge.transform.localScale = new Vector3(1.0f, 0.03f, 0.08f);
@@ -251,7 +251,7 @@ namespace MusePico.Journey
             void Bar(Vector3 pos, Vector3 scale)
             {
                 var b = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                b.name = "Frame"; Destroy(b.GetComponent<Collider>());
+                b.name = "Frame"; Kill(b.GetComponent<Collider>());
                 b.transform.SetParent(work, false); b.transform.localPosition = pos; b.transform.localScale = scale;
                 b.GetComponent<Renderer>().sharedMaterial = gold;
             }
@@ -280,11 +280,43 @@ namespace MusePico.Journey
             // meshes rather than UI sprites, so it survives a saved scene and reads at a low angle.
             var root = new GameObject("Interaction " + item.Label).transform;
             root.SetParent(transform, false);
-            root.position = p + Vector3.up * 0.012f;
+            root.position = p + Vector3.up * 0.03f;   // clear of floor splats that would band across it
             Disc(root, "Halo", 0f, 0.46f, new Color(MuseTheme.Rose.r, MuseTheme.Rose.g, MuseTheme.Rose.b, 0.16f), 0f);
             Disc(root, "Ring", 0.3f, 0.36f, MuseTheme.Rose, 0.004f);
             Disc(root, "Dot", 0f, 0.07f, MuseTheme.Rose, 0.004f);
             Placed[item.Id] = new Pose(p, Quaternion.Euler(0f, Cal.yaw, 0f));
+        }
+
+        /// <summary>A display stand: a body, a gold cap and a gold foot. Returns the cap's top centre,
+        /// where a piece stands.</summary>
+        public Vector3 Plinth(string name, Vector3 floor, Quaternion facing, Color body, float height = 1.0f, float width = 0.34f)
+        {
+            var root = new GameObject("Plinth " + name).transform; root.SetParent(transform, false);
+            root.SetPositionAndRotation(floor, facing);
+            var lacquer = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            lacquer.SetColor("_BaseColor", body); lacquer.SetFloat("_Smoothness", 0.55f);
+            var gold = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            gold.SetColor("_BaseColor", new Color(0.78f, 0.6f, 0.28f)); gold.SetFloat("_Metallic", 0.8f); gold.SetFloat("_Smoothness", 0.5f);
+            void Block(string n, float y0, float y1, float w, Material m)
+            {
+                var b = GameObject.CreatePrimitive(PrimitiveType.Cube); b.name = n;
+                Kill(b.GetComponent<Collider>());
+                b.transform.SetParent(root, false);
+                b.transform.localPosition = new Vector3(0f, (y0 + y1) / 2f, 0f);
+                b.transform.localScale = new Vector3(w, y1 - y0, w);
+                b.GetComponent<Renderer>().sharedMaterial = m;
+            }
+            Block("Foot", 0f, 0.06f, width + 0.08f, gold);
+            Block("Body", 0.06f, height - 0.05f, width, lacquer);
+            Block("Cap", height - 0.05f, height, width + 0.06f, gold);
+            return floor + Vector3.up * height;
+        }
+
+        /// <summary>Destroy that also works when a chapter is laid out in the Editor.</summary>
+        static void Kill(UnityEngine.Object o)
+        {
+            if (o == null) return;
+            if (Application.isPlaying) Destroy(o); else DestroyImmediate(o);
         }
 
         static void Disc(Transform parent, string name, float inner, float outer, Color colour, float lift)

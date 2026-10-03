@@ -150,7 +150,10 @@ namespace MuseXR.UI
             var eye = _eye != null ? _eye : (Camera.main != null ? Camera.main.transform : null);
             var toEye = eye != null ? Vector3.ProjectOnPlane(eye.position - sv.Slot.position, Vector3.up) : Vector3.zero;
             toEye = toEye.sqrMagnitude > 1e-4f ? toEye.normalized : Vector3.back;
-            cardAnchor.position = sv.Slot.position + toEye * LabelForward + Vector3.down * LabelDrop;
+            var support = SupportUnder(sv.Slot.position);
+            float forward = support.HasValue ? HalfDepthToward(support.Value, toEye) + 0.02f : LabelForward;
+            cardAnchor.position = sv.Slot.position + toEye * forward + Vector3.down * LabelDrop;
+            if (cardAnchor.position.y < LabelFloor) cardAnchor.position = new Vector3(cardAnchor.position.x, LabelFloor, cardAnchor.position.z);
             var c = MuseUi.Canvas(cardAnchor, "Card", SlotReadDistance, 150f);   // read from where the visitor stands, not arm's length
             var card = MuseScreens.Slot(c, state == SlotState.Aligned ? SlotVisual.Aligned : state == SlotState.Placed ? SlotVisual.Placed : SlotVisual.Empty, 150f);
             // Her captions come from SlotLook (the placed one counts the undo down).
@@ -163,7 +166,42 @@ namespace MuseXR.UI
                 var title = FindText(card, "State");
                 if (title != null) title.text = look.Title + " · " + slotName;
             }
+            FitWidth(cardAnchor, LabelWidth);
             sv.Card = cardAnchor;
+        }
+
+        /// <summary>The bounds of the stand a slot sits on (the smallest renderer whose top is at the slot),
+        /// or null - a slot can sit on nothing, or on something without a renderer.</summary>
+        Bounds? SupportUnder(Vector3 slot)
+        {
+            Bounds? best = null;
+            foreach (var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                if (r.transform.IsChildOf(transform) || r is ParticleSystemRenderer) continue;
+                var b = r.bounds;
+                if (Mathf.Abs(b.max.y - slot.y) > 0.06f) continue;
+                if (slot.x < b.min.x - 0.01f || slot.x > b.max.x + 0.01f || slot.z < b.min.z - 0.01f || slot.z > b.max.z + 0.01f) continue;
+                if (b.size.y < 0.3f || b.size.x > 1.5f || b.size.z > 1.5f) continue;   // a stand, not a floor or a wall
+                if (best == null || b.size.x * b.size.z < best.Value.size.x * best.Value.size.z) best = b;
+            }
+            return best;
+        }
+
+        static float HalfDepthToward(Bounds b, Vector3 dir) =>
+            Mathf.Abs(dir.x) * b.extents.x + Mathf.Abs(dir.z) * b.extents.z;
+
+        /// <summary>Scale a built label so its widest panel is <paramref name="metres"/> across.</summary>
+        static void FitWidth(Transform anchor, float metres)
+        {
+            Canvas.ForceUpdateCanvases();   // layout groups size their panels a frame late otherwise
+            float widest = 0f;
+            var corners = new Vector3[4];
+            foreach (var rt in anchor.GetComponentsInChildren<RectTransform>())
+            {
+                rt.GetWorldCorners(corners);
+                widest = Mathf.Max(widest, Vector3.Distance(corners[0], corners[3]));
+            }
+            if (widest > metres && widest > 1e-4f) anchor.localScale *= metres / widest;
         }
 
         // ---- held angle --------------------------------------------------------------------------
@@ -204,7 +242,11 @@ namespace MuseXR.UI
                 var t = hand.Target(out var r) as Component;
                 if (t != null) { target = t; byRay = r; break; }
             }
-            bool show = target != null;
+            // Not while a choice is waiting on A/B: the strip says what to do, and the tip would sit under it.
+            bool pending = false;
+            foreach (var st in _stations.Keys)
+                if (st != null && st.Board != null && st.Board.Choice.Current == ChoiceConfirm.Phase.Pending) pending = true;
+            bool show = target != null && !pending;
             if (_hoverHalo == null && show)
             {
                 var a = new GameObject("Hover Halo").transform; a.SetParent(transform, false);
@@ -215,7 +257,7 @@ namespace MuseXR.UI
                 _hoverHalo = a;
                 var b = new GameObject("Hover Tip").transform; b.SetParent(transform, false);
                 var tc = MuseUi.Canvas(b, "Tip", NearDistance, 200f);
-                MuseUi.Tag(tc, "Hold Grip to pick up", Color.white, MuseTheme.Ink);
+                MuseUi.Tag(tc, "Hold Grip to pick up", MuseTheme.Ink, Color.white);   // dark pill, white words
                 _hoverTip = b;
             }
             if (_hoverHalo == null) return;
@@ -283,8 +325,10 @@ namespace MuseXR.UI
         static Vector3 Above(Vector3 p, float h) => p + Vector3.up * h;
 
         const float StripGap = 0.04f;
-        const float LabelForward = 0.32f;   // just proud of a 0.5 m plinth's front face
-        const float LabelDrop = 0.22f;      // below the surface the piece stands on
+        const float LabelForward = 0.2f;    // proud of the slot when nothing is found beneath it
+        const float LabelDrop = 0.3f;       // below the surface the piece stands on, like a plinth label
+        const float LabelFloor = 0.35f;     // never down at the visitor's feet
+        const float LabelWidth = 0.3f;      // a museum label, not a sign
 
         /// <summary>The world top of a thing's renderers, centred over it - where a label clears it.</summary>
         static Vector3 TopOf(Component c)
