@@ -358,6 +358,10 @@ namespace MuseXR.Interaction
                 standees[id] = s;
             }
             Company = CompanyStage.Make(root.gameObject, standees);
+            // The UI layer's subtitle (her 4.2) on top of the group. By name, because MuseXR.UI.Interaction
+            // already references this assembly; absent, the lines still show on the event board.
+            var subtitles = System.Type.GetType("MuseXR.UI.SubtitleRig, MuseXR.UI.Interaction");
+            if (subtitles != null) root.gameObject.AddComponent(subtitles);
             Company.Question = "What is worth keeping?";
             Company.Toggled += (id, r) => Note("[Company] " + Masters.Name(id) + (r == Invitation.Result.Added ? " invited" :
                                                     r == Invitation.Result.Removed ? " uninvited" :
@@ -478,12 +482,14 @@ namespace MuseXR.Interaction
                 "Grip the ring and roll your wrist.\n" +
                 "Three detents: Mist · Afternoon · Dusk,\n" +
                 "each a tick in the hand and a water drop.");
-            Sign("Sign Company", o + (f * Vector3.back) * 3.6f + Vector3.up * signHeight, o,
+            var companySign = Sign("Sign Company", o + (f * Vector3.back) * 3.6f + Vector3.up * signHeight, o,
                 "<b>COMPANY · behind you</b>\n" +
                 "Point and pull the trigger to invite a master (1-3): they step forward.\n" +
                 "A fourth is refused: shake, knock, hard buzz. Trigger again to uninvite.\n" +
                 "A: the chosen walk to your side, the rest fade, each speaks in turn.\n" +
                 "Teleport or snap-turn: they re-place around you.", 1.8f);
+            // Only needed while choosing: once the companions speak, their subtitles must not meet it (blind review).
+            Company.PhaseChanged += ph => { if (ph != CompanyStage.Phase.Choosing) companySign.transform.parent.gameObject.SetActive(false); };
             Sign("Sign Gallery", o + (f * Quaternion.Euler(0f, -90f, 0f)) * Vector3.forward * 3.4f + Vector3.up * 2.55f, o,   // in front of the wall: behind it, the wall cut its last lines
                 "<b>GALLERY · to your left</b>\n" +
                 "Point at the painting a moment, or step onto its ring: card request.\n" +
