@@ -14,7 +14,9 @@
         "MusePico.Grab",
         "Unity.XR.Interaction.Toolkit",
         "MuseXR.DynamicWorlds",
-        "MuseXR.UI"
+        "MuseXR.UI",
+        "MuseXR.Slots",
+        "MuseXR.Interaction"
     ],
     "includePlatforms": [
         "Editor"
