@@ -152,19 +152,22 @@ namespace MuseXR.UI
             toEye = toEye.sqrMagnitude > 1e-4f ? toEye.normalized : Vector3.back;
             var support = SupportUnder(sv.Slot.position);
             float forward = support.HasValue ? HalfDepthToward(support.Value, toEye) + 0.02f : LabelForward;
-            // A post too thin to carry a label gets it at its foot instead, narrower, like a floor plaque.
+            // A post too thin to carry a card keeps its label at the same reading height but words only:
+            // no ring, so the text takes the whole 0.3 m and reads from the spawn. (A plaque at the
+            // post's foot was 3 m from the eye and unreadable - measured by musexr-b, c9b6eaa.)
             bool thin = support.HasValue && Mathf.Min(support.Value.size.x, support.Value.size.z) < ThinStand;
-            float width = thin ? ThinLabelWidth : LabelWidth;
-            cardAnchor.position = thin
-                ? new Vector3(sv.Slot.position.x, support.Value.min.y + ThinLabelHeight, sv.Slot.position.z) + toEye * (forward + 0.04f)
-                : sv.Slot.position + toEye * forward + Vector3.down * LabelDrop;
-            if (cardAnchor.position.y < LabelFloor && !thin) cardAnchor.position = new Vector3(cardAnchor.position.x, LabelFloor, cardAnchor.position.z);
+            float width = LabelWidth;
+            cardAnchor.position = sv.Slot.position + toEye * forward + Vector3.down * LabelDrop;
+            if (cardAnchor.position.y < LabelFloor) cardAnchor.position = new Vector3(cardAnchor.position.x, LabelFloor, cardAnchor.position.z);
             var c = MuseUi.Canvas(cardAnchor, "Card", SlotReadDistance, 150f);   // read from where the visitor stands, not arm's length
             var card = MuseScreens.Slot(c, state == SlotState.Aligned ? SlotVisual.Aligned : state == SlotState.Placed ? SlotVisual.Placed : SlotVisual.Empty, 150f);
             // Her captions come from SlotLook (the placed one counts the undo down).
             var hint = FindText(card, "Hint"); if (hint != null) { hint.text = look.Caption; hint.color = MuseTheme.Ink; }
             // At label size the word inside the ring is too small to read; the title already says it.
             var ringWord = FindText(card, "Word"); if (ringWord != null) ringWord.gameObject.SetActive(false);
+            if (thin)
+                foreach (var img in card.GetComponentsInChildren<Image>(true))
+                    if (img.name == "Ring") img.gameObject.SetActive(false);
             // Opaque: a label in front of a plinth must not let the room swim through its words.
             foreach (var img in card.GetComponentsInChildren<Image>(true))
                 if (img.color.a > 0.3f && img.color.a < 0.97f) { var col = img.color; col.a = 0.97f; img.color = col; }
@@ -337,8 +340,7 @@ namespace MuseXR.UI
         const float LabelFloor = 0.35f;     // never down at the visitor's feet
         const float LabelWidth = 0.3f;      // a museum label, not a sign
         const float ThinStand = 0.2f;       // a stand narrower than this is a post
-        const float ThinLabelWidth = 0.2f;
-        const float ThinLabelHeight = 0.3f; // a post's plaque, near its foot
+
 
         /// <summary>The world top of a thing's renderers, centred over it - where a label clears it.</summary>
         static Vector3 TopOf(Component c)
