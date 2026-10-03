@@ -246,5 +246,54 @@ namespace MusePico.Tests
             Assert.Less(ChimeSynth.RefuseHz, new[] { ChimeSynth.BellHz, ChimeSynth.StoneHz, ChimeSynth.WoodHz, ChimeSynth.WaterHz }.Min());
             Assert.AreEqual(0.7f, x.Max(System.Math.Abs), 1e-4);
         }
+
+        // ---- PalaceFlow: her chapter A order --------------------------------------------
+
+        [Test]
+        public void APalaceChoiceNeedsAReasonBeforeItSaves()
+        {
+            var f = new PalaceFlow();
+            f.Placed("Crane", 35);
+            Assert.IsFalse(f.CanSave, "her storyboard: pick a reason, then save");
+            Assert.IsFalse(f.Save());
+            Assert.IsTrue(f.ChooseReason("It still looks up"));
+            Assert.AreEqual("Crane · 35° · It still looks up", f.Summary);
+            Assert.IsTrue(f.Save());
+            Assert.AreEqual(PalaceFlow.Phase.Saved, f.Current);
+            Assert.AreEqual("miniature", f.ModeName);
+        }
+
+        [Test]
+        public void TakingThePieceBackForgetsTheReason()
+        {
+            var f = new PalaceFlow();
+            f.Placed("Crane", 35);
+            f.ChooseReason("It still looks up");
+            f.Unplaced();
+            Assert.AreEqual(PalaceFlow.Phase.Choosing, f.Current);
+            Assert.AreEqual(string.Empty, f.Reason);
+            Assert.IsFalse(f.ChooseReason("anything"), "no reason without a placed piece");
+        }
+
+        [Test]
+        public void TheCardFallbackSavesModeCardWithNoYaw()
+        {
+            var f = new PalaceFlow();
+            f.Placed("Turtle", 90, PalaceFlow.Mode.Card);
+            f.SpeakReason("  it endures  ");
+            Assert.AreEqual("it endures", f.Reason);
+            Assert.IsTrue(f.ReasonSpoken);
+            Assert.AreEqual(0, f.YawDeg);
+            Assert.AreEqual("card", f.ModeName);
+            Assert.AreEqual("Turtle · it endures", f.Summary);
+            Assert.IsFalse(f.SpeakReason("   "), "silence is not a reason");
+        }
+
+        [Test]
+        public void TheCranesChipsIncludeHerReason()
+        {
+            CollectionAssert.Contains(PalaceFlow.ReasonsFor("Crane"), "It still looks up");
+            Assert.AreEqual(3, PalaceFlow.ReasonsFor("Turtle").Count);
+        }
     }
 }

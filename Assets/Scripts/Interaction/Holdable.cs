@@ -54,10 +54,10 @@ namespace MuseXR.Interaction
         Vector3 _homePos;
         Quaternion _homeRot;
         Vector3 _baseLocal;                 // bottom-centre of its bounds, in its own space
-        Vector3 _gripPos;                   // held pose relative to the hand
-        Quaternion _gripRot;
+        float _yawAtGrab;
+        Vector3 _centreFrom, _nearOffset, _centreLocal;
+        bool _byRay;
         float _reel;                        // 0..1 while a ray grab comes in
-        Vector3 _reelFromPos;
         readonly StickStepper _stick = new StickStepper();
 
         Vector3 _glideFrom, _glideTo;
@@ -83,6 +83,7 @@ namespace MuseXR.Interaction
             _homePos = transform.position;
             _homeRot = transform.rotation;
             _baseLocal = BaseLocal();
+            _centreLocal = transform.InverseTransformPoint(Bounds().center);
         }
 
         public Vector3 HomePosition => _homePos;
@@ -103,20 +104,14 @@ namespace MuseXR.Interaction
             State = Mode.Held;
             _stick.Reset();
             var aim = hand.Source.Aim;
-            if (byRay)
-            {
-                // Come to the hand, keeping the orientation it has now.
-                _reel = 0f;
-                _reelFromPos = Quaternion.Inverse(aim.rotation) * (transform.position - aim.position);
-                var centre = transform.position - Bounds().center;
-                _gripPos = Vector3.forward * HeldAhead + Quaternion.Inverse(aim.rotation) * centre;
-            }
-            else
-            {
-                _reel = 1f;
-                _gripPos = Quaternion.Inverse(aim.rotation) * (transform.position - aim.position);
-            }
-            _gripRot = Quaternion.Inverse(aim.rotation) * transform.rotation;
+            // Her storyboard: "the object follows the hand; the stick turns it in 15° steps". The
+            // piece stays upright and keeps its yaw; only the stick turns it, never the wrist.
+            _yawAtGrab = transform.eulerAngles.y;
+            var centre = Bounds().center;
+            _centreFrom = centre - aim.position;                         // world offset, hand to centre
+            _byRay = byRay;
+            _nearOffset = _centreFrom;
+            _reel = byRay ? 0f : 1f;
             Grabbed?.Invoke(this);
             return true;
         }
@@ -130,13 +125,12 @@ namespace MuseXR.Interaction
             if (step != 0) hand.Source.Buzz(SlotRules.LightAmplitude, SlotRules.LightSeconds);
 
             if (_reel < 1f) _reel = Mathf.Min(1f, _reel + Time.deltaTime / ReelSeconds);
-            var local = Vector3.Lerp(_reelFromPos, _gripPos, Mathf.SmoothStep(0f, 1f, _reel));
-
-            // The stick turns it about the world's up, through its own centre, so it spins in place.
-            var rot = Quaternion.AngleAxis(_stick.Degrees, Vector3.up) * (aim.rotation * _gripRot);
-            var pos = aim.position + aim.rotation * local;
-            var pivotToCentre = (aim.rotation * _gripRot) * CentreLocal();
-            pos += pivotToCentre - Quaternion.AngleAxis(_stick.Degrees, Vector3.up) * pivotToCentre;
+            // Where its centre should be: held where it was taken (by hand), or just ahead of the
+            // controller (by ray), coming in smoothly from where it was.
+            var want = _byRay ? aim.forward * HeldAhead : _nearOffset;
+            var offset = Vector3.Lerp(_centreFrom, want, Mathf.SmoothStep(0f, 1f, _reel));
+            var rot = Quaternion.Euler(0f, _yawAtGrab + _stick.Degrees, 0f) * LevelResidual();
+            var pos = aim.position + offset - rot * Vector3.Scale(_centreLocal, transform.lossyScale);
             transform.SetPositionAndRotation(pos, rot);
             Moved?.Invoke(this);
         }

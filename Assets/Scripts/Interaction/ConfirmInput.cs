@@ -19,6 +19,9 @@ namespace MuseXR.Interaction
     {
         public static IConfirmable Focus { get; private set; }
 
+        /// <summary>Every press of A or B: which button, what it went to, and whether it did anything.</summary>
+        public static event System.Action<string, string, bool> Pressed;
+
         static ConfirmInput _instance;
         InputAction _a, _b;
 
@@ -39,8 +42,16 @@ namespace MuseXR.Interaction
         }
 
         /// <summary>Press A or B from code: the test harness.</summary>
-        public static bool PressA() => Focus != null && Focus.Confirm();
-        public static bool PressB() => Focus != null && Focus.Redo();
+        public static bool PressA() => Press("A", f => f.Confirm());
+        public static bool PressB() => Press("B", f => f.Redo());
+
+        static bool Press(string button, System.Func<IConfirmable, bool> act)
+        {
+            var target = Focus;
+            var ok = target != null && act(target);
+            Pressed?.Invoke(button, target != null ? target.GetType().Name : "nothing", ok);
+            return ok;
+        }
 
         void Awake()
         {
@@ -61,9 +72,8 @@ namespace MuseXR.Interaction
 
         void Update()
         {
-            if (Focus == null) return;
-            if (_a.WasPressedThisFrame()) Focus.Confirm();
-            if (_b.WasPressedThisFrame()) Focus.Redo();
+            if (_a.WasPressedThisFrame()) PressA();
+            if (_b.WasPressedThisFrame()) PressB();
         }
     }
 }

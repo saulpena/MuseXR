@@ -34,6 +34,8 @@ namespace MuseXR.Interaction
         public CardChoiceStation Cards { get; private set; }
         public ApproachChime Plinth { get; private set; }
         public HeightCalibrator Calibrator { get; private set; }
+        public PalaceChapter PalaceFlowStation { get; private set; }
+        public MusePico.Dialogue.JourneyRecord Record { get; } = new MusePico.Dialogue.JourneyRecord();
 
         [Tooltip("Portraits for the six standees, in her row order: Monet, Van Gogh, Socrates, Frida, Hilma, Morisot.")]
         public Texture2D[] portraits = new Texture2D[0];
@@ -89,6 +91,17 @@ namespace MuseXR.Interaction
 
             Calibrator = gameObject.AddComponent<HeightCalibrator>();
             BuildTestKit(o, f);
+
+            // Her chapter A end to end: the court, the card fallback and the companions, one flow,
+            // saving to a journey record. Reason chips stand between the visitor and the court.
+            var court = Palace.transform.position;
+            var toViewer = o - court; toViewer.y = 0f; toViewer.Normalize();
+            PalaceFlowStation = PalaceChapter.Make(Palace.gameObject, Palace, Cards, Company, Record,
+                court + toViewer * 0.55f + Vector3.up * 1.12f, Quaternion.LookRotation(-toViewer, Vector3.up));
+            PalaceFlowStation.Note += Note;
+            PalaceFlowStation.Saved += _ => Note("[Record] " + Record.SummaryJson());
+            ConfirmInput.Pressed += (button, target, ok) =>
+                Note("[" + button + "] -> " + target + (ok ? "" : " (nothing to do)"));
         }
 
         // ---- Palace ---------------------------------------------------------------------
@@ -449,6 +462,9 @@ namespace MuseXR.Interaction
         TMPro.TextMeshPro _board;
         readonly System.Collections.Generic.List<string> _events = new System.Collections.Generic.List<string>();
         UnityEngine.InputSystem.InputAction _reset, _calibrate;
+        float _calibrateHeld;
+        Vector3 _lastEye;
+        bool _eyeSeen;
 
         /// <summary>Every event goes to the console and to the board on the right, newest first.</summary>
         void Note(string line)
@@ -470,7 +486,7 @@ namespace MuseXR.Interaction
                 "Grip a miniature: reach for it, or point and grip.\n" +
                 "Stick left/right while holding turns it 15° (a tick).\n" +
                 "Over the court: light buzz = aligned. Let go: it seats, bronze bell.\n" +
-                "A keeps · B within 3 s undoes · or lift it back out.\n" +
+                "Then pick a reason chip (trigger). A keeps it · B within 3 s undoes · or lift it back out.\n" +
                 "Let go anywhere else: it floats home.");
             Sign("Sign Grotto", At(10f, signDistance + 0.9f) + Vector3.up * (signHeight + 0.15f), o,
                 "<b>GROTTO · the lamp</b>\n" +
@@ -493,7 +509,7 @@ namespace MuseXR.Interaction
             Sign("Sign Gallery", o + (f * Quaternion.Euler(0f, -90f, 0f)) * Vector3.forward * 3.4f + Vector3.up * 2.55f, o,   // in front of the wall: behind it, the wall cut its last lines
                 "<b>GALLERY · to your left</b>\n" +
                 "Point at the painting a moment, or step onto its ring: card request.\n" +
-                "Look at it 4 s: seen. Trigger a red card: it flips. A keeps · B undoes.\n" +
+                "Look at it 4 s: seen. Trigger a red card: it flips and glows; pick a reason; A keeps · B undoes.\n" +
                 "Walk up to the plinth: bronze bell, once per approach.", 1.8f);
 
             // The board on the right, where nothing else stands: the start sign above, events below.
@@ -501,7 +517,7 @@ namespace MuseXR.Interaction
             var boardTop = o + right * Vector3.forward * 2.2f + Vector3.up * 2.1f;
             var start = Sign("Sign Start", boardTop, o,
                 "<b>INTERACTIONS TEST</b>\nahead: Palace · Grotto · Monet   behind: Company   left: Gallery\n" +
-                "Teleport and 30° snap turn: either stick   ·   left stick click: height   ·   left menu: reset", 1.6f, 0.022f);
+                "Teleport and 30° snap turn: either stick   ·   hold left stick click 1 s: height   ·   left menu: reset", 1.6f, 0.022f);
             var startH = start.rectTransform.sizeDelta.y;
             start.transform.parent.position = boardTop + Vector3.up * (startH * 0.5f);
             // The event board keeps room for all nine lines, measured from a full one, so it never grows.
@@ -528,8 +544,26 @@ namespace MuseXR.Interaction
 
         void Update()
         {
-            if (_calibrate != null && _calibrate.WasPressedThisFrame() && Calibrator != null)
-                Note("Height calibrated: camera offset " + Calibrator.Calibrate().ToString("+0.00;-0.00") + " m");
+            // A deliberate one-second hold: a stick click while teleporting or turning moved the view
+            // up or down by up to 0.7 m, which reads as a jump.
+            if (_calibrate != null && Calibrator != null)
+            {
+                if (_calibrate.IsPressed()) _calibrateHeld += Time.deltaTime; else _calibrateHeld = 0f;
+                var keyboard = UnityEngine.InputSystem.Keyboard.current;
+                if (_calibrateHeld >= 1f || (keyboard != null && keyboard.hKey.wasPressedThisFrame))
+                {
+                    _calibrateHeld = float.MinValue;
+                    Note("Height calibrated: camera offset " + Calibrator.Calibrate().ToString("+0.00;-0.00") + " m");
+                }
+            }
+            var cam = Camera.main != null ? Camera.main.transform : null;
+            if (cam != null)
+            {
+                var d = cam.position - _lastEye;
+                if (_eyeSeen && d.magnitude > 0.25f)
+                    Note("[View] moved " + d.magnitude.ToString("F2") + " m in one frame (up " + d.y.ToString("+0.00;-0.00") + "): teleport, snap turn or calibration");
+                _lastEye = cam.position; _eyeSeen = true;
+            }
             if (_reset != null && _reset.WasPressedThisFrame())
             {
                 var path = UnityEngine.SceneManagement.SceneManager.GetActiveScene().path;

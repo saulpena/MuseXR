@@ -55,6 +55,12 @@ namespace MuseXR.Slots
             Go(Phase.Pending);
         }
 
+        /// <summary>Change what the strip names without restarting the undo bar (a reason was added).</summary>
+        public void Retitle(string summary)
+        {
+            if (Current == Phase.Pending) Summary = summary ?? string.Empty;
+        }
+
         /// <summary>B. Returns false, and changes nothing, once the bar has run out (unless redoAnyTime).</summary>
         public bool Redo()
         {

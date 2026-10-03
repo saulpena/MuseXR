@@ -49,6 +49,7 @@ namespace MuseXR.Interaction
         readonly Dictionary<string, (Vector3 from, Vector3 to, Quaternion fromRot, Quaternion toRot)> _walk =
             new Dictionary<string, (Vector3, Vector3, Quaternion, Quaternion)>();
         float _walkT;
+        bool _answer = true, _completed;
 
         /// <summary>Build the stage over standees already standing in a row, keyed by master id.</summary>
         public static CompanyStage Make(GameObject host, IReadOnlyDictionary<string, Transform> standees)
@@ -98,9 +99,16 @@ namespace MuseXR.Interaction
         }
 
         /// <summary>A: the chosen step out to their marks and answer in turn.</summary>
-        public bool Confirm()
+        public bool Confirm() => Send(answer: true);
+
+        /// <summary>
+        /// Send the chosen to their marks. With <paramref name="answer"/> false they arrive and wait
+        /// (a later chapter starts their turns), which is how the Palace calls them if nobody has yet.
+        /// </summary>
+        public bool Send(bool answer)
         {
             if (Current != Phase.Choosing || !Invitation.CanProceed) return false;
+            _answer = answer;
             var order = Invitation.SpeakingOrder();
             var figures = new Dictionary<string, Transform>();
             foreach (var id in order) figures[id] = _standees[id];
@@ -125,6 +133,16 @@ namespace MuseXR.Interaction
         }
 
         public bool Redo() => false;
+
+        /// <summary>Done once: later chapters reuse the group's turns without re-completing the stage.</summary>
+        void Finish()
+        {
+            if (_completed) return;
+            _completed = true;
+            Group.TurnsFinished -= Finish;
+            Go(Phase.Done);
+            Completed?.Invoke(Invitation.SpeakingOrder());
+        }
 
         void Go(Phase p)
         {
@@ -161,7 +179,8 @@ namespace MuseXR.Interaction
                     {
                         Group.enabled = true;
                         Group.PlaceAll();
-                        Group.TurnsFinished += () => { Go(Phase.Done); Completed?.Invoke(Invitation.SpeakingOrder()); };
+                        if (!_answer) { Finish(); break; }
+                        Group.TurnsFinished += Finish;
                         Group.BeginTurns();
                         Go(Phase.Answering);
                     }
