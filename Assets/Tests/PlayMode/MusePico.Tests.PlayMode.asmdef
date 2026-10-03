@@ -10,7 +10,9 @@
         "Unity.Addressables",
         "Unity.ResourceManager",
         "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "UnityEditor.TestRunner",
+        "MuseXR.Slots",
+        "MuseXR.Interaction"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

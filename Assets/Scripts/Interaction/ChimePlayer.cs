@@ -32,6 +32,17 @@ namespace MuseXR.Interaction
             return _tick;
         }
 
+        static AudioClip _refuse;
+
+        public static AudioClip RefuseClip()
+        {
+            if (_refuse != null) return _refuse;
+            var data = ChimeSynth.Refuse();
+            _refuse = AudioClip.Create("refuse", data.Length, 1, ChimeSynth.SampleRate, false);
+            _refuse.SetData(data, 0);
+            return _refuse;
+        }
+
         /// <summary>The last thing played, for checks: what, where, when.</summary>
         public static string LastPlayed { get; private set; } = string.Empty;
         public static float LastPlayedAt { get; private set; } = -1f;

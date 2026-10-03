@@ -75,6 +75,26 @@ namespace MuseXR.Slots
             return data;
         }
 
+        public const float RefuseHz = 196f;
+
+        /// <summary>
+        /// The refusal (her "the fourth is refused with visible and audible feedback"): two dull, low,
+        /// quickly damped knocks falling a tone, unlike any chapter sound, so it reads as "no".
+        /// </summary>
+        public static float[] Refuse(int sampleRate = SampleRate)
+        {
+            var data = new float[(int)(0.45f * sampleRate)];
+            var second = (int)(0.13f * sampleRate);
+            var a = new float[data.Length];
+            var b = new float[data.Length - second];
+            Partials(a, sampleRate, RefuseHz, new[] { (1f, 1f, 22f), (2.3f, 0.25f, 40f) }, beatHz: 0f);
+            Partials(b, sampleRate, RefuseHz * 0.84f, new[] { (1f, 1f, 22f), (2.3f, 0.25f, 40f) }, beatHz: 0f);
+            Strike(a, sampleRate, 0.004f, 0.3f, 7);
+            for (var i = 0; i < data.Length; i++) data[i] = a[i] + (i >= second ? 0.8f * b[i - second] : 0f);
+            Normalise(data, 0.7f);
+            return data;
+        }
+
         static void Partials(float[] data, int rate, float f0, (float ratio, float amp, float decay)[] modes, float beatHz)
         {
             var attack = rate * 0.002f;   // 2 ms: a strike, not a click

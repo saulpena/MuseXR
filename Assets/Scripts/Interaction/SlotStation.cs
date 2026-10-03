@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using MuseXR.Slots;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace MuseXR.Interaction
 {
@@ -23,7 +22,7 @@ namespace MuseXR.Interaction
     /// A and B go to the station whose choice is waiting (the last one placed), never to every
     /// station at once.
     /// </summary>
-    public sealed class SlotStation : MonoBehaviour
+    public sealed class SlotStation : MonoBehaviour, IConfirmable
     {
         public SlotBoard Board { get; private set; }
         public Chapter Chapter { get; private set; }
@@ -37,15 +36,14 @@ namespace MuseXR.Interaction
         /// <summary>Every cue as it lands, after its sound and haptic have fired.</summary>
         public event Action<SlotStation, SlotEvent> Cue;
 
-        /// <summary>The station A and B speak to.</summary>
-        public static SlotStation Focus { get; private set; }
+        /// <summary>The station A and B speak to (through <see cref="ConfirmInput"/>), if the focus is a station.</summary>
+        public static SlotStation Focus => ConfirmInput.Focus as SlotStation;
 
         Transform[] _slots;
         Holdable[] _pieces;
         string[] _slotNames;
         readonly float[] _distances = new float[8];
         float[] _scratch;
-        InputAction _confirm, _redo;
 
         /// <summary>
         /// Build a station. <paramref name="slotNames"/> name the slots in the strip ("Detail", "Whole");
@@ -71,44 +69,34 @@ namespace MuseXR.Interaction
             return s;
         }
 
-        void Awake()
-        {
-            _confirm = new InputAction("slot-confirm", InputActionType.Button);
-            _confirm.AddBinding("<XRController>{RightHand}/primaryButton");      // A
-            _confirm.AddBinding("<Keyboard>/enter");
-            _redo = new InputAction("slot-redo", InputActionType.Button);
-            _redo.AddBinding("<XRController>{RightHand}/secondaryButton");       // B
-            _redo.AddBinding("<Keyboard>/backspace");
-            _confirm.Enable(); _redo.Enable();
-        }
-
-        void OnDestroy()
-        {
-            _confirm?.Dispose(); _redo?.Dispose();
-            if (Focus == this) Focus = null;
-        }
+        void OnDestroy() => ConfirmInput.Drop(this);
 
         void Update()
         {
-            if (Board == null) return;
-            Board.Tick(Time.deltaTime);
-            if (Focus != this) return;
-            if (_confirm.WasPressedThisFrame()) Confirm();
-            if (_redo.WasPressedThisFrame()) Undo();
+            if (Board != null) Board.Tick(Time.deltaTime);
         }
 
         public bool Confirm() => Board.Confirm();
         public bool Undo() => Board.Undo();
+        /// <summary>B. Her strip labels it Redo; for a slot it is the 3 s undo.</summary>
+        public bool Redo() => Board.Undo();
 
         /// <summary>Her roundtable edit: lift the kept piece out again.</summary>
         public void Reopen()
         {
             Board.Reopen();
-            Focus = this;
+            ConfirmInput.Take(this);
         }
 
         /// <summary>The kept or pending piece's yaw relative to its slot's facing, 0..359.</summary>
         public int PlacedYaw => Board.PlacedPiece < 0 ? 0 : YawInSlot(_pieces[Board.PlacedPiece], Board.PlacedSlot);
+
+        /// <summary>
+        /// The angle her storyboard shows while a piece is held ("stick turns it in 15° steps, angle
+        /// shown") and the one recorded as yawDeg: the piece's yaw relative to the slot's facing, 0..359.
+        /// The stick moves it 15° a flick; the wrist can turn it too, so it is not always a multiple of 15.
+        /// </summary>
+        public int YawOf(Holdable piece) => YawInSlot(piece, Board.PlacedSlot >= 0 ? Board.PlacedSlot : 0);
 
         int YawInSlot(Holdable piece, int slot)
         {
@@ -154,7 +142,7 @@ namespace MuseXR.Interaction
                     piece.SeatAt(_slots[e.Slot].position, piece.Yaw);
                     ChimePlayer.Play(SlotRules.SoundOf(Chapter), _slots[e.Slot].position);
                     hand?.Buzz(SlotRules.ConfirmAmplitude, SlotRules.ConfirmSeconds);
-                    Focus = this;
+                    ConfirmInput.Take(this);
                     break;
                 case SlotCue.FloatHome:
                 case SlotCue.Undone:
