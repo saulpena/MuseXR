@@ -65,6 +65,9 @@ namespace MusePico.Journey
 
         public GateFlow Flow { get; } = new GateFlow();
 
+        /// <summary>The doorway the question is lettered over and the doors close (world point on the floor).</summary>
+        public Vector3 Doorway => _doorway;
+
         /// <summary>Raised once, when the visitor walks through the open doors.</summary>
         public event Action<string> Entered;
 

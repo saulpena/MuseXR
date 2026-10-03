@@ -37,6 +37,12 @@ namespace MuseXR.Interaction
         public event Action<IReadOnlyList<string>> Completed;
         public event Action<Phase> PhaseChanged;
 
+        /// <summary>
+        /// Optional: the turns wait at the flank marks until this returns true. The journey's lines are
+        /// live (~5 s from the model), and turns started after the 0.8 s step would speak placeholders.
+        /// </summary>
+        public Func<bool> ReadyToAnswer;
+
         readonly Dictionary<string, Transform> _standees = new Dictionary<string, Transform>();
         readonly Dictionary<string, (Vector3 pos, Quaternion rot)> _rowPose = new Dictionary<string, (Vector3, Quaternion)>();
         readonly Dictionary<string, float> _shake = new Dictionary<string, float>();
@@ -151,7 +157,7 @@ namespace MuseXR.Interaction
                     foreach (var kv in _walk)
                         _standees[kv.Key].SetPositionAndRotation(Vector3.Lerp(kv.Value.from, kv.Value.to, k),
                                                                  Quaternion.Slerp(kv.Value.fromRot, kv.Value.toRot, k));
-                    if (_walkT >= StepSeconds)
+                    if (_walkT >= StepSeconds && (ReadyToAnswer == null || ReadyToAnswer()))
                     {
                         Group.enabled = true;
                         Group.PlaceAll();

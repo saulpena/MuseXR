@@ -1024,6 +1024,61 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &1561913100
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1561913102}
+  - component: {fileID: 1561913101}
+  m_Layer: 0
+  m_Name: Journey Opening
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1561913101
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1561913100}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c39745f2c8bf17c4491de4a682ef3354, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MuseXR.Journey.Opening::MuseXR.Journey.JourneyOpening
+  gate: {fileID: 959012093}
+  dialogue: {fileID: 1607190936}
+  masterPrefabs:
+  - {fileID: 3540961834178044443, guid: 158e9574aa52bd04ba784177070d198a, type: 3}
+  - {fileID: 4664059452461548926, guid: 21c92ce5e614ed94da179c4d98a6efbf, type: 3}
+  - {fileID: 6362938111295130812, guid: e8e8971525a6232449307099b8985836, type: 3}
+  - {fileID: 877883006234443122, guid: aed9027bc57a41446bed8bc4404640fb, type: 3}
+  - {fileID: 6247701199534488515, guid: ba34f1486a6b64841ac982cbc8a0f390, type: 3}
+  - {fileID: 2907023117038674840, guid: a7aeb4138e710e04c9e00f62dc37db54, type: 3}
+  rowBeforeDoorway: 4
+  rowSpacing: 1
+--- !u!4 &1561913102
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1561913100}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1607190935
 GameObject:
   m_ObjectHideFlags: 0
@@ -1301,3 +1356,4 @@ SceneRoots:
   - {fileID: 1039554679}
   - {fileID: 1607190939}
   - {fileID: 2118713569}
+  - {fileID: 1561913102}

@@ -1,0 +1,25 @@
+{
+    "name": "MuseXR.Journey.Opening",
+    "rootNamespace": "MuseXR.Journey",
+    "references": [
+        "MusePico.Journey",
+        "MusePico.Dialogue",
+        "MusePico.Generation",
+        "MuseXR.Interaction",
+        "MuseXR.Slots",
+        "MuseXR.UI",
+        "MuseXR.UI.Interaction",
+        "Unity.XR.CoreUtils",
+        "Unity.XR.Interaction.Toolkit",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
