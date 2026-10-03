@@ -68,7 +68,7 @@ namespace MusePico.Tests
             var j = At(Stage.AiCuration);
             j.SetQuestion("How do I live with uncertainty?");
 
-            // A change against her opening three: withdraw one, invite another.
+            // A change against the opening company: withdraw one, invite another.
             j.ToggleCompanion("monet");
             j.ToggleCompanion("hilma");
 
@@ -77,7 +77,7 @@ namespace MusePico.Tests
 
             Assert.AreEqual(Stage.LifeQuestion, j.Current);
             Assert.AreEqual("How do I live with uncertainty?", j.Question);
-            Assert.AreEqual(3, j.InvitedMasterIds.Count);
+            Assert.AreEqual(MuseumJourney.MaxCompanions, j.InvitedMasterIds.Count);
             Assert.IsFalse(j.IsInvited("monet"), "the withdrawal survived the step back");
             Assert.IsTrue(j.IsInvited("hilma"), "and so did the invitation");
         }
@@ -115,7 +115,8 @@ namespace MusePico.Tests
         {
             Assert.IsEmpty(JourneyScript.For(At(Stage.Threshold)).Back);
             Assert.IsEmpty(JourneyScript.For(At(Stage.WorldExploration)).Back);
-            Assert.IsEmpty(JourneyScript.For(At(Stage.Manifesto)).Back);
+            // The manifesto's step-back slot is her ENTER AGAIN (a reset), not a step back.
+            Assert.AreEqual("ENTER AGAIN", JourneyScript.For(At(Stage.Manifesto)).Back);
         }
 
         [Test]

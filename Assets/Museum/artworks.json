@@ -161,6 +161,16 @@
           "source": "Art Institute of Chicago",
           "sourceUrl": "https://www.artic.edu/artworks/62371",
           "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "picasso-multiple-realities",
+          "title": "Multiple Realities",
+          "artist": "After Pablo Picasso",
+          "date": "AI interpretive study",
+          "source": "MUSE visual study",
+          "sourceUrl": "",
+          "rights": "AI-generated interpretive image; not an authentic historical artwork.",
+          "prompt": "Which viewpoint does this image refuse to make final?"
         }
       ]
     },
@@ -202,6 +212,16 @@
           "source": "Art Institute of Chicago",
           "sourceUrl": "https://www.artic.edu/artworks/28862",
           "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "van-gogh-emotional-sky",
+          "title": "The Emotional Sky",
+          "artist": "After Vincent van Gogh",
+          "date": "AI interpretive study",
+          "source": "MUSE visual study",
+          "sourceUrl": "",
+          "rights": "AI-generated interpretive image; not an authentic historical artwork.",
+          "prompt": "Where does observation become emotional intensity?"
         }
       ]
     },
@@ -243,6 +263,16 @@
           "source": "Art Institute of Chicago",
           "sourceUrl": "https://www.artic.edu/artworks/150773",
           "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "qi-baishi-living-ink",
+          "title": "Living Ink",
+          "artist": "After Qi Baishi",
+          "date": "AI interpretive study",
+          "source": "MUSE visual study",
+          "sourceUrl": "",
+          "rights": "AI-generated interpretive image; not an authentic historical artwork.",
+          "prompt": "How little form is needed before life appears?"
         }
       ]
     },
@@ -284,6 +314,16 @@
           "source": "Art Institute of Chicago",
           "sourceUrl": "https://www.artic.edu/artworks/28826",
           "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "frida-living-memory",
+          "title": "Living Memory",
+          "artist": "After Frida Kahlo",
+          "date": "AI interpretive study",
+          "source": "MUSE visual study",
+          "sourceUrl": "",
+          "rights": "AI-generated interpretive image; not an authentic historical artwork.",
+          "prompt": "Which symbol turns private memory into a shared language?"
         }
       ]
     },
@@ -325,6 +365,16 @@
           "source": "Art Institute of Chicago",
           "sourceUrl": "https://www.artic.edu/artworks/8983",
           "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "kusama-infinite-self",
+          "title": "Infinite Self",
+          "artist": "After Yayoi Kusama",
+          "date": "AI interpretive study",
+          "source": "MUSE visual study",
+          "sourceUrl": "",
+          "rights": "AI-generated interpretive image; not an authentic historical artwork.",
+          "prompt": "Does repetition dissolve the self or make it more visible?"
         }
       ]
     },
@@ -366,6 +416,16 @@
           "source": "Art Institute of Chicago",
           "sourceUrl": "https://www.artic.edu/artworks/94240",
           "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "future-being",
+          "title": "A World Still Becoming",
+          "artist": "MUSE + visitor",
+          "date": "AI interpretive study",
+          "source": "MUSE visual study",
+          "sourceUrl": "",
+          "rights": "AI-generated interpretive image; not an authentic historical artwork.",
+          "prompt": "Which part of this world feels like an answer you authored?"
         }
       ]
     }

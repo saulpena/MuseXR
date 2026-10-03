@@ -48,14 +48,17 @@ namespace MusePico.Dialogue
         /// <summary>The visitor's own question, from stage 01. Every later stage reads it.</summary>
         public string Question { get; private set; } = string.Empty;
 
-        /// <summary>Master ids invited at stage 02, in the order chosen. At most three.</summary>
+        /// <summary>Master ids invited at stage 02, in the order chosen. At most <see cref="MaxCompanions"/>.</summary>
         public IReadOnlyList<string> InvitedMasterIds => _invited;
         /// <summary>
         /// Her opening company, pre-invited: `selectedCompanions: new Set(["monet","van_gogh",
         /// "socrates"])`. Starting empty made the forward button dead on arrival and told the
         /// visitor the screen was broken before they had touched anything.
+        ///
+        /// Monet and Picasso since 1 Oct 2026: they are the two masters with rigged, animated bodies
+        /// that can walk with the visitor, and the only two offered until more are rigged.
         /// </summary>
-        public static readonly string[] DefaultCompany = { "monet", "van_gogh", "socrates" };
+        public static readonly string[] DefaultCompany = { "monet", "picasso" };
 
         readonly List<string> _invited = new List<string>(DefaultCompany);
 
@@ -65,7 +68,8 @@ namespace MusePico.Dialogue
         /// <summary>Fires after the change: (from, to).</summary>
         public event Action<Stage, Stage> StageChanged;
 
-        public const int MaxCompanions = 3;
+        /// <summary>How many masters may walk with the visitor: the two rigged painters, for now.</summary>
+        public const int MaxCompanions = 2;
 
         /// <summary>The next stage, or null at the end of the arc.</summary>
         public Stage? Next => Current == Stage.Manifesto ? (Stage?)null : Current + 1;

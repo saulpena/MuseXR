@@ -14,8 +14,10 @@ namespace MuseXR.Worlds
     /// The sequence, all driven by <see cref="PortalSequence"/>:
     ///   1. Nothing is there until the visitor comes round and looks toward the door's place.
     ///   2. The door materialises: it rises out of the floor glowing gold, and settles.
-    ///   3. It opens toward the visitor; the first world's music fades out and the next one's in;
-    ///      the next world seeps out round the doorway in a ragged, growing patch.
+    ///   3. It opens toward the visitor; the first world's music fades out and the next one's in.
+    ///      The next world shows only through the opening. (It used to seep out round the doorway
+    ///      in a ragged patch up to 2.8 m across, over the Buddha and the walls; removed 1 Oct 2026
+    ///      at Saul's request.)
     ///   4. Walking through swaps the worlds; the door shuts behind the visitor; once shut the
     ///      previous world and its props are destroyed and the door disappears. No way back.
     ///
@@ -55,10 +57,6 @@ namespace MuseXR.Worlds
         [Tooltip("A little light of their own, so the door does not read as a dark hole among unlit splats.")]
         [Range(0f, 1f)] public float selfIllumination = 0.25f;
 
-        [Header("Next world seeping out")]
-        [Tooltip("Radius of the seep patch at its fullest, metres from the door's centre.")]
-        public float seepRadius = 2.8f;
-
         [Header("Timing")]
         public float appearSeconds = 2.5f;
         public float openSeconds = 3.5f;
@@ -96,6 +94,7 @@ namespace MuseXR.Worlds
         static readonly int DoorOn = Shader.PropertyToID("_DoorOn");
         static readonly int Seep = Shader.PropertyToID("_Seep");
         static readonly int SeepRadius = Shader.PropertyToID("_SeepRadius");
+        static readonly int ClipSeepToDoor = Shader.PropertyToID("_ClipSeepToDoor");
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         static readonly int EmissionColor = Shader.PropertyToID("_EmissionColor");
 
@@ -113,10 +112,11 @@ namespace MuseXR.Worlds
             _mask = maskMaterial != null ? new Material(maskMaterial) { name = "Portal Mask (runtime)" } : null;
             SplatPortal.MaskMaterial = _mask;
             SplatPortal.MaskMesh = maskMesh;
-            SplatPortal.MaskHalfSize = apertureSize * 0.5f + new Vector2(seepRadius, seepRadius);
-            // Splats of the next world are culled whole beyond this distance outside the door: it
-            // has to reach the edge of the seep patch.
-            SplatPortal.CullMargin = seepRadius + 0.5f;
+            // The next world is drawn only inside the opening, so the mask is the opening itself.
+            SplatPortal.MaskHalfSize = apertureSize * 0.5f;
+            // Splats of the next world are culled whole beyond this distance outside the door. A
+            // little slack, because a splat whose centre is just outside still covers the edge.
+            SplatPortal.CullMargin = 0.5f;
             SplatPortal.EraseMeshes = true;
 
             if (currentWorld != null) currentWorld.m_PortalRole = SplatPortalRole.Outside;
@@ -289,8 +289,11 @@ namespace MuseXR.Worlds
                 _mask.SetVector(DoorHalf, half);
                 _mask.SetVector(MaskHalf, SplatPortal.MaskHalfSize);
                 _mask.SetFloat(DoorOn, _sequence.Phase >= PortalPhase.Opening ? 1f : 0f);
+                // The seep is kept inside the opening (as the painting portal's tear is), so nothing
+                // of the next world shows beyond the door frame.
+                _mask.SetFloat(ClipSeepToDoor, 1f);
                 _mask.SetFloat(Seep, PortalSequence.Ease(_sequence.Seep));
-                _mask.SetFloat(SeepRadius, seepRadius);
+                _mask.SetFloat(SeepRadius, half.magnitude * 1.15f);
             }
 
             float blend = _sequence.MusicBlend;

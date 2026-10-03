@@ -117,6 +117,13 @@ namespace MusePico.Journey
         float _yaw;
         bool _following;
 
+        /// <summary>
+        /// Degrees the panel stands off the visitor's gaze, positive to the right. 0 is straight
+        /// ahead, as every stage has it. In stage 04 with doors it is set to one side: the panel
+        /// follows the gaze, so straight ahead it stood in front of every door the visitor turned to.
+        /// </summary>
+        public float yawOffset;
+
         /// <summary>Where the panel is anchored on the ground plane. NOT the head's position.</summary>
         Vector2 _ground;
         bool _walking;
@@ -221,6 +228,12 @@ namespace MusePico.Journey
 
             if (head == null) return;
             if (!_seated) Seat();
+            DrawCompassPose();
+
+            // Snap, do not ease, while the head pose is still settling: when the scene starts and
+            // just after a stage opens. XR tracking arrives a few frames after the first one, so a
+            // panel seated on frame one then slid across the room to wherever the head really was.
+            if (Time.unscaledTime < _snapUntil) { Snap(); return; }
 
             _yaw = PanelAnchor.Follow(_yaw, head.eulerAngles.y, _following, Time.deltaTime, out _following);
             _ground = PanelAnchor.FollowGround(
@@ -228,8 +241,8 @@ namespace MusePico.Journey
             _heldFloor = PanelAnchor.FollowFloor(_heldFloor, floorY);
 
             transform.SetPositionAndRotation(
-                PanelAnchor.Position(new Vector3(_ground.x, 0f, _ground.y), _yaw, _heldFloor),
-                PanelAnchor.Rotation(_yaw));
+                PanelAnchor.Position(new Vector3(_ground.x, 0f, _ground.y), _yaw + yawOffset, _heldFloor) + Vector3.up * _lift,
+                PanelAnchor.Rotation(_yaw + yawOffset));
         }
 
         /// <summary>
@@ -380,6 +393,7 @@ namespace MusePico.Journey
 
             _panel = panel;
             _text.text = markup;
+            PlaceSpeaker(panel.SpeakerImageId);
 
             // Measure what was actually drawn before placing anything under it. A fixed copy height
             // leaves the threshold's one button stranded half a metre below its own hint, and
@@ -394,6 +408,42 @@ namespace MusePico.Journey
             var copyHeight = Mathf.Ceil(measured / CopyStep) * CopyStep;
             BuildPlates(panel, copyHeight);
             FitScrim(panel, copyHeight);
+        }
+
+        Transform _speaker;
+        const float SpeakerFace = 0.34f, SpeakerGap = 0.06f;
+
+        /// <summary>
+        /// The speaking master's portrait at the top left of the copy, the text set beside it — her
+        /// popup's head row. Hidden, and the copy back to full width, when no one is named.
+        /// </summary>
+        void PlaceSpeaker(string imageId)
+        {
+            var texture = string.IsNullOrEmpty(imageId) || ImageFor == null ? null : ImageFor(imageId);
+            if (texture == null)
+            {
+                if (_speaker != null) _speaker.gameObject.SetActive(false);
+                _text.margin = Vector4.zero;
+                return;
+            }
+            if (_speaker == null)
+            {
+                var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                quad.name = "Speaker Portrait";
+                Destroy(quad.GetComponent<Collider>());
+                quad.transform.SetParent(transform, false);
+                quad.transform.localScale = new Vector3(SpeakerFace, SpeakerFace, 1f);
+                var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+                m.SetColor("_BaseColor", Color.white);
+                quad.GetComponent<MeshRenderer>().sharedMaterial = m;
+                _speaker = quad.transform;
+            }
+            _speaker.gameObject.SetActive(true);
+            var material = _speaker.GetComponent<MeshRenderer>().sharedMaterial;
+            material.SetTexture("_BaseMap", texture);
+            CoverCrop(material, texture, 1f);
+            _speaker.localPosition = new Vector3(-width * 0.5f + SpeakerFace * 0.5f, CopyTop - SpeakerFace * 0.5f, 0.01f);
+            _text.margin = new Vector4(SpeakerFace + SpeakerGap, 0f, 0f, 0f);
         }
 
         /// <summary>
@@ -411,6 +461,7 @@ namespace MusePico.Journey
 
             if (!stop.HasStop)
             {
+                _compassPlaced = false;
                 _compass.gameObject.SetActive(false);
                 _shownStop = stop;
                 return;
@@ -433,17 +484,14 @@ namespace MusePico.Journey
 
         void BuildCompass()
         {
+            // Not a child of the panel: the panel stands off to one side in the gallery and eases
+            // after the gaze, and the compass has to be where the visitor is looking. Its own root,
+            // centred on the gaze and kept there every frame (DrawCompassPose).
             _compass = new GameObject("Compass").transform;
-            _compass.SetParent(transform, false);
-            // Below the panel, where a HUD belongs — above it, the arrow collided with the heading.
-            // The lowest of the three things that hang under the panel: navigator (~-0.55),
-            // microphone (-0.86), compass. At 2.8 m this is 21 degrees below the horizon, which
-            // is a glance down rather than a neck movement.
-            _compass.localPosition = new Vector3(0f, -1.08f, 0f);
 
             var arrowGo = new GameObject("Arrow");
             arrowGo.transform.SetParent(_compass, false);
-            arrowGo.transform.localPosition = new Vector3(-0.62f, -0.02f, 0f);
+            arrowGo.transform.localPosition = new Vector3(-0.72f, -0.02f, 0f);
             arrowGo.transform.localScale = Vector3.one * 0.13f;
             var filter = arrowGo.AddComponent<MeshFilter>();
             filter.sharedMesh = ArrowMesh();
@@ -455,12 +503,39 @@ namespace MusePico.Journey
 
             var textGo = new GameObject("Reading");
             textGo.transform.SetParent(_compass, false);
-            textGo.transform.localPosition = new Vector3(0.1f, 0f, 0f);
+            textGo.transform.localPosition = new Vector3(0f, 0f, 0f);
             _compassText = textGo.AddComponent<TextMeshPro>();
             _compassText.fontSize = 0.58f;
             _compassText.alignment = TextAlignmentOptions.Left;
             _compassText.enableWordWrapping = false;
             _compassText.rectTransform.sizeDelta = new Vector2(1.5f, 0.34f);
+        }
+
+        /// <summary>How far ahead of the eye, and how far below it, the compass hangs. 0.7 m down at
+        /// 2.4 m is 16 degrees: in view without looking down, under anything at eye height.</summary>
+        const float CompassAhead = 2.4f, CompassBelow = 0.7f;
+
+        /// <summary>
+        /// Keep the compass centred on the gaze, level, and always in view. Yaw follows the head
+        /// closely (a fraction of a second) rather than rigidly, so it does not swim with every
+        /// small head movement.
+        /// </summary>
+        void DrawCompassPose()
+        {
+            if (_compass == null || !_compass.gameObject.activeSelf) return;
+            var target = head.eulerAngles.y;
+            _compassYaw = _compassPlaced ? Mathf.LerpAngle(_compassYaw, target, 1f - Mathf.Exp(-12f * Time.unscaledDeltaTime)) : target;
+            _compassPlaced = true;
+            var rot = PanelAnchor.Rotation(_compassYaw);
+            _compass.SetPositionAndRotation(head.position + rot * Vector3.forward * CompassAhead + Vector3.down * CompassBelow, rot);
+        }
+
+        float _compassYaw;
+        bool _compassPlaced;
+
+        void OnDestroy()
+        {
+            if (_compass != null) Destroy(_compass.gameObject);
         }
 
         /// <summary>
@@ -485,15 +560,24 @@ namespace MusePico.Journey
             return mesh;
         }
 
+        /// <summary>Until when the panel snaps to the head instead of easing after it.</summary>
+        float _snapUntil = 1.5f;
+
         /// <summary>Snap to face the visitor now, without easing. Used when a stage opens.</summary>
         public void Reorient()
+        {
+            _snapUntil = Mathf.Max(_snapUntil, Time.unscaledTime + 0.5f);
+            Snap();
+        }
+
+        void Snap()
         {
             if (head == null) return;
             _yaw = head.eulerAngles.y;
             _following = false;
             Seat();
             transform.SetPositionAndRotation(
-                PanelAnchor.Position(head.position, _yaw, floorY), PanelAnchor.Rotation(_yaw));
+                PanelAnchor.Position(head.position, _yaw + yawOffset, floorY) + Vector3.up * _lift, PanelAnchor.Rotation(_yaw + yawOffset));
         }
 
         /// <summary>
@@ -539,8 +623,10 @@ namespace MusePico.Journey
             if (!string.IsNullOrEmpty(panel.Notice))
                 // Spacer line, for the same reason the marker has one: the hint and the notice are
                 // both set below 100%, so TMP packs their shrunken line boxes until they touch.
-                sb.Append("\n<size=24%> </size>\n<size=62%><cspace=0.08em><color=")
-                  .Append(Ivory).Append("66>")
+                // A footnote: small and quiet, the last thing on the panel, never competing with what
+                // the master said (Saul, 1 Oct 2026: it read "huge, front and centre").
+                sb.Append("\n<size=24%> </size>\n<size=44%><cspace=0.06em><color=")
+                  .Append(Ivory).Append("55>")
                   .Append(panel.Notice).Append("</color></cspace></size>");
 
             return sb.ToString();
@@ -633,6 +719,9 @@ namespace MusePico.Journey
             // Remembered so the microphone can sit clear of whatever this stage actually drew,
             // instead of at a fixed height that some stages reach and others do not.
             _bottom = bottom;
+            // A panel taller than the room between its anchor and the floor is raised until its
+            // lowest edge clears the floor: a button under the floor is a softlock (stage 06 was one).
+            _lift = Mathf.Max(0f, MinFloorClearance - (PanelAnchor.Height + bottom));
             var height = (CopyTop + 0.16f) - bottom;
 
             // Even padding. It was 27 cm at the sides against 7 cm top and bottom, which is what
@@ -895,6 +984,7 @@ namespace MusePico.Journey
         float BuildAside(StagePanel panel, float top)
         {
             for (var i = _aside.childCount - 1; i >= 0; i--) Destroy(_aside.GetChild(i).gameObject);
+            if (panel.Cards != null && panel.Cards.Count > 0) return BuildCards(panel, top);
             if (panel.Aside == null || panel.Aside.Count == 0) return 0f;
 
             const float face = 0.17f;
@@ -942,6 +1032,70 @@ namespace MusePico.Journey
             return height + 0.06f;
         }
 
+        /// <summary>
+        /// Cards side by side under the copy: per card a face, a gold name, the words, and a small
+        /// footnote. Her roundtable sets its threads across the page; stacked in the copy here they
+        /// drove the panel's only button under the floor (Saul, 1 Oct 2026). Returns the row's height.
+        /// </summary>
+        float BuildCards(StagePanel panel, float top)
+        {
+            const float gap = 0.10f, face = 0.22f, pad = 0.04f;
+            var n = panel.Cards.Count;
+            var cardWidth = (width - gap * (n - 1)) / n;
+            var tallest = 0f;
+            var texts = new List<TextMeshPro>();
+            for (var i = 0; i < n; i++)
+            {
+                var card = panel.Cards[i];
+                var x = -width * 0.5f + cardWidth * 0.5f + i * (cardWidth + gap);
+                var go = new GameObject("Card " + card.Title);
+                go.transform.SetParent(_aside, false);
+                go.transform.localPosition = new Vector3(x, top, 0f);
+
+                var texture = ImageFor != null ? ImageFor(card.ImageId) : null;
+                if (texture != null)
+                {
+                    var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                    quad.name = "Face";
+                    Destroy(quad.GetComponent<Collider>());
+                    quad.transform.SetParent(go.transform, false);
+                    quad.transform.localPosition = new Vector3(-cardWidth * 0.5f + face * 0.5f, -face * 0.5f, 0.01f);
+                    quad.transform.localScale = new Vector3(face, face, 1f);
+                    var material = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+                    material.SetTexture("_BaseMap", texture);
+                    CoverCrop(material, texture, 1f);
+                    material.SetColor("_BaseColor", Color.white);
+                    quad.GetComponent<MeshRenderer>().sharedMaterial = material;
+                }
+
+                var name = new GameObject("Name").AddComponent<TextMeshPro>();
+                name.transform.SetParent(go.transform, false);
+                var nameLeft = texture != null ? face + pad : 0f;
+                name.rectTransform.sizeDelta = new Vector2(cardWidth - nameLeft, face);
+                name.transform.localPosition = new Vector3(nameLeft * 0.5f, -face * 0.5f, 0f);
+                name.fontSize = 0.40f;
+                name.alignment = TextAlignmentOptions.Left;
+                name.enableWordWrapping = true;
+                name.text = "<cspace=0.12em><color=" + Gold + ">" + card.Title.ToUpperInvariant() + "</color></cspace>";
+
+                var body = new GameObject("Words").AddComponent<TextMeshPro>();
+                body.transform.SetParent(go.transform, false);
+                body.rectTransform.pivot = new Vector2(0.5f, 1f);
+                body.rectTransform.sizeDelta = new Vector2(cardWidth, 1.2f);
+                body.transform.localPosition = new Vector3(0f, -face - pad, 0f);
+                body.fontSize = 0.52f;   // 0.42 read as fine print at 2.8 m
+                body.alignment = TextAlignmentOptions.TopLeft;
+                body.enableWordWrapping = true;
+                body.text = "<color=" + Ivory + "D0>" + card.Body + "</color>" +
+                            (string.IsNullOrEmpty(card.Footnote) ? "" :
+                             "\n<size=60%><color=" + Ivory + "55>" + card.Footnote + "</color></size>");
+                body.ForceMeshUpdate();
+                tallest = Mathf.Max(tallest, face + pad + body.textBounds.size.y);
+                texts.Add(body);
+            }
+            return tallest + 0.10f;
+        }
+
         static bool HasPortraits(StagePanel panel)
         {
             foreach (var c in panel.Choices) if (!string.IsNullOrEmpty(c.ImageId)) return true;
@@ -958,7 +1112,10 @@ namespace MusePico.Journey
         void BuildPortraitRow(StagePanel panel, float top, List<string> ids)
         {
             var count = panel.Choices.Count;
-            var pitch = width / Mathf.Max(count, 1);
+            // Never wider than five across: the card's height follows its width, and with only two
+            // masters offered a half-panel card stood 0.96 m tall and pushed the buttons under the
+            // floor, where no click could reach them ("LET AI CURATE doesn't work", 1 Oct 2026).
+            var pitch = width / Mathf.Max(count, 5);
             var aspect = CardAspect(panel);
             _cardHeight = (pitch - 0.03f) * 0.92f / Mathf.Max(aspect, 0.05f) + CaptionHeight + 0.06f;
             var centre = top - _cardHeight * 0.5f;
@@ -980,6 +1137,10 @@ namespace MusePico.Journey
 
         /// <summary>Height the aside row took, so everything below it moves down by that much.</summary>
         float _asideHeight;
+
+        /// <summary>How far the panel is raised so its lowest edge clears the floor.</summary>
+        float _lift;
+        const float MinFloorClearance = 0.35f;
 
         /// <summary>Height the question field took. Constant when there is one, zero when not.</summary>
         float _fieldHeight;

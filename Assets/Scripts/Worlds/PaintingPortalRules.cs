@@ -56,6 +56,37 @@ namespace MuseXR.Worlds
         }
 
         /// <summary>
+        /// Which side of a two-way painting the visitor is on, with a dead band: they count as inside
+        /// only once the eye is <paramref name="band"/> metres past the canvas, and as back out only
+        /// once it is that far in front of it. Leaning in to look is not walking in.
+        /// </summary>
+        /// <param name="eyeDepth">The eye's depth in canvas space: negative in front of the picture,
+        /// positive inside it.</param>
+        public static bool InsideAfter(bool wasInside, float eyeDepth, float band) =>
+            wasInside ? eyeDepth > -band : eyeDepth > band;
+
+        /// <summary>
+        /// A controller tip is touching the centre of the canvas: within <paramref name="depth"/> of
+        /// the paint, on the picture side or just through it, and within <paramref name="radius"/> of
+        /// the centre (a quarter of the smaller half-size on a canvas grown past door size).
+        /// </summary>
+        /// <param name="tipInCanvas">The tip in canvas space, metres (unscaled): -z is the picture side.</param>
+        public static bool TouchesCentre(Vector3 tipInCanvas, Vector2 half, float radius, float depth)
+        {
+            if (tipInCanvas.z < -depth || tipInCanvas.z > depth * 0.5f) return false;
+            float r = Mathf.Max(radius, 0.25f * Mathf.Min(half.x, half.y));
+            return new Vector2(tipInCanvas.x, tipInCanvas.y).magnitude <= r;
+        }
+
+        /// <summary>
+        /// A two-way painting opens while the visitor is near it on either side and roughly in line
+        /// with it: within <paramref name="reach"/> of its plane and no more than
+        /// <paramref name="sideways"/> metres past either edge.
+        /// </summary>
+        public static bool NearTwoWay(Vector3 eyeInCanvas, Vector2 half, float reach, float sideways) =>
+            Mathf.Abs(eyeInCanvas.z) <= reach && Mathf.Abs(eyeInCanvas.x) <= half.x + sideways;
+
+        /// <summary>
         /// Where the world inside the painting stands: on the floor (y = <paramref name="floorY"/>),
         /// <paramref name="behind"/> metres past the canvas along its heading, turned to that
         /// heading and never tilted — however the painting is held, the room stays upright.

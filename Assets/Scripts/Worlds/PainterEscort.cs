@@ -19,12 +19,14 @@ namespace MusePico.Worlds
     /// painter two metres behind the visitor when a world is swapped is simply two metres behind
     /// them in the new one. A teleport is handled by <see cref="EscortSettings.warpDistance"/>.
     /// </summary>
-    public class PainterEscort : MonoBehaviour
+    public class PainterEscort : MonoBehaviour, ICompanionBodies
     {
         [System.Serializable]
         public class Painter
         {
             public Animator animator;
+            [Tooltip("The master this painter plays, as masters.json names them: monet, picasso.")]
+            public string masterId;
             [Tooltip("-1 prefers the visitor's left, +1 the right.")]
             public float side = -1f;
             [Tooltip("Painter.controller WalkStyle for a short stroll. 0 Walk, 1 Casual, 2 Thoughtful, 3 Formal, 4 Generated.")]
@@ -115,6 +117,14 @@ namespace MusePico.Worlds
         public int Count => painters.Length;
         public EscortOutput StateOf(int i) => painters[i].last;
         public Transform TransformOf(int i) => painters[i].animator != null ? painters[i].animator.transform : null;
+
+        public int IndexOf(string masterId)
+        {
+            for (int i = 0; i < painters.Length; i++) if (painters[i].masterId == masterId) return i;
+            return -1;
+        }
+
+        void ICompanionBodies.SetTalking(int index, bool talking) => SetTalking(index, talking);
 
         /// <summary>
         /// While true the visitor is in a conversation: the panel takes the centre of the view, so
@@ -251,6 +261,38 @@ namespace MusePico.Worlds
 
                 Act(p, output, visitor, dt);
                 p.last = output;
+            }
+        }
+
+        /// <summary>
+        /// Stand every painter beside the visitor after a jump no one could walk: a door into another
+        /// world, which in WorldDoors loads the next capture at its own position rather than swapping
+        /// splats over a shared floor as SplatPortal does. Call it once the new world's NavMesh exists.
+        /// Each painter takes its own side, a little behind (<see cref="WorldDoorLayout.ArrivalSlot"/>),
+        /// faces the visitor, and starts afresh: its brain's memory of the old world is meaningless.
+        /// </summary>
+        public void ArriveBeside(Vector3 visitorFloor, float visitorYaw)
+        {
+            foreach (var p in painters)
+            {
+                if (p.animator == null) continue;
+                var at = MuseXR.Worlds.WorldDoorLayout.ArrivalSlot(visitorFloor, visitorYaw, p.side);
+                if (NavMesh.SamplePosition(at, out var hit, 2.5f, NavMesh.AllAreas)) at = hit.position;
+
+                if (p.agent != null)
+                {
+                    p.agent.baseOffset = 0f;
+                    if (!p.agent.Warp(at)) p.animator.transform.position = at;
+                    p.agent.isStopped = true;
+                }
+                else p.animator.transform.position = at;
+
+                var toVisitor = new Vector3(visitorFloor.x - at.x, 0f, visitorFloor.z - at.z);
+                if (toVisitor.sqrMagnitude > 1e-4f) p.animator.transform.rotation = Quaternion.LookRotation(toVisitor);
+                p.facingYaw = p.animator.transform.eulerAngles.y;
+                p.brain = new EscortBrain(settings, p.side) { Walkable = Walkable };
+                p.last = default;
+                p.walking = p.turning = p.running = false;
             }
         }
 

@@ -86,19 +86,19 @@ namespace MusePico.Tests
             // It ARRIVES live, because her opening company is pre-invited. A forward button that
             // is dead on arrival reads as a broken screen, which is what it was.
             var opening = JourneyScript.For(j, Roster());
-            Assert.IsTrue(opening.ActionEnabled, "her opening company is already three");
-            StringAssert.Contains("3 / 3", opening.Hint);
+            Assert.IsTrue(opening.ActionEnabled, "the opening company is already invited");
+            StringAssert.Contains("2 / 2", opening.Hint);
 
-            // Withdraw all three and it goes dead, which is the rule being pinned.
+            // Withdraw them all and it goes dead, which is the rule being pinned.
             foreach (var id in MuseumJourney.DefaultCompany) j.ToggleCompanion(id);
             var empty = JourneyScript.For(j, Roster());
             Assert.IsFalse(empty.ActionEnabled, "her LET AI CURATE is disabled with nobody chosen");
-            StringAssert.Contains("0 / 3", empty.Hint);
+            StringAssert.Contains("0 / 2", empty.Hint);
 
             j.ToggleCompanion("monet");
             var one = JourneyScript.For(j, Roster());
             Assert.IsTrue(one.ActionEnabled);
-            StringAssert.Contains("1 / 3", one.Hint);
+            StringAssert.Contains("1 / 2", one.Hint);
             Assert.IsTrue(one.Choices[0].Selected, "the invited master reads as chosen");
         }
 
@@ -162,10 +162,44 @@ namespace MusePico.Tests
             j.Session.RecordArtwork("Water Lilies", "Claude Monet");
             j.Session.RecordQuestion("What should I keep?");
 
+            // Her ledger is read, not pressed: the lines are in the copy, and nothing is a button.
             var walked = JourneyScript.For(j);
-            Assert.AreEqual("Your walk is entering the record.", walked.Lede);
-            Assert.AreEqual(2, walked.Choices.Count);
-            StringAssert.Contains("Water Lilies", walked.Choices[0].Label);
+            StringAssert.StartsWith("Your walk is entering the record.", walked.Lede);
+            StringAssert.Contains("Stopped at Water Lilies", walked.Lede);
+            StringAssert.Contains("Asked “What should I keep?”", walked.Lede);
+            Assert.IsEmpty(walked.Choices);
+        }
+
+        [Test]
+        public void StageSixShowsHerRoundtableStates()
+        {
+            var j = At(Stage.Roundtable);
+
+            var loading = JourneyScript.For(j, null, JourneyScript.RoundtableLoading());
+            StringAssert.Contains("THE SALON IS READING YOUR WALK", loading.Lede);
+            Assert.AreEqual("The masters read back your walk", loading.Heading);
+            Assert.IsEmpty(loading.Back);
+
+            var failed = JourneyScript.For(j, null, JourneyScript.RoundtableFailed("timeout"));
+            StringAssert.Contains("COULD NOT BE REACHED — timeout", failed.Lede);
+            Assert.AreEqual("TRY AGAIN", failed.Back);
+
+            var threads = new List<ClosingThread>
+            {
+                new ClosingThread("monet", "Claude Monet", "You stopped where the light did."),
+                new ClosingThread("picasso", "Pablo Picasso", "Why did you not break it?"),
+            };
+            var ready = JourneyScript.For(j, null, JourneyScript.Ending("Attention in Shifting Light", "You stopped at Water Lilies.", true, threads));
+            Assert.AreEqual("Attention in Shifting Light", ready.Heading, "the heading becomes the world's title");
+            // Side by side, one card per master, not stacked in the copy (it pushed the button
+            // through the floor: Saul, 1 Oct 2026).
+            Assert.AreEqual(2, ready.Cards.Count);
+            Assert.AreEqual("monet", ready.Cards[0].ImageId);
+            Assert.AreEqual("Why did you not break it?", ready.Cards[1].Body);
+            StringAssert.DoesNotContain("You stopped where the light did.", ready.Lede);
+            StringAssert.Contains("You stopped at Water Lilies.", ready.Lede);
+            Assert.IsEmpty(ready.Back);
+            Assert.IsTrue(ready.ActionEnabled, "FACE THE CONTRADICTION is never locked");
         }
 
         [Test]

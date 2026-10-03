@@ -44,6 +44,10 @@ namespace MusePico.Journey
         [Tooltip("The hung artworks. Hidden until stage 04, as hers are.")]
         public Transform wall;
 
+        [Tooltip("Optional. Stage 04 walked through Buddha doors instead of her arrows and dots: " +
+                 "with this set, the navigator plates are not drawn and a door leads to each next chapter.")]
+        public JourneyDoors doors;
+
         [Tooltip("Assets/Dialogue/masters.json — the cast for stage 02. Read-only product; never hand-edit.")]
         public TextAsset mastersJson;
 
@@ -123,6 +127,12 @@ namespace MusePico.Journey
         /// </summary>
         string _requestedWorldKey;
 
+        // Inside a painting (PaintingWorlds): the world and the spot to come back to.
+        string _paintingTitle;
+        bool _insidePainting;
+        /// <summary>The visitor is inside a painting's world (JourneyPaintingPortal).</summary>
+        public bool InPainting => _insidePainting;
+
         /// <summary>Which hung work the walk is heading for. Advances when the visitor engages it.</summary>
         int _tourIndex;
 
@@ -192,10 +202,21 @@ namespace MusePico.Journey
         /// </summary>
         bool _roundtableAsked;
         float _transformationStarted;
+        SalonSpace _salon;
+
+        /// <summary>Stages 05-09 happen in her memory space, not in the gallery.</summary>
+        static bool InSalon(Stage stage) => stage >= Stage.Summoning && stage <= Stage.Manifesto;
+
+        /// <summary>The roundtable's state and the ending (for the Editor tracker).</summary>
+        public ClosingEnding Ending => _ending;
 
         void Awake()
         {
             Journey = new MuseumJourney();
+#if UNITY_EDITOR
+            // The Editor's TAB overlay of everything the journey tracks. Never in a player.
+            gameObject.AddComponent<EditorJourneyTracker>().runner = this;
+#endif
             if (artworksJson != null) _artworks = ArtworkCatalog.Parse(artworksJson.text);
 
             if (mastersJson != null)
@@ -234,7 +255,9 @@ namespace MusePico.Journey
                 // Only once the world is up does the visitor have a floor; only then may they walk.
                 worlds.WorldChanged += loaded =>
                 {
+                    _insidePainting = false;
                     SetWalking(WalkingAllowed(Journey.Current, FreeWalk, floorReady: true));
+                    if (wall != null) wall.gameObject.SetActive(Walks(Journey.Current));
                     HangChapterWall(loaded); // her syncSceneWall: four new works per chapter
                     RebuildTour();           // the spawn moved, so the walk order did too
                 };
@@ -262,6 +285,7 @@ namespace MusePico.Journey
             {
                 dialogue.StatusChanged -= OnDialogueStatus;
                 dialogue.PerspectiveReady -= OnPerspective;
+                dialogue.SpeakerStarted -= OnSpeakerStarted;
                 dialogue.TextDictated -= OnDictated;
             }
 
@@ -304,22 +328,24 @@ namespace MusePico.Journey
             Journey.Session.RecordPerspective(p.speakerId, p.speaker, p.text);
             SetTalkingMaster(p.speakerId, true);
 
-            // Each reading goes into its master's bubble as they start speaking, and stays: after
-            // the third, all three can be read side by side (Saul, 27 Sep). The panel only says who
-            // is talking — putting the readings there showed one at a time, each replacing the last.
+            // Each reading goes into its master's bubble the moment it arrives, all of them at once,
+            // and stays (Saul, 27 Sep and 1 Oct). The panel says nothing about it: the readings are
+            // above the masters' heads, where the eye already is.
             _liveIndex++;
-            var total = Mathf.Max(Journey.InvitedMasterIds.Count, _liveIndex);
-            QuietBubbles();
             if (_bubbles.TryGetValue(p.speakerId, out var bubble) && bubble != null)
-                bubble.Show(p.speaker, p.text, speaking: true);
-
-            var status = p.speaker.ToUpperInvariant() + " IS SPEAKING (" + _liveIndex + " / " + total +
-                         ") · EACH ANSWER STAYS ABOVE ITS MASTER";
-            if (_artOpen != null) _artLive = status;
-            else if (_asking != null) _askReplies = status;
+                bubble.Show(p.speaker, p.text, speaking: false);
+            if (_asking != null) _askReplies = string.Empty;
         }
 
-        const string AllAnswered = "ALL THREE HAVE ANSWERED · READ EACH ONE ABOVE ITS MASTER";
+        /// <summary>A master's voice starts: light their bubble and animate them.</summary>
+        void OnSpeakerStarted(Perspective p)
+        {
+            if (p == null) return;
+            QuietBubbles();
+            if (_bubbles.TryGetValue(p.speakerId, out var bubble) && bubble != null) bubble.SetSpeaking(true);
+            SetTalkingMaster(p.speakerId, true);
+        }
+
 
         /// <summary>How many readings of the current question have been shown.</summary>
         int _liveIndex;
@@ -334,13 +360,16 @@ namespace MusePico.Journey
         void SetTalkingMaster(string speakerId, bool talking)
         {
             if (companions == null) return;
-            var party = companions.GetComponent<MusePico.Worlds.CompanionParty>();
+            var party = companions.GetComponent<MusePico.Worlds.ICompanionBodies>();
             if (party == null) return;
 
             var invited = Journey.InvitedMasterIds;
-            for (var i = 0; i < invited.Count && i < party.Count; i++)
+            for (var i = 0; i < invited.Count; i++)
             {
-                if (invited[i] == speakerId) { party.SetTalking(i, talking); return; }
+                if (invited[i] != speakerId) continue;
+                var body = BodyOf(party, invited[i], i);
+                if (body >= 0) party.SetTalking(body, talking);
+                return;
             }
         }
 
@@ -350,6 +379,7 @@ namespace MusePico.Journey
             {
                 dialogue.StatusChanged += OnDialogueStatus;
                 dialogue.PerspectiveReady += OnPerspective;
+                dialogue.SpeakerStarted += OnSpeakerStarted;
                 dialogue.TextDictated += OnDictated;
                 if (dialogue.mastersJson == null) dialogue.mastersJson = mastersJson;
             }
@@ -397,7 +427,7 @@ namespace MusePico.Journey
             Log("start");
 
             Journey.GoTo(Stage.CompanionSelection);
-            foreach (var id in new[] { "monet", "van_gogh", "socrates" })
+            foreach (var id in MuseumJourney.DefaultCompany)
                 if (!Journey.IsInvited(id)) Journey.ToggleCompanion(id);
             Journey.GoTo(Stage.WorldExploration);
             Log("invited " + string.Join(",", Journey.InvitedMasterIds));
@@ -491,12 +521,20 @@ namespace MusePico.Journey
                 if (escape || (_buttons != null && _buttons.CancelPressed)) { CloseArt(); return; }
 
                 panel.Show(JourneyScript.ArtDialogue(
-                    _artOpen.title, _artPhase, _artLive, _artYouSaid, Master(_artSpeakerId), _artReply));
+                    _artOpen.title, _artPhase, _artLive, _artYouSaid, Master(_artSpeakerId), _artReply,
+                    canStepInside: MuseXR.Worlds.PaintingWorlds.For(_artOpen.id) != null));
                 panel.ShowCompass(default);      // the tour caption drew over the readings
                 return;
             }
 
-            var showing = JourneyScript.For(Journey, Roster(), _ending);
+            if (InPainting)
+            {
+                panel.Show(JourneyScript.InsidePainting(_paintingTitle));
+                panel.ShowCompass(default);
+                return;
+            }
+
+            var showing = Script();
 
             // A master's reply belongs where the masters are, and nowhere else. It used to be
             // blitted onto the lede of EVERY stage, so an answer appeared on the question screen -
@@ -504,7 +542,11 @@ namespace MusePico.Journey
             // Not in the gallery any more: the readings live in the masters' bubbles and the popups
             // carry their own status, so the last line said printed over the chapter prompt was a
             // stale duplicate ("Socrates — You ask how I see…" after the walk had moved on, 27 Sep).
-            if (_speech.Length > 0 && SpeaksHere(Journey.Current) && Journey.Current != Stage.WorldExploration)
+            // Summoning, roundtable and manifesto draw their own copy from the record and the ending
+            // (her views do): a spoken line written over the lede put the synthesis where the
+            // summoning ledger belongs (found in the live run, 1 Oct 2026).
+            if (_speech.Length > 0 && SpeaksHere(Journey.Current) && Journey.Current != Stage.WorldExploration &&
+                Journey.Current != Stage.Summoning && Journey.Current != Stage.Roundtable && Journey.Current != Stage.Manifesto)
                 showing.Lede = _speech;
             panel.Show(showing);
 
@@ -579,6 +621,10 @@ namespace MusePico.Journey
             foreach (var pair in _stageRoots) pair.Value.SetActive(pair.Key == stage);
 
             var walks = Walks(stage);
+            // The painters keep the middle of the view clear in every stage: the panel's plates are
+            // there, and a painter standing in front of LET AI CURATE took the click instead.
+            var escort = companions != null ? companions.GetComponent<MusePico.Worlds.PainterEscort>() : null;
+            if (escort != null) escort.ClearCentre = true;
             if (companions != null)
             {
                 // The masters also stand with the visitor in the lobby — the opening stages in the
@@ -599,14 +645,43 @@ namespace MusePico.Journey
             if (score != null) score.SetStage(stage);
             SetWalking(false);
             if (walks) OpenChapter();
+            else if (InSalon(stage)) OpenSalonWorld();
             else OpenHomeWorld();
             // A stage that keeps the world already loaded gets no WorldChanged, so decide here too.
             SetWalking(WalkingAllowed(stage, FreeWalk, FloorReady));
             if (stage == Stage.WorldTransformation) _transformationStarted = Time.time;
-            if (stage == Stage.Roundtable) RequestRoundtable();
 
+            // Stage 08's particles, in the style of the answer given to Socrates (hers: mist,
+            // turbulence or fracture). Entered by a key with no answer, hers defaults to perception.
+            // Her manor, made by the answer: nothing before Socrates is answered; on the answer it
+            // bursts out round the visitor and gathers ahead, in the salon world (Saul, 1 Oct 2026).
+            var eyeT = worlds != null && worlds.xrOrigin != null ? worlds.xrOrigin.Camera.transform : null;
+            var floorNow = worlds != null ? worlds.FloorY : 0f;
+            if (_salon != null && stage != Stage.WorldTransformation && stage != Stage.Manifesto) { _salon.Close(); _salon = null; }
+            if (stage == Stage.WorldTransformation)
+            {
+                var choice = Journey.Session.TransformationChoice;
+                if (string.IsNullOrEmpty(choice)) Journey.Session.SetTransformationChoice(choice = "perception");
+                if (_salon != null) _salon.Close();
+                _salon = SalonSpace.Open(eyeT, floorNow);
+                _salon.BeginTransformation(choice, JourneyScript.TransformationSeconds);
+            }
+            if (stage == Stage.Manifesto)
+            {
+                if (_salon == null) _salon = SalonSpace.Open(eyeT, floorNow);   // reached by a key: the manor stands
+                _salon.Settle();
+            }
+            // Her setStage asks at summoning OR roundtable (guarded, so never twice): the 16-30 s
+            // synthesis runs while the visitor reads their ledger instead of after it.
+            if (stage == Stage.Summoning || stage == Stage.Roundtable) RequestRoundtable();
+
+            // With doors, the gallery's panel stands to the left of the gaze, not across it: it
+            // follows the head, so straight ahead it covered every door the visitor turned to.
+            // 26 degrees: a door 2.4 m wide spans about +/-10 degrees from 7 m, and the painters
+            // rest 34-55 degrees out (EscortSettings), where a panel at 40 had them standing in it.
+            panel.yawOffset = doors != null && stage == Stage.WorldExploration ? -26f : 0f;
             panel.Reorient();
-            panel.Show(JourneyScript.For(Journey, Roster(), _ending));
+            panel.Show(Script());
         }
 
         // NOTE: adding `XRInteractionSimulator` in code does NOT work, though it compiles and the
@@ -680,6 +755,17 @@ namespace MusePico.Journey
         /// <summary>The scene's homeWorldKey unless the launch intent names another world
         /// (<c>--es musexr.homeWorld &lt;key&gt;</c>), so test builds need no scene edits.</summary>
         string HomeWorldKey => MuseXR.Worlds.LaunchOptions.HomeWorldOverride ?? homeWorldKey;
+
+        /// <summary>Where stages 05-09 happen: a splat of their own, not the walk's last room.</summary>
+        public const string SalonWorldKey = "buddha-hall-chisel-500k";
+
+        void OpenSalonWorld()
+        {
+            if (worlds == null || _requestedWorldKey == SalonWorldKey) return;
+            _requestedWorldKey = SalonWorldKey;
+            if (_worldLoad != null) StopCoroutine(_worldLoad);
+            _worldLoad = StartCoroutine(worlds.ShowWorldByKey(SalonWorldKey));
+        }
 
         void OpenHomeWorld()
         {
@@ -786,19 +872,33 @@ namespace MusePico.Journey
             for (var i = wall.childCount - 1; i >= 0; i--) Destroy(wall.GetChild(i).gameObject);
 
             var chapter = Journey.Spine.Current;
-            var works = ArtworkCatalog.For(_artworks, chapter.CollectionId);
+            // The visitor's own world hangs the artist their answers pointed to (hers re-hangs it
+            // from a live fetch on PHILOSOPHY_QUERIES[philosophyKey()]).
+            var works = chapter.IsFinal
+                ? (IReadOnlyList<ArtworkRecord>)FinalWorldWall.Works(_artworks, Journey.Session.Philosophy)
+                : ArtworkCatalog.For(_artworks, chapter.CollectionId);
             if (works.Count == 0) return;
 
             // Prefer the swept anchors: they put a work on a surface the visitor can see, where the
             // walk box only says where the floor is. Baked in the Editor because the sweep needs an
             // 85k-triangle collider import that a chapter change cannot afford.
+            // Her own layout, rule for rule (museum3d.js placeArtworksInWorld): along the walk line
+            // the visitor arrives facing, alternating sides, on a wall where there is one. Used
+            // wherever there is a world to lay it in; the anchors below are what came before it.
+            if (worlds != null && HangHerWay(world, works)) return;
+
+            // Anchors and the fallback hang were measured against the playtested groundY. Where the
+            // visitor now lands on the capture's real floor (CaptureFloor), the works move with it,
+            // or they hang 1.9 m up in the water garden.
+            var lift = Vector3.up * (worlds != null ? worlds.FloorY - world.groundY * world.worldScale : 0f);
+
             var baked = wallAnchors != null ? wallAnchors.For(world.key) : null;
             if (baked != null && baked.Length > 0)
             {
                 for (var i = 0; i < works.Count && i < baked.Length; i++)
                 {
                     _hanging.Add(works[i]);
-                    BuildArtwork(works[i], baked[i].position, baked[i].rotation);
+                    BuildArtwork(works[i], baked[i].position + lift, FaceTheVisitor(baked[i].position, baked[i].rotation, world));
                 }
                 return;
             }
@@ -829,7 +929,7 @@ namespace MusePico.Journey
             // capture's bounds — those include sky, and that is how eight works ended up 28 m
             // outside the van-gogh corridor the first time.
             var fallback = new Bounds(world.ScaledSpawn, Vector3.one * 24f);
-            var groundY = world.groundY * world.worldScale;
+            var groundY = world.groundY * world.worldScale + lift.y;
 
             var hung = GalleryWall.LayInRoom(
                 box.min, box.max, have, fallback.min, fallback.max, groundY, works.Count);
@@ -837,17 +937,70 @@ namespace MusePico.Journey
             for (var i = 0; i < hung.Count && i < works.Count; i++)
             {
                 _hanging.Add(works[i]);
-                BuildArtwork(works[i], hung[i].Position, hung[i].QuadRotation);
+                BuildArtwork(works[i], hung[i].Position, FaceTheVisitor(hung[i].Position, hung[i].QuadRotation, world));
             }
         }
 
         /// <summary>One hung work: a quad you can point at, keeping the picture's own proportions.</summary>
-        void BuildArtwork(ArtworkRecord record, Vector3 position, Quaternion quadRotation)
+        MuseXR.Worlds.CaptureFloor _captureFloor;
+
+        /// <summary>
+        /// Hang the chapter's works where muse-infinity hangs them (<see cref="MuseXR.Worlds.WebGalleryLayout"/>),
+        /// at her canvas size, asking the world's collider (<see cref="MuseXR.Worlds.CaptureFloor"/>)
+        /// her ground and wall questions. A world with no trusted collider stands its works free on
+        /// the visitor's floor, inside the walk bounds. False if there is nothing to hang.
+        /// </summary>
+        bool HangHerWay(WorldDefinition world, IReadOnlyList<ArtworkRecord> works)
+        {
+            if (works == null || works.Count == 0) return false;
+            if (_captureFloor == null) _captureFloor = FindAnyObjectByType<MuseXR.Worlds.CaptureFloor>();
+            var probe = _captureFloor != null ? _captureFloor.Current : null;
+            if (probe != null && probe.World != world) probe = null;
+
+            float floorY = worlds.FloorY;
+            Bounds? walk = world.HasWalkBounds ? world.ScaledWalkBounds : (Bounds?)null;
+            System.Func<float, float, float> ground = (x, z) =>
+            {
+                if (probe != null) return probe.Floor(new Vector3(x, floorY, z));
+                if (walk == null) return floorY;
+                var b = walk.Value;
+                return x >= b.min.x && x <= b.max.x && z >= b.min.z && z <= b.max.z ? floorY : float.NaN;
+            };
+            System.Func<Vector3, Vector3, float, float?> wallRay = (o, d, far) => probe != null ? probe.Ray(o, d, far) : null;
+
+            var spawn = new Vector3(world.ScaledSpawn.x, floorY, world.ScaledSpawn.z);
+            var hangs = MuseXR.Worlds.WebGalleryLayout.Place(works.Count, spawn, world.SpawnRotation * Vector3.forward,
+                                                             walk, ground, wallRay);
+            for (var i = 0; i < hangs.Count; i++)
+            {
+                var texture = ArtworkImage(works[i].id);
+                var aspect = texture != null && texture.height > 0 ? texture.width / (float)texture.height : 1.3f;
+                _hanging.Add(works[i]);
+                // Her height is above the collider ground under the work, which in the conservatory
+                // is a planter bed a metre above the path: the works hung 2.9 m over the visitor.
+                // Hang them over the floor the visitor actually walks on, 0.25 m above the eye, as
+                // hers sit over her eye.
+                var centre = hangs[i].centre;
+                centre.y = floorY + HangAboveFloor;
+                BuildArtwork(works[i], centre,
+                             MuseXR.Worlds.WebGalleryLayout.QuadRotation(centre, hangs[i].faces),
+                             MuseXR.Worlds.WebGalleryLayout.CanvasSize(aspect));
+            }
+            Debug.Log($"[Gallery] {world.key}: {hangs.Count} works hung her way, " +
+                      $"{hangs.FindAll(h => h.onWall).Count} on a wall" + (probe == null ? " (no collider: freestanding)" : ""));
+            return hangs.Count > 0;
+        }
+
+        /// <summary>Canvas centre above the visitor's floor: eye height (~1.36 m in this rig) plus 0.25.</summary>
+        const float HangAboveFloor = 1.6f;
+
+        void BuildArtwork(ArtworkRecord record, Vector3 position, Quaternion quadRotation, Vector2? size = null)
         {
             var texture = ArtworkImage(record.id);
             var aspect = texture != null && texture.height > 0
                 ? texture.width / (float)texture.height
                 : 1.2f;
+            var canvas = size ?? new Vector2(artworkHeight * aspect, artworkHeight);
 
             var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
             go.name = record.id;
@@ -857,11 +1010,12 @@ namespace MusePico.Journey
             // its own -Z, so the work faces the room only when its +Z points INTO the wall. Both
             // the baker and the walk-box fallback store it that way so this cannot drift.
             go.transform.rotation = quadRotation;
-            go.transform.localScale = new Vector3(artworkHeight * aspect, artworkHeight, 1f);
+            go.transform.localScale = new Vector3(canvas.x, canvas.y, 1f);
 
             var material = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
             if (texture != null) material.SetTexture("_BaseMap", texture);
             go.GetComponent<MeshRenderer>().sharedMaterial = material;
+            AddFrame(go.transform, canvas.x, canvas.y);
 
             // Grabbable, not just pointable: a trigger TAP still opens the reading, a hold takes the
             // work off the wall, and a second hand on it scales it. See Grabbable.
@@ -873,6 +1027,49 @@ namespace MusePico.Journey
             };
             MusePico.Grab.Grabbable.Make(go, onPick, MusePico.Grab.GrabReach.AtRayEnd, go.GetComponent<Collider>());
             go.AddComponent<DesktopPointable>().Picked = onPick;
+        }
+
+        /// <summary>
+        /// Turn a work round if it would show the visitor its back from where they arrive. Her frames
+        /// turn back toward the walk line (museum3d.js); the baked anchors face a wall surface in the
+        /// full-resolution capture instead, and the chapter 01 Pissarro hung over the path facing away
+        /// from the spawn: a Quad has no back, so it was simply not there, an empty place in the walk.
+        /// A Unity Quad shows its -Z side, so the visitor must stand on the -Z side of it.
+        /// </summary>
+        static Quaternion FaceTheVisitor(Vector3 position, Quaternion quadRotation, WorldDefinition world)
+        {
+            var toVisitor = world.ScaledSpawn - position; toVisitor.y = 0f;
+            var back = quadRotation * Vector3.forward; back.y = 0f;
+            return Vector3.Dot(back, toVisitor) > 0f ? quadRotation * Quaternion.Euler(0f, 180f, 0f) : quadRotation;
+        }
+
+        /// <summary>
+        /// Her picture frame (museum3d.js, "a proper picture frame"), unlit like hers: canvas, a thin
+        /// gold fillet hugging it, a white mat a hand wider, a walnut frame outermost. Built as
+        /// children of the canvas so it comes off the wall with it. The canvas is a Unity Quad facing
+        /// its own -Z, so everything behind it is at +Z; its scale is (w, h, 1), so each layer's size
+        /// is given as a fraction of the canvas.
+        /// </summary>
+        static void AddFrame(Transform canvas, float w, float h)
+        {
+            Layer(canvas, PrimitiveType.Cube, "Frame (walnut)", new Color32(0x5e, 0x40, 0x28, 0xff), w, h, 0.24f, 0.05f, 0.045f);
+            Layer(canvas, PrimitiveType.Quad, "Mat", new Color32(0xf5, 0xf2, 0xea, 0xff), w, h, 0.16f, 1f, 0.016f);
+            Layer(canvas, PrimitiveType.Cube, "Fillet (gold)", new Color32(0xc9, 0xaa, 0x72, 0xff), w, h, 0.04f, 0.012f, 0.008f);
+        }
+
+        static void Layer(Transform canvas, PrimitiveType shape, string name, Color colour,
+                          float w, float h, float margin, float depth, float behind)
+        {
+            var go = GameObject.CreatePrimitive(shape);
+            go.name = name;
+            Destroy(go.GetComponent<Collider>());   // the canvas alone is what you point at and grab
+            go.transform.SetParent(canvas, false);
+            go.transform.localPosition = new Vector3(0f, 0f, behind);
+            go.transform.localRotation = Quaternion.identity;
+            go.transform.localScale = new Vector3((w + margin) / w, (h + margin) / h, depth);
+            var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            m.SetColor("_BaseColor", colour);
+            go.GetComponent<MeshRenderer>().sharedMaterial = m;
         }
 
         Texture2D ArtworkImage(string id)
@@ -925,12 +1122,12 @@ namespace MusePico.Journey
 
             if (dialogue != null) dialogue.Cancel();
             _artOpen = record;
-            _artPhase = JourneyScript.ArtPhase.Looking;
+            _artPhase = JourneyScript.ArtPhase.Choosing;   // answerable at once; readings arrive above heads
             _artToken++;
             _fadeToken++;                                   // the bubbles are about to be refilled
             _artSpeakerId = ArtworkDialogue.PickOpening(Journey.InvitedMasterIds, _artTurn++);
             _artYouSaid = _artReply = string.Empty;
-            _artLive = "THE MASTERS ARE LOOKING…";
+            _artLive = string.Empty;
             ClearBubbles();
             FetchArtReadings(record, _artToken);
         }
@@ -970,17 +1167,17 @@ namespace MusePico.Journey
                 return;
             }
             QuietBubbles();
-            _artPhase = JourneyScript.ArtPhase.Choosing;
-            _artLive = "ALL THREE HAVE SPOKEN · EACH READING STAYS ABOVE ITS MASTER";
         }
 
         /// <summary>No live readings: one master's scripted line about the work, then the answers.</summary>
         void OfferScriptedOpening(ArtworkRecord record)
         {
             var who = Master(_artSpeakerId);
-            _artLive = (who != null ? who.fullName + ": " : string.Empty) +
-                       ArtworkDialogue.Format(ArtworkDialogue.VoiceFor(_artSpeakerId).Opening, record.title, record.artist);
-            _artPhase = JourneyScript.ArtPhase.Choosing;
+            var line = ArtworkDialogue.Format(ArtworkDialogue.VoiceFor(_artSpeakerId).Opening, record.title, record.artist);
+            // Above the master who says it, like a live reading.
+            if (_artSpeakerId != null && _bubbles.TryGetValue(_artSpeakerId, out var bubble) && bubble != null)
+                bubble.Show(who != null ? who.name : _artSpeakerId, line, speaking: false);
+            else _artLive = (who != null ? who.fullName + ": " : string.Empty) + line;
         }
 
         /// <summary>
@@ -995,10 +1192,23 @@ namespace MusePico.Journey
 
             Journey.Session.ApplyChoice(choice.Delta);
             _artSpeakerId = ArtworkDialogue.PickReaction(choiceId, _artSpeakerId, Journey.InvitedMasterIds);
+            Journey.Session.RecordAnswer(_artOpen != null ? _artOpen.title : null, choice.Id, _artSpeakerId);
             _artReply = ArtworkDialogue.VoiceFor(_artSpeakerId).Reactions.TryGetValue(choiceId, out var line)
                 ? line : string.Empty;
             _artYouSaid = choice.Label;
             _artPhase = JourneyScript.ArtPhase.Answered;
+            _artLive = string.Empty;
+
+            // The answer ends the conversation about the work: readings still in flight are dropped,
+            // the old bubbles go, and only the reply is shown, above the master who gives it.
+            _artToken++;
+            _fadeToken++;
+            if (dialogue != null) dialogue.Cancel();
+            ClearBubbles();
+            var who = Master(_artSpeakerId);
+            if (_artSpeakerId != null && _bubbles.TryGetValue(_artSpeakerId, out var bubble) && bubble != null)
+                bubble.Show(who != null ? who.name : _artSpeakerId, _artReply, speaking: true);
+            SetTalkingMaster(_artSpeakerId, true);
             if (dialogue != null) _ = dialogue.SayAsync(_artSpeakerId, _artReply);
         }
 
@@ -1109,15 +1319,17 @@ namespace MusePico.Journey
         /// </summary>
         void MakeCompanionsPointable()
         {
-            var party = companions == null ? null : companions.GetComponent<MusePico.Worlds.CompanionParty>();
+            var party = companions == null ? null : companions.GetComponent<MusePico.Worlds.ICompanionBodies>();
             if (party == null) return;
 
             var invited = Journey.InvitedMasterIds;
             var roster = Roster();
 
-            for (var i = 0; i < party.Count && i < invited.Count; i++)
+            for (var i = 0; i < invited.Count; i++)
             {
-                var t = party.TransformOf(i);
+                var b = BodyOf(party, invited[i], i);
+                if (b < 0) continue;
+                var t = party.TransformOf(b);
                 if (t == null) continue;
 
                 MasterLens lens = null;
@@ -1287,9 +1499,9 @@ namespace MusePico.Journey
         }
 
         /// <summary>The opening stages, in the courtyard, before the exhibition.</summary>
-        static bool InLobby(Stage stage) =>
-            stage == Stage.Threshold || stage == Stage.LifeQuestion ||
-            stage == Stage.CompanionSelection || stage == Stage.AiCuration;
+        /// The masters appear once the visitor has pressed LET AI CURATE (Saul, 1 Oct 2026): not
+        /// while the question is asked or the company chosen, only from the curation on.
+        static bool InLobby(Stage stage) => stage == Stage.AiCuration;
 
         /// <summary>
         /// Give every spawned master its click target, as soon as it exists.
@@ -1304,7 +1516,7 @@ namespace MusePico.Journey
         void KeepCompanionsPointable()
         {
             if (companions == null || !companions.gameObject.activeInHierarchy) return;
-            var party = companions.GetComponent<MusePico.Worlds.CompanionParty>();
+            var party = companions.GetComponent<MusePico.Worlds.ICompanionBodies>();
             if (party == null || party.Count == 0 || _pointableCount >= party.Count) return;
             MakeCompanionsPointable();
             var built = 0;
@@ -1318,6 +1530,18 @@ namespace MusePico.Journey
         }
 
         int _pointableCount;
+
+        /// <summary>
+        /// The figure that plays invited master <paramref name="id"/>: the body that knows it is that
+        /// master (the rigged painters), else the one in the same slot (the old party, whose figures
+        /// were never tied to who was picked). -1 when there is none.
+        /// </summary>
+        static int BodyOf(MusePico.Worlds.ICompanionBodies party, string id, int slot)
+        {
+            var named = party.IndexOf(id);
+            if (named >= 0) return named;
+            return slot < party.Count ? slot : -1;
+        }
 
         /// <summary>
         /// Her <c>selectCompanion</c>: clicking a master in the gallery opens the ask form.
@@ -1394,7 +1618,17 @@ namespace MusePico.Journey
         {
             if (dialogue == null || _asking == null) return;
             if (string.IsNullOrWhiteSpace(_askQuestion)) return;
-            if (dialogue.IsBusy) return;
+            // Still speaking about a painting just closed? Stop it and wait for it to unwind rather
+            // than ignore the question: asked a few seconds after a painting, the press was silently
+            // dropped while the last voice finished (found in the live run, 1 Oct 2026).
+            if (dialogue.IsBusy)
+            {
+                dialogue.Cancel();
+                var from = Time.realtimeSinceStartup;
+                while (dialogue.IsBusy && Time.realtimeSinceStartup - from < 3f)
+                    await System.Threading.Tasks.Task.Yield();
+                if (dialogue.IsBusy || _asking == null) return;
+            }
 
             Journey.Session.RecordQuestion(_askQuestion);
             _askReplies = "THE MASTERS ARE READING YOUR QUESTION\u2026";
@@ -1442,7 +1676,7 @@ namespace MusePico.Journey
                 return;
             }
             QuietBubbles();
-            _askReplies = AllAnswered;
+            _askReplies = string.Empty;   // the replies are above the masters; the panel need not say so
         }
 
         /// <summary>Her <c>advanceTour</c>: the stop is done, move the guide on.</summary>
@@ -1526,11 +1760,16 @@ namespace MusePico.Journey
             if (string.IsNullOrEmpty(key))
             {
                 _speech = "No OpenAI key — the salon cannot read your walk back.";
+                _ending = JourneyScript.RoundtableFailed("no OpenAI key");
+                _roundtableAsked = false;
                 return;
             }
 
             _speech = "The masters are reading your walk…";
-            var invited = MasterRoster.Select(_roster, Journey.InvitedMasterIds);
+            _ending = JourneyScript.RoundtableLoading();
+            // Exactly the masters who walked: Select would top the company up to three with a master
+            // the visitor never met (only Monet and Picasso are offered while only they are rigged).
+            var invited = MasterRoster.SelectExactly(_roster, Journey.InvitedMasterIds);
             var client = new RoundtableClient(
                 new MusePico.Tripo.TripoWebRequestTransport(key, ResponsesCall.DefaultEndpoint), _roster);
 
@@ -1539,10 +1778,14 @@ namespace MusePico.Journey
             if (!result.Success)
             {
                 _speech = "The salon did not answer: " + result.Error;
+                _ending = JourneyScript.RoundtableFailed(result.Error);
+                _roundtableAsked = false;            // TRY AGAIN may ask once more
                 return;
             }
 
-            SetEnding(result.worldTitle, result.synthesis, result.Live);
+            var threads = new List<ClosingThread>();
+            foreach (var t in result.threads) threads.Add(new ClosingThread(t.speakerId, t.speaker, t.text));
+            _ending = JourneyScript.Ending(result.worldTitle, result.synthesis, result.Live, threads);
             _speech = result.synthesis;
         }
 
@@ -1550,7 +1793,7 @@ namespace MusePico.Journey
         {
             if (!Journey.Spine.Advance()) return;
             OpenChapter();
-            panel.Show(JourneyScript.For(Journey, Roster(), _ending));
+            panel.Show(Script());
         }
 
         /// <summary>Her <c>choose</c> and her companion / question pickers, by stage.</summary>
@@ -1584,6 +1827,7 @@ namespace MusePico.Journey
                         if (choice.Id == id)
                         {
                             Journey.Session.ApplyChoice(choice.Delta);
+                            Journey.Session.SetTransformationChoice(choice.Id);
                             Journey.GoTo(Stage.WorldTransformation);
                             return;
                         }
@@ -1603,6 +1847,9 @@ namespace MusePico.Journey
             if (_artOpen != null) { CloseArt(); return; }
             if (_asking != null) { CloseAsk(); return; }
             if (Journey.Current == Stage.WorldExploration) { PreviousChapter(); return; }
+            // Her TRY AGAIN and ENTER AGAIN sit where the step-back control is.
+            if (Journey.Current == Stage.Roundtable && !string.IsNullOrEmpty(_ending.Error)) { RequestRoundtable(); return; }
+            if (Journey.Current == Stage.Manifesto) { Restart(); return; }
             Journey.Back();
         }
 
@@ -1619,7 +1866,34 @@ namespace MusePico.Journey
 
             Journey.Spine.GoTo(index);
             OpenChapter();
-            panel.Show(JourneyScript.For(Journey, Roster(), _ending));
+            panel.Show(Script());
+        }
+
+        /// <summary>
+        /// The current stage's panel. With doors, stage 04 has no arrows or dots: the way on is the
+        /// door in the room.
+        /// </summary>
+        StagePanel Script()
+        {
+            var panel = JourneyScript.For(Journey, Roster(), _ending);
+            if (doors != null && panel != null && panel.NavTotal > 0)
+            {
+                panel.NavTotal = 0;
+                if (panel.Hint != null) panel.Hint = panel.Hint.Replace("ARROWS CHANGE WORLD", "WALK THROUGH THE DOOR TO GO ON");
+            }
+            return panel;
+        }
+
+        /// <summary>
+        /// The visitor has walked through a door into the next chapter (<see cref="JourneyDoors"/>).
+        /// The door brought the world with it, so there is nothing to load: advance the spine and
+        /// show the new chapter. The world arrives a moment later, when the door has shut.
+        /// </summary>
+        public void AdvanceByDoor()
+        {
+            if (!Journey.Spine.Advance()) return;
+            _requestedWorldKey = Journey.Spine.Current.EffectiveWorldKey + WorldCatalog.SmallSuffix;
+            panel.Show(Script());
         }
 
         /// <summary>Her scene navigator's left arrow.</summary>
@@ -1627,12 +1901,13 @@ namespace MusePico.Journey
         {
             if (!Journey.Spine.Back()) return;
             OpenChapter();
-            panel.Show(JourneyScript.For(Journey, Roster(), _ending));
+            panel.Show(Script());
         }
 
         /// <summary>Her <c>act()</c>: what the forward button does, stage by stage.</summary>
         void OnAction()
         {
+            if (InPainting) return;                           // the way out is back through the painting
             if (_artOpen != null) { CloseArt(); return; }     // CONTINUE THE WALK
             if (_asking != null) { AskTheMasters(); return; }
 
@@ -1666,6 +1941,30 @@ namespace MusePico.Journey
             }
         }
 
+        /// <summary>
+        /// The visitor has walked through a painting into its world, or back out of it
+        /// (JourneyPaintingPortal). Both worlds stay loaded and the painting stays standing as a door
+        /// between them, so nothing loads and nobody is moved: inside, the gallery's other works are
+        /// hidden and the panel says how to get back; outside, the gallery is as it was.
+        /// </summary>
+        public void SetInsidePainting(bool inside, string paintingId)
+        {
+            if (inside == _insidePainting) return;
+            _insidePainting = inside;
+            if (inside) { CloseArt(); _paintingTitle = TitleOf(paintingId); }
+            if (wall != null)
+                foreach (Transform work in wall)
+                    if (work.name != paintingId) work.gameObject.SetActive(!inside);
+            panel.Reorient();
+        }
+
+        /// <summary>The title of a hung work, by id; the id itself when it is not hung.</summary>
+        public string TitleOf(string id)
+        {
+            foreach (var w in _hanging) if (w.id == id) return w.title;
+            return id;
+        }
+
         /// <summary>Her <c>scheduleTransformation</c>: three writes, then the manifesto.</summary>
         void TickTransformation()
         {
@@ -1676,7 +1975,7 @@ namespace MusePico.Journey
             foreach (var beat in JourneyScript.TransformationBeats)
                 if (ratio >= beat.Key) line = beat.Value;
 
-            var showing = JourneyScript.For(Journey, Roster(), _ending);
+            var showing = Script();
             showing.Lede = line;
             panel.Show(showing);
         }
@@ -1747,8 +2046,27 @@ namespace MusePico.Journey
             return sb.ToString();
         }
 
-        IReadOnlyList<MasterLens> Roster() =>
-            _roster?.masters != null ? (IReadOnlyList<MasterLens>)_roster.masters : null;
+        /// <summary>
+        /// The masters who can be invited: only those with a rigged, animated body that can walk with
+        /// the visitor — Monet and Picasso, for now (Saul, 1 Oct 2026). The rest of masters.json stays
+        /// as it is and comes back as each master is rigged.
+        /// </summary>
+        public static readonly string[] OfferedMasterIds = { "monet", "picasso" };
+
+        IReadOnlyList<MasterLens> _offered;
+
+        IReadOnlyList<MasterLens> Roster()
+        {
+            if (_roster?.masters == null) return null;
+            if (_offered == null)
+            {
+                var list = new List<MasterLens>();
+                foreach (var id in OfferedMasterIds)
+                    foreach (var m in _roster.masters) if (m.id == id) { list.Add(m); break; }
+                _offered = list;
+            }
+            return _offered;
+        }
 
         void IndexStageRoots()
         {

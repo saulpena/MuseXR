@@ -19,6 +19,11 @@ namespace MuseXR.Worlds
         /// 1.37 GB. Same captures, same coordinate frame (see <see cref="Small"/>), so the
         /// playtested spawns carry over. This is the set to actually ship.</summary>
         Small,
+
+        /// <summary>Only the worlds that exist in muse-infinity, at 500k, exactly as exported:
+        /// no pruned cuts, no Chisel rebuilds, nothing we generated. See <see cref="WorldCatalog.Original"/>.
+        /// Appended last because the enum is serialized as an int in every scene.</summary>
+        Original,
     }
 
     /// <summary>
@@ -230,6 +235,19 @@ namespace MuseXR.Worlds
             // groundY -0.25: the collider's -0.6 plus the same 0.35 m lift as the courtyard.
             Small_("empty-chinese-imperial-temple-hall", "Hall of the Great Buddha",
                    1.7f, new Vector2(0f, 16f / 1.7f), -0.25f / 1.7f, 180f, 250f),
+            // Inside Pissarro's Woman Bathing Her Feet in a Brook (PaintingWorlds). Made in Marble's
+            // Chisel, 1 Oct 2026: a 14 x 18 m clearing walled by trees, a brook 8 m ahead of the
+            // start, the panorama repainted from the painting itself. The Chisel camera stood at
+            // the origin looking down -Z (yaw 180 here); exported at ground level, so groundY 0.
+            // The visitor starts at the Chisel camera, where the panorama was taken: the only spot
+            // the capture is clean from. 4 m back (tried, to give the bather room) is already
+            // inside the tree wall, with nothing under the eye.
+            // Where stages 05-09 happen (Saul, 1 Oct 2026): the Buddha Hall, made in Chisel on
+            // 28 Sep 2026. Its playtested spawn and scale are QualityBenchCatalog's.
+            Small_("buddha-hall-chisel", "Buddha Hall (Chisel)",
+                   2.63f, new Vector2(0f, 6f / 2.63f), 0f, 180f, 250f),
+            Small_(PaintingWorlds.PissarroBrook, "Inside the Pissarro",
+                   1.0f, Vector2.zero, 0f, 180f, 200f),
         };
 
         /// <summary>
@@ -252,7 +270,25 @@ namespace MuseXR.Worlds
             key = baseKey + SmallSuffix, displayName = name,
             worldScale = scale, spawn = spawn, groundY = groundY, yawDegrees = yaw,
             cameraFar = far, hasMeasuredSpawn = true, walkBounds = walk,
+            yawFromWeb = IsWebYaw(baseKey),
         };
+
+        /// <summary>
+        /// Her six worlds whose yaw is copied from worlds.js (see WorldDefinition.yawFromWeb).
+        /// Not the shimmering spheres: its yaw was chosen here, by screenshot.
+        /// </summary>
+        /// (A method, not an array field: Small is built by a static initializer above any field here.)
+        static bool IsWebYaw(string baseKey)
+        {
+            switch (baseKey)
+            {
+                case "van-gogh-inspired-gallery-interior": case "elegant-floral-palace-interior":
+                case "mexican-courtyard-bedroom-fantasy": case "grand-conservatory-with-lush-gardens":
+                case "enchanted-water-garden-sanctuary": case "dreamlike-coastal-villa-gardens":
+                    return true;
+                default: return false;
+            }
+        }
 
         static WorldDefinition SmallUnmeasured(string baseKey, string name, float far) =>
             new WorldDefinition
@@ -262,12 +298,42 @@ namespace MuseXR.Worlds
                 cameraFar = far, hasMeasuredSpawn = false,
             };
 
+        /// <summary>
+        /// The web project's own worlds at the 500k tier, untouched — the "is this how hers look on
+        /// a headset" set. Taken from <see cref="Small"/> by key so the spawns are the same
+        /// definitions, not copies that can drift.
+        ///
+        /// Seven of the ten entries in muse-infinity/config/worlds.js. Missing, because no 500k
+        /// export exists on disk: yellow-polka-dot-infinity-room, sunlit-palace-gardens, and
+        /// bright-gallery-hall (whose full-res .spz is not in the release either).
+        /// enchanted-palace-garden is in Small but not in worlds.js, so it is left out.
+        /// </summary>
+        public static readonly string[] OriginalKeys =
+        {
+            "van-gogh-inspired-gallery-interior", "elegant-floral-palace-interior",
+            "mexican-courtyard-bedroom-fantasy", "grand-conservatory-with-lush-gardens",
+            "enchanted-water-garden-sanctuary", "dreamlike-coastal-villa-gardens",
+            "fantasy-realm-of-shimmering-spheres",
+        };
+
+        public static readonly IReadOnlyList<WorldDefinition> Original = BuildOriginal();
+
+        static IReadOnlyList<WorldDefinition> BuildOriginal()
+        {
+            var list = new List<WorldDefinition>();
+            foreach (var baseKey in OriginalKeys)
+                foreach (var w in Small)
+                    if (w.key == baseKey + SmallSuffix) { list.Add(w); break; }
+            return list;
+        }
+
         public static IReadOnlyList<WorldDefinition> Get(WorldSet set)
         {
             switch (set)
             {
                 case WorldSet.Samples: return Samples;
                 case WorldSet.Small:   return Small;
+                case WorldSet.Original: return Original;
                 default:               return Skylar;
             }
         }

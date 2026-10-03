@@ -35,8 +35,18 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5e8c9822c2e062b41a3704366dcef80d
+    m_Address: depthroom-uncertainty-draft-500k
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 819cda05f162ab744ababd0f46418943
     m_Address: enchanted-water-garden-sanctuary
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 81ccca42cc2ffef49b4e6cf679333c60
+    m_Address: depthroom-uncertainty-500k
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

@@ -25,7 +25,7 @@ namespace MusePico.Worlds
     ///   * they are separated from each other every frame, because two masters converging on
     ///     clamped slots used to end up inside one another.
     /// </summary>
-    public class CompanionParty : MonoBehaviour
+    public class CompanionParty : MonoBehaviour, ICompanionBodies
     {
         [Header("Who walks with you")]
         [Tooltip("The imported .glb prefabs, in slot order. muse-infinity's default three are " +
@@ -130,6 +130,10 @@ namespace MusePico.Worlds
         /// to them - a name plate, a voice, or the collider that makes them pointable.
         /// </summary>
         public Transform TransformOf(int i) => (i >= 0 && i < _party.Count) ? _party[i].transform : null;
+
+        /// <summary>The party's figures are whatever the scene set, not tied to a master: -1, so the
+        /// journey pairs them with the invited masters by order, as it always has.</summary>
+        public int IndexOf(string masterId) => -1;
 
         /// <summary>Put every master into, or out of, the talking animation.</summary>
         public void SetTalking(bool talking)

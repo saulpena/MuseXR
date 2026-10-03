@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 
 namespace MusePico.Dialogue
 {
@@ -135,6 +136,19 @@ namespace MusePico.Dialogue
 
         /// <summary>Small print below — the honesty notices, and the AI-interpretation disclaimer.</summary>
         public string Notice = string.Empty;
+
+        /// <summary>
+        /// The portrait of the master speaking, drawn beside the copy at its top left (her
+        /// .art-dialogue-head: the speaker's face next to their words). Empty for no portrait.
+        /// </summary>
+        public string SpeakerImageId = string.Empty;
+
+        /// <summary>
+        /// Cards set side by side under the copy (her .roundtable-threads): each master's face,
+        /// name and remark in a column of their own, so two or three of them read across instead of
+        /// stacking the panel down through the floor.
+        /// </summary>
+        public IReadOnlyList<StageCard> Cards = new List<StageCard>();
     }
 
     /// <summary>One of her three closing choices, with the axis delta it applies.</summary>
@@ -150,6 +164,26 @@ namespace MusePico.Dialogue
         }
     }
 
+    /// <summary>One master's closing remark at the roundtable (her data.threads entry).</summary>
+    public readonly struct ClosingThread
+    {
+        public readonly string SpeakerId, Speaker, Text;
+        public ClosingThread(string speakerId, string speaker, string text)
+        {
+            SpeakerId = speakerId ?? string.Empty; Speaker = speaker ?? string.Empty; Text = text ?? string.Empty;
+        }
+    }
+
+    /// <summary>A card in a row under the copy: a face, a name and what they said.</summary>
+    public readonly struct StageCard
+    {
+        public readonly string ImageId, Title, Body, Footnote;
+        public StageCard(string imageId, string title, string body, string footnote = null)
+        {
+            ImageId = imageId ?? string.Empty; Title = title ?? string.Empty; Body = body ?? string.Empty; Footnote = footnote ?? string.Empty;
+        }
+    }
+
     /// <summary>The ending the manifesto reads out, and whether it is the real one.</summary>
     public readonly struct ClosingEnding
     {
@@ -162,9 +196,22 @@ namespace MusePico.Dialogue
         /// <summary>False when the synthesis exists but no live model produced it.</summary>
         public readonly bool Live;
 
-        public ClosingEnding(string title, string copy, bool fromRoundtable, bool live)
+        /// <summary>Each master's closing remark (her data.threads).</summary>
+        public readonly IReadOnlyList<ClosingThread> Threads;
+
+        /// <summary>True while the roundtable is being asked (her status "loading").</summary>
+        public readonly bool Loading;
+
+        /// <summary>Why the roundtable failed (her status "error"), or empty.</summary>
+        public readonly string Error;
+
+        public ClosingEnding(string title, string copy, bool fromRoundtable, bool live,
+                             IReadOnlyList<ClosingThread> threads = null,
+                             bool loading = false, string error = null)
         {
             Title = title; Copy = copy; FromRoundtable = fromRoundtable; Live = live;
+            Threads = threads ?? new List<ClosingThread>();
+            Loading = loading; Error = error ?? string.Empty;
         }
     }
 
@@ -252,14 +299,23 @@ namespace MusePico.Dialogue
         /// Her <c>finalWorldData</c>: the ending is the roundtable's synthesis, and the fallback is
         /// labelled as a failure rather than passed off as the real thing.
         /// </summary>
-        public static ClosingEnding Ending(string worldTitle, string synthesis, bool live)
+        public static ClosingEnding Ending(string worldTitle, string synthesis, bool live,
+                                           IReadOnlyList<ClosingThread> threads = null)
         {
             var title = (worldTitle ?? string.Empty).Trim();
             var copy = (synthesis ?? string.Empty).Trim();
             if (title.Length == 0 || copy.Length == 0)
                 return new ClosingEnding(FallbackTitle, FallbackCopy, false, false);
-            return new ClosingEnding(title, copy, true, live);
+            return new ClosingEnding(title, copy, true, live, threads);
         }
+
+        /// <summary>The roundtable has been asked and has not answered (her status "loading").</summary>
+        public static ClosingEnding RoundtableLoading() =>
+            new ClosingEnding(FallbackTitle, FallbackCopy, false, false, loading: true);
+
+        /// <summary>The roundtable failed (her status "error"): the manifesto still falls back.</summary>
+        public static ClosingEnding RoundtableFailed(string error) =>
+            new ClosingEnding(FallbackTitle, FallbackCopy, false, false, error: error ?? "unknown error");
 
         /// <summary>
         /// The panel for whichever stage the visitor is standing in.
@@ -392,8 +448,23 @@ namespace MusePico.Dialogue
         /// <param name="youSaid">The answer chosen, once answered.</param>
         /// <param name="reactor">The master replying, once answered.</param>
         /// <param name="reply">Their reply, once answered.</param>
+        /// <summary>The hint on a painting that has a world to walk into (JourneyPaintingPortal).</summary>
+        public const string WalkInHint = "TO WALK INTO IT, HOLD A CONTROLLER ON ITS CENTRE FOR 2 SECONDS · P IN THE EDITOR";
+
+        /// <summary>The panel while the visitor stands inside a painting.</summary>
+        public static StagePanel InsidePainting(string title) => new StagePanel
+        {
+            Marker = "INSIDE THE PAINTING",
+            Eyebrow = "YOU HAVE STEPPED THROUGH THE FRAME",
+            Heading = string.IsNullOrEmpty(title) ? "This work" : title,
+            Lede = "Walk where the painter stood. The painting you came through is still behind you: " +
+                   "walk back up to it and it opens onto the gallery.",
+            Hint = "TO LEAVE, WALK BACK THROUGH THE PAINTING",
+        };
+
         public static StagePanel ArtDialogue(string title, ArtPhase phase, string status,
-                                             string youSaid = null, MasterLens reactor = null, string reply = null)
+                                             string youSaid = null, MasterLens reactor = null, string reply = null,
+                                             bool canStepInside = false)
         {
             var heading = string.IsNullOrEmpty(title) ? "This work" : title;
 
@@ -402,7 +473,8 @@ namespace MusePico.Dialogue
                 var who = reactor == null ? "A MASTER" : reactor.fullName.ToUpperInvariant();
                 return new StagePanel
                 {
-                    Marker = "IN REPLY TO YOUR ANSWER",
+                    // Who said it, as a face beside the words, the way her popup shows the master.
+                    SpeakerImageId = reactor != null ? reactor.id : string.Empty,
                     Eyebrow = who + " REPLIES",
                     Heading = heading,
                     Lede = "<color=" + GoldHex + ">You said:</color> “" + (youSaid ?? string.Empty) + "”\n\n" +
@@ -413,24 +485,22 @@ namespace MusePico.Dialogue
                 };
             }
 
+            // The answers are there from the start: the masters' readings appear above their heads
+            // as they arrive, and nobody has to wait for them to finish speaking to answer.
             var choices = new List<StageChoice>();
-            if (phase == ArtPhase.Choosing)
-                for (var i = 0; i < ArtworkDialogue.Choices.Count; i++)
-                {
-                    var c = ArtworkDialogue.Choices[i];
-                    choices.Add(new StageChoice(c.Id, "0" + (i + 1) + "  " + c.Label));
-                }
+            for (var i = 0; i < ArtworkDialogue.Choices.Count; i++)
+            {
+                var c = ArtworkDialogue.Choices[i];
+                choices.Add(new StageChoice(c.Id, "0" + (i + 1) + "  " + c.Label));
+            }
 
             return new StagePanel
             {
-                Marker = "ABOUT THIS WORK",
-                Eyebrow = "THE MASTERS LOOK AT IT",
+                Eyebrow = "HOW DOES IT LEAVE YOU?",
                 Heading = heading,
-                Lede = status ?? string.Empty,
+                Lede = status ?? string.Empty,      // empty unless something went wrong
                 Choices = choices,
-                Hint = phase == ArtPhase.Choosing
-                    ? "HOW DOES IT LEAVE YOU? POINT AT AN ANSWER"
-                    : "LISTEN · EACH READING STAYS ABOVE ITS MASTER",
+                Hint = canStepInside ? WalkInHint : string.Empty,
                 Notice = ArtworkDialogue.Disclaimer,
             };
         }
@@ -527,7 +597,7 @@ namespace MusePico.Dialogue
             var count = journey.InvitedMasterIds.Count;
             return new StagePanel
             {
-                Eyebrow = "02 / INVITE UP TO THREE MINDS",
+                Eyebrow = "02 / INVITE UP TO " + (MuseumJourney.MaxCompanions == 2 ? "TWO" : MuseumJourney.MaxCompanions.ToString()) + " MINDS",
                 Heading = "Who will walk the museum with you?",
                 Lede = "Choose real historical portraits with public-domain sources. In the " +
                        "gallery, each becomes an interpretive AI companion — not a clone or " +
@@ -630,38 +700,58 @@ namespace MusePico.Dialogue
 
         static StagePanel Summoning(MuseumJourney journey)
         {
-            var choices = new List<StageChoice>();
-            foreach (var art in journey.Session.VisitedArtworks)
-                choices.Add(new StageChoice("stop", "Stopped at " + art.Title));
-            foreach (var q in journey.Session.AskedQuestions)
-                choices.Add(new StageChoice("asked", "Asked “" + q + "”"));
-
+            // Her summoningView: the walk as a ledger, one line per stop and per question — read, not
+            // pressed. (They were plates here, which looked like buttons and did nothing.)
+            var lines = SummoningLedger(journey);
             return new StagePanel
             {
                 Eyebrow = "05 / SEVEN MINDS. ONE EMPTY SEAT.",
                 Heading = "The Salon Outside Time",
-                Lede = choices.Count > 0
-                    ? "Your walk is entering the record."
+                Lede = lines.Count > 0
+                    ? "Your walk is entering the record.\n\n" + string.Join("\n", lines)
                     : "You arrive with an empty record — no stop, no question. The salon will " +
                       "have only that to read.",
-                Choices = choices,
                 Action = "OPEN THE SALON →",
-                Hint = "PULL THE TRIGGER TO BE READ BACK",
                 Notice = InterpretationNotice,
             };
         }
 
+        /// <summary>Her walkTrailEntries: "Stopped at …" for each work, "Asked “…”" for each question.</summary>
+        public static List<string> SummoningLedger(MuseumJourney journey)
+        {
+            var lines = new List<string>();
+            foreach (var art in journey.Session.VisitedArtworks) lines.Add("Stopped at " + art.Title);
+            foreach (var q in journey.Session.AskedQuestions) lines.Add("Asked “" + q + "”");
+            return lines;
+        }
+
         static StagePanel Roundtable(MuseumJourney journey, ClosingEnding ending)
         {
+            // Her roundtableView: the heading becomes the world's title once it is ready; under the
+            // walk trail, the status, each master's closing remark with its own disclaimer, and the
+            // synthesis. TRY AGAIN only after a failure. FACE THE CONTRADICTION is never locked.
             var ready = ending.FromRoundtable;
+            var body = new StringBuilder(WalkTrail(journey));
+            if (ending.Loading) body.Append("\n\n<color=").Append(GoldHex).Append(">THE SALON IS READING YOUR WALK…</color>");
+            else if (!string.IsNullOrEmpty(ending.Error)) body.Append("\n\n<color=#E06C5A>THE ROUNDTABLE COULD NOT BE REACHED — ").Append(ending.Error).Append("</color>");
+            var cards = new List<StageCard>();
+            if (!ending.Loading && string.IsNullOrEmpty(ending.Error) && ready)
+            {
+                if (!ending.Live) body.Append("\n\n<color=#E06C5A>LOCAL FALLBACK — this closing was not produced by a live model.</color>");
+                if (ending.Threads != null)
+                    foreach (var thread in ending.Threads)
+                        cards.Add(new StageCard(thread.SpeakerId, thread.Speaker, thread.Text, ArtworkDialogue.Disclaimer));
+                body.Append("\n\n<i>“").Append(ending.Copy).Append("”</i>");
+            }
             return new StagePanel
             {
                 Eyebrow = "06 / THE CLOSING ROUNDTABLE",
                 Heading = ready ? ending.Title : "The masters read back your walk",
-                Lede = ready ? ending.Copy : WalkTrail(journey),
+                Lede = body.ToString(),
+                Cards = cards,
                 Action = "FACE THE CONTRADICTION →",
                 ActionEnabled = true,
-                Hint = ready ? WalkTrail(journey) : "LISTENING TO THE SALON…",
+                Back = !string.IsNullOrEmpty(ending.Error) ? "TRY AGAIN" : string.Empty,
             };
         }
 
@@ -702,6 +792,7 @@ namespace MusePico.Dialogue
                 Heading = ending.Title,
                 Lede = ending.Copy,
                 Action = "ENTER YOUR WORLD →",
+                Back = "ENTER AGAIN",
                 Hint = "PERCEPTION " + Pad(axes.Perception) +
                        "   ·   EMOTION " + Pad(axes.Emotion) +
                        "   ·   INVENTION " + Pad(axes.Invention),
