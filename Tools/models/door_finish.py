@@ -27,7 +27,7 @@ from mathutils import Vector, Matrix
 from mathutils.bvhtree import BVHTree
 
 argv = sys.argv[sys.argv.index("--") + 1:]
-src, out, name, spec = argv[0], argv[1], argv[2], json.loads(argv[3])
+src, out, name, spec = os.path.abspath(argv[0]), os.path.abspath(argv[1]), argv[2], json.loads(argv[3])
 os.makedirs(out, exist_ok=True)
 log = []
 def say(*a):
@@ -138,8 +138,23 @@ if spec["kind"] == "frame":
     if "depth" in spec: sy = spec["depth"] / (hi.y - lo.y)
 else:
     sx = spec["leaf_w"] / (hi.x - lo.x); sz = spec["leaf_h"] / (hi.z - lo.z); sy = spec["leaf_t"] / (hi.y - lo.y)
+widen = 0.0
+if spec.get("fit") == "widen":
+    # keep proportions of every board: uniform scale to the target height, then slide the two halves
+    # apart so the width is right. Only parts that cross the centre line (head, sill, panels) stretch.
+    if spec["kind"] == "frame":
+        sx = sz = spec["open_h"] / op["h"]; widen = spec["open_w"] - op["w"] * sx; cx0 = op["cx"]
+    else:
+        sx = sz = spec["leaf_h"] / (hi.z - lo.z); widen = spec["leaf_w"] - (hi.x - lo.x) * sx; cx0 = (lo.x + hi.x) / 2
+    sy = spec["leaf_t"] / (hi.y - lo.y) if spec["kind"] == "leaf" else (spec["depth"] / (hi.y - lo.y) if "depth" in spec else sx)
 say(f"scale x {sx:.4f} y {sy:.4f} z {sz:.4f}  (non-uniformity {max(sx, sz) / min(sx, sz) - 1:.1%} in XZ)")
 xform(Matrix.Diagonal((sx, sy, sz, 1)))
+if widen:
+    c = cx0 * sx
+    for v in me.vertices:
+        v.co.x += widen / 2 if v.co.x > c else -widen / 2
+    me.update()
+    say(f"widened by {widen:.3f} m about x={c:.3f} (halves slid apart, boards keep their width)")
 
 if spec.get("cut"):
     shape, cw, ch, cb = spec["cut"]
@@ -179,6 +194,37 @@ if spec["kind"] == "frame":
     result["opening"] = op; result["fill_ratio"] = fr
 
 # 3. textures
+if "tint" in spec:
+    # recolour the base-colour map: keep its light/dark detail (luminance), replace the hue with the target
+    tr, tg, tb, mix = spec["tint"]
+    for mat in me.materials:
+        bsdf = next(n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
+        link = bsdf.inputs["Base Color"].links
+        if not link: continue
+        img = link[0].from_node.image
+        px = np.empty(len(img.pixels), np.float32); img.pixels.foreach_get(px); px = px.reshape(-1, 4)
+        lum = px[:, :3] @ np.array([0.299, 0.587, 0.114], np.float32)
+        lum = lum / max(lum.mean(), 1e-4)
+        target = np.outer(lum, np.array([tr, tg, tb], np.float32))
+        px[:, :3] = np.clip(px[:, :3] * (1 - mix) + target * mix, 0, 1)
+        img.pixels.foreach_set(px.ravel()); img.update(); img.pack()
+        say(f"tinted {img.name} toward ({tr}, {tg}, {tb}) mix {mix}")
+if "mute_orange" in spec:
+    # pull saturated orange/yellow paint toward a dull ochre (hue 20-60 deg, saturation above 0.45)
+    sat_k, val_k = spec["mute_orange"]
+    for mat in me.materials:
+        bsdf = next(n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
+        if not bsdf.inputs["Base Color"].links: continue
+        img = bsdf.inputs["Base Color"].links[0].from_node.image
+        px = np.empty(len(img.pixels), np.float32); img.pixels.foreach_get(px); px = px.reshape(-1, 4)
+        rgb = px[:, :3]; mxc = rgb.max(1); mnc = rgb.min(1); sat = (mxc - mnc) / np.maximum(mxc, 1e-4)
+        r, g, b = rgb[:, 0], rgb[:, 1], rgb[:, 2]
+        hue = np.degrees(np.arctan2(np.sqrt(3) * (g - b), 2 * r - g - b)) % 360
+        m = (hue > 20) & (hue < 60) & (sat > 0.45)
+        grey = rgb[m].mean(1, keepdims=True)
+        rgb[m] = (grey + (rgb[m] - grey) * sat_k) * val_k
+        px[:, :3] = np.clip(rgb, 0, 1); img.pixels.foreach_set(px.ravel()); img.update(); img.pack()
+        say(f"muted orange in {img.name}: {m.mean():.1%} of texels, saturation x{sat_k}, value x{val_k}")
 mx = spec.get("tex", 2048); texs = []
 for img in bpy.data.images:
     if img.size[0] > mx:

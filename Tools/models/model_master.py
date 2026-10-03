@@ -178,6 +178,9 @@ def cmd_rig(a):
     for k, ext in (("rigged_character_fbx_url", "fbx"), ("rigged_character_glb_url", "glb")):
         if res.get(k):
             download(res[k], out / f"{a.master}-rigged.{ext}")
+    for k, u in (res.get("basic_animations") or {}).items():
+        if u and k.endswith("_glb_url") and "armature" not in k.lower():
+            download(u, out / f"{a.master}-anim-{k[:-8]}.glb")
     print(f"DONE {out} credits {rig.get('consumed_credits', '?')}")
 
 
