@@ -64,6 +64,9 @@ namespace MusePico.Journey
         public const float FrameCentreHeight = 1.5f;   // her rule
         public const float CardOffset = 0.3f;          // her rule: 0.3 m right of the frame
         public const float ViewingDistance = 2.0f;
+        public const float NarrowWork = 1.0f;          // her rule: a work narrower than this has its card below it
+        public const float CardGap = 0.08f;
+        public const float CaptureFrameBorder = 0.14f; // a capture's gold moulding outside the mount
         public const float GroundTolerance = 0.6f;
         public const float FigureLift = 0.03f;     // how far a floor may sit from the entry's level     // her viewing mark is 1.8-2.5 m from a work
 
@@ -225,6 +228,22 @@ namespace MusePico.Journey
                 anchor.position = onWall + viewerRight * (size.x / 2f + CardOffset + cardW / 2f) - wallDir * 0.02f;
                 anchor.rotation = faces;
                 MuseScreens.ArtworkCard(anchor, a, ViewingDistance);
+                // Her rule: below the frame, not beside it, when the work is under 1 m wide.
+                if (size.x < NarrowWork)
+                {
+                    Canvas.ForceUpdateCanvases();
+                    float lo = float.MaxValue, hi = float.MinValue; var c = new Vector3[4];
+                    foreach (var rt in anchor.GetComponentsInChildren<RectTransform>())
+                    {
+                        if (rt.GetComponent<Canvas>() != null) continue;   // the canvas root's rect is not what it draws
+                        rt.GetWorldCorners(c);
+                        foreach (var v in c) { lo = Mathf.Min(lo, v.y); hi = Mathf.Max(hi, v.y); }
+                    }
+                    float cardH = hi > lo ? hi - lo : 0.3f;
+                    // Clear what surrounds the canvas too: a mount, and the capture's own frame moulding round it.
+                    float below = Mathf.Max(size.y, mount.y) / 2f + (mount.y > 0f ? CaptureFrameBorder : 0f);
+                    anchor.position = onWall - Vector3.up * (below + CardGap + cardH / 2f) - wallDir * 0.02f;
+                }
                 // Her 4.1 card "appears on point": built, then hidden until a pointer asks for it.
                 anchor.gameObject.SetActive(ShowCards);
                 Cards[item.Id] = anchor.gameObject;

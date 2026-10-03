@@ -167,15 +167,17 @@ namespace MusePico.Journey
             // degrees right - inside her +/-60 degrees, and clear of the straight view down the walk
             // to the pavilion, which is her hero image and where the question will be lettered.
             var forward = facing * Vector3.forward;
+            // One flat grid on a single plane facing the visitor, so the cards line up like her option
+            // stack instead of fanning (blind review, 3 Oct: each card turned to its own angle read as
+            // tilted and ragged). Centred between her 18 and 43 degrees, columns 0.94 m apart.
+            var gridDir = Quaternion.Euler(0f, questionsFrom + questionsStep * 0.5f, 0f) * forward;
+            var gridRot = Quaternion.LookRotation(gridDir, Vector3.up);
+            var gridRight = gridRot * Vector3.right;
             for (var i = 0; i < GateFlow.Samples.Count; i++)
             {
-                // A 2 x 2 grid: 0.74 m plates at 2.2 m span ~19 degrees, 25 with a gap, and four in a
-                // row would reach 93 degrees - past her +/-60. Two columns (18 and 43) stay inside it.
-                float a = questionsFrom + (i % 2) * questionsStep;
-                float y = i < 2 ? 1.36f : 0.96f;
-                var dir = Quaternion.Euler(0f, a, 0f) * forward;
-                var pos = origin + dir * 2.2f + Vector3.up * y;
-                Plate(i, pos, Quaternion.LookRotation(dir, Vector3.up));
+                var cell = origin + gridDir * PlateDistance + gridRight * ((i % 2 == 0 ? -1f : 1f) * 0.47f)
+                         + Vector3.up * (i < 2 ? 1.3f : 0.98f);
+                Plate(i, cell, gridRot);
             }
 
             // Her prompt, in her kit: a glass panel above the questions it is about - kicker, the
@@ -249,7 +251,10 @@ namespace MusePico.Journey
             box.center = (lo + hi) / 2f;
             box.size = new Vector3(Mathf.Abs(hi.x - lo.x), Mathf.Abs(hi.y - lo.y), 0.05f);
 
+            Image edge = null;
+            foreach (var img in card.GetComponentsInChildren<Image>(true)) if (img.name == "Edge") edge = img;
             _plates.Add((card.GetComponent<Image>(), group, txt));
+            _plateAnchors.Add(anchor); _plateEdges.Add(edge);
 
             var interactable = anchor.gameObject.AddComponent<XRSimpleInteractable>();
             interactable.colliders.Clear();
@@ -263,6 +268,8 @@ namespace MusePico.Journey
             return null;
         }
 
+        readonly System.Collections.Generic.List<Transform> _plateAnchors = new System.Collections.Generic.List<Transform>();
+        readonly System.Collections.Generic.List<Image> _plateEdges = new System.Collections.Generic.List<Image>();
         readonly System.Collections.Generic.List<(Image back, CanvasGroup group, TextMeshProUGUI text)> _plates =
             new System.Collections.Generic.List<(Image, CanvasGroup, TextMeshProUGUI)>();
         Material _plaque;
@@ -439,6 +446,12 @@ namespace MusePico.Journey
                 var size = _lettering.GetPreferredValues(_lettering.text, letteringWidth, 0f);
                 _plaqueT.localScale = new Vector3(Mathf.Min(size.x, letteringWidth) * 1.45f + 1.2f, size.y * 1.9f + 0.8f, 1f);
                 _letteringAlpha = 0f;
+                for (var i = 0; i < _plateAnchors.Count; i++)
+                    if (GateFlow.Samples[i] == Flow.Question && _undoPill != null)
+                    {
+                        var at = _plateAnchors[i];
+                        _undoPill.transform.SetPositionAndRotation(at.position - Vector3.up * 0.2f, at.rotation);
+                    }
                 if (_audio != null && _chime != null) _audio.PlayOneShot(_chime);
                 Buzz(0.45f, 0.12f);
             }
@@ -508,9 +521,10 @@ namespace MusePico.Journey
                 // Chosen: her gold-soft card with gold ink, never colour alone (it also goes bold); the
                 // others step back, and the walk clears once the doors open.
                 back.color = chosen ? MuseTheme.GoldSoft : MuseTheme.Paper;
+                if (i < _plateEdges.Count && _plateEdges[i] != null) _plateEdges[i].color = chosen ? MuseTheme.Gold : MuseTheme.Line;
                 text.color = chosen ? MuseTheme.GoldInk : MuseTheme.Ink;
                 text.fontStyle = chosen ? FontStyles.Bold : FontStyles.Normal;
-                group.alpha = Mathf.MoveTowards(group.alpha, a, Time.deltaTime * 2f);
+                group.alpha = Mathf.MoveTowards(group.alpha, a, Time.deltaTime * (a > group.alpha ? 2f : 4f));
             }
 
             // The doorway: unlit while asking, warming when a question is chosen, full once open.
