@@ -56,12 +56,16 @@ namespace MusePico.Journey
             /// <summary>Stand the canvas's lower edge this far above the floor (overrides height), so a work
             /// of any aspect sits at the foot of a tall frame like a picture in a deep mount.</summary>
             public float bottom;
+            /// <summary>A linen mount of this size behind the canvas, filling a capture frame's opening
+            /// so none of the capture's own blurred canvas shows round a narrower work.</summary>
+            public Vector2 mount;
         }
 
         public const float FrameCentreHeight = 1.5f;   // her rule
         public const float CardOffset = 0.3f;          // her rule: 0.3 m right of the frame
         public const float ViewingDistance = 2.0f;
-        public const float GroundTolerance = 0.6f;     // how far a floor may sit from the entry's level     // her viewing mark is 1.8-2.5 m from a work
+        public const float GroundTolerance = 0.6f;
+        public const float FigureLift = 0.03f;     // how far a floor may sit from the entry's level     // her viewing mark is 1.8-2.5 m from a work
 
         public ChapterDiagrams.Diagram Diagram { get; private set; }
         public Calibration Cal { get; private set; }
@@ -112,7 +116,7 @@ namespace MusePico.Journey
                 {
                     case DiagramKind.Work:
                         Work(item, p, fixedDir ?? WallDir(wallSide, right, fwd), image, info, fixedDir.HasValue,
-                             fo.height > 0f ? fo.height : FrameCentreHeight, fo.fit, fo.noFrame, fo.bottom);
+                             fo.height > 0f ? fo.height : FrameCentreHeight, fo.fit, fo.noFrame, fo.bottom, fo.mount);
                         if (fixedDir.HasValue && fo.stand) Easel(item, p, fixedDir.Value);
                         break;
                     case DiagramKind.Mark: Mark(item, p, master); break;
@@ -168,7 +172,8 @@ namespace MusePico.Journey
         }
 
         void Work(DiagramItem item, Vector3 p, Vector3 wallDir, Func<string, Texture2D> image, Func<string, ArtworkInfo> info, bool exact = false,
-                  float centreHeight = FrameCentreHeight, Vector2 fit = default, bool noFrame = false, float bottom = 0f)
+                  float centreHeight = FrameCentreHeight, Vector2 fit = default, bool noFrame = false, float bottom = 0f,
+                  Vector2 mount = default)
         {
             var d = exact ? null : WallFrom(p, wallDir);
             var onWall = (d.HasValue ? p + wallDir * (d.Value - 0.06f) : p) + Vector3.up * centreHeight;
@@ -195,6 +200,17 @@ namespace MusePico.Journey
             if (tex != null) m.SetTexture("_BaseMap", tex);
             canvas.GetComponent<Renderer>().sharedMaterial = m;
             if (!noFrame) Frame(work.transform, size);
+            if (mount.x > 0f && mount.y > 0f)
+            {
+                var board = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                board.name = "Mount"; Kill(board.GetComponent<Collider>());
+                board.transform.SetParent(work.transform, false);
+                board.transform.localPosition = new Vector3(0f, 0f, 0.012f);   // just behind the canvas
+                board.transform.localScale = new Vector3(mount.x, mount.y, 1f);
+                var lm = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+                lm.SetColor("_BaseColor", new Color(0.9f, 0.86f, 0.78f));   // her paper, warmed
+                board.GetComponent<Renderer>().sharedMaterial = lm;
+            }
             var box = work.AddComponent<BoxCollider>(); box.size = new Vector3(size.x, size.y, 0.06f);   // pointable
             Placed[item.Id] = new Pose(onWall, faces);
 
@@ -274,7 +290,8 @@ namespace MusePico.Journey
             if (prefab != null) { go = Instantiate(prefab, transform); go.name = "Mark " + item.Id; }
             else go = new GameObject("Mark " + item.Id);
             go.transform.SetParent(transform, true);
-            go.transform.SetPositionAndRotation(p, facing);
+            // A few centimetres up: floor splats composite over anything at y 0 and haze a figure's feet.
+            go.transform.SetPositionAndRotation(p + Vector3.up * FigureLift, facing);
             Placed[item.Id] = new Pose(p, facing);
         }
 
@@ -284,7 +301,7 @@ namespace MusePico.Journey
             // meshes rather than UI sprites, so it survives a saved scene and reads at a low angle.
             var root = new GameObject("Interaction " + item.Label).transform;
             root.SetParent(transform, false);
-            root.position = p + Vector3.up * 0.03f;   // clear of floor splats that would band across it
+            root.position = p + Vector3.up * 0.05f;   // clear of floor splats that would band across it
             Disc(root, "Halo", 0f, 0.46f, new Color(MuseTheme.Rose.r, MuseTheme.Rose.g, MuseTheme.Rose.b, 0.16f), 0f);
             Disc(root, "Ring", 0.3f, 0.36f, MuseTheme.Rose, 0.004f);
             Disc(root, "Dot", 0f, 0.07f, MuseTheme.Rose, 0.004f);
