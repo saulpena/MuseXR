@@ -4,6 +4,7 @@ using MusePico.Journey;
 using MuseXR.Interaction;
 using MuseXR.Slots;
 using MuseXR.UI;
+using TMPro;
 using UnityEngine;
 
 namespace MuseXR.Journey
@@ -33,10 +34,15 @@ namespace MuseXR.Journey
 
         readonly Dictionary<string, string> _lines = new Dictionary<string, string>();
         bool _asked, _answersReady;
+        // Her explicit prompt at the row: what to do, in her kit (icon, words and the controller letter).
+        GameObject _prompt;
+        TextMeshProUGUI _promptTitle, _promptHint;
 
         void Start()
         {
             if (gate == null) gate = FindAnyObjectByType<GateStage>();
+            // Pointing needs a pointer and grip on each controller - the trigger selected nothing without it.
+            if (FindAnyObjectByType<HandsBootstrap>() == null) gameObject.AddComponent<HandsBootstrap>();
             if (gate != null) gate.Flow.PhaseChanged += OnGatePhase;
         }
 
@@ -94,11 +100,63 @@ namespace MuseXR.Journey
             root.gameObject.AddComponent<SubtitleRig>().Group = Company.Group;
             Company.Preselect(new[] { Masters.Monet, Masters.VanGogh, Masters.Socrates });   // her demo preset
             AddFill(eye);
+            gate.HidePrompt();   // the Gate is answered; its "hold X to speak" must not linger
+            BuildPrompt(centre, facing, toVisitor);
+            Company.Toggled += (id, r) => RefreshPrompt(r == Invitation.Result.Refused ? "Three is the most. Point at one to let them go first." : null);
+            RefreshPrompt();
             Debug.Log("[Opening] the Company stands on the walk; the question is: " + Company.Question);
+        }
+
+        void BuildPrompt(Vector3 centre, Quaternion facing, Vector3 toVisitor)
+        {
+            var anchor = new GameObject("Company Prompt").transform;
+            anchor.SetParent(transform, false);
+            // Above the middle of the row, facing the visitor: +Z away from them (a flat thing reads that way).
+            anchor.SetPositionAndRotation(centre + Vector3.up * 2.35f, Quaternion.LookRotation(-toVisitor, Vector3.up));
+            var c = MuseUi.Canvas(anchor, "Prompt", rowFromSpawn, 420f);
+            var glass = MuseUi.Glass(c, 420f, gap: 8f);
+            MuseUi.Kicker(glass, "Invite companions", MuseTheme.Gold);
+            _promptTitle = MuseUi.Title(glass, "Choose up to three", 22f);
+            _promptHint = MuseUi.Body(glass, "");
+            var how = MuseUi.Row(glass, 10f);
+            MuseUi.Pill(how, "A", "Continue", true);
+            _prompt = anchor.gameObject;
+        }
+
+        void RefreshPrompt(string note = null)
+        {
+            if (_prompt == null || Company == null) return;
+            switch (Company.Current)
+            {
+                case CompanyStage.Phase.Choosing:
+                    int n = Company.Invitation.SpeakingOrder().Count;
+                    _promptTitle.text = "Choose up to three  ·  " + n + " chosen";
+                    _promptHint.text = note ?? "Point at a master and pull the trigger to invite or release them. Press A when you are ready.";
+                    break;
+                case CompanyStage.Phase.Stepping:
+                case CompanyStage.Phase.Answering:
+                    _promptTitle.text = "Your companions answer";
+                    _promptHint.text = _answersReady ? "Each answers your question in turn. A moves to the next." : "They are thinking about your question…";
+                    break;
+                case CompanyStage.Phase.Done:
+                    _promptTitle.text = "Your companions walk with you";
+                    _promptHint.text = "Next in her journey: the curation lanterns and the first chapter door (not built yet).";
+                    break;
+            }
+        }
+
+        void Update()
+        {
+            // The prompt follows the stage; it hides while a companion is speaking, so the subtitle is the
+            // only thing to read.
+            if (_prompt == null || Company == null) return;
+            bool speaking = Company.Current == CompanyStage.Phase.Answering && _answersReady;
+            if (_prompt.activeSelf == speaking) _prompt.SetActive(!speaking);
         }
 
         async void OnCompanyPhase(CompanyStage.Phase phase)
         {
+            RefreshPrompt();
             if (phase != CompanyStage.Phase.Stepping || _asked) return;
             _asked = true;
             var chosen = Company.Invitation.SpeakingOrder();
@@ -120,6 +178,7 @@ namespace MuseXR.Journey
                         if (RosterId(id) == p.speakerId) _lines[id] = OneLine(p.text);
             Debug.Log("[Opening] answers ready (" + _lines.Count + " of " + chosen.Count + ", live " + (result != null && result.Live) + ")");
             _answersReady = true;
+            RefreshPrompt();
         }
 
         /// <summary>The museum's camera-mounted fill (MuseumJourney: point 2.0, her Point 2.4 converted), so a

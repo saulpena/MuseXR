@@ -68,6 +68,16 @@ namespace MusePico.Journey
         /// <summary>The doorway the question is lettered over and the doors close (world point on the floor).</summary>
         public Vector3 Doorway => _doorway;
 
+        /// <summary>Clear the Gate's own prompt and undo pill once the journey has moved on: a panel still
+        /// offering "Hold X to speak" after the question is answered is a dead end (headset test, 3 Oct).</summary>
+        public void HidePrompt()
+        {
+            _promptHidden = true;
+            if (_promptRoot != null) _promptRoot.SetActive(false);
+            if (_undoPill != null) _undoPill.SetActive(false);
+        }
+        bool _promptHidden;
+
         /// <summary>Raised once, when the visitor walks through the open doors.</summary>
         public event Action<string> Entered;
 
@@ -560,7 +570,7 @@ namespace MusePico.Journey
                 _ => string.Empty,
             };
             _promptHint.text = note ?? hint;
-            if (_promptRoot != null) _promptRoot.SetActive(Flow.Current != GateFlow.Phase.Entered);
+            if (_promptRoot != null) _promptRoot.SetActive(!_promptHidden && Flow.Current != GateFlow.Phase.Entered);
         }
 
         static void Buzz(float amplitude, float seconds)
