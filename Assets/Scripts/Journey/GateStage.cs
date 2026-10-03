@@ -36,10 +36,10 @@ namespace MusePico.Journey
         public Vector3 doorwayWorld;
         [System.NonSerialized] public float archYawOffset = -3f;
         [System.NonSerialized] public float archDistance = 50f;
-        [System.NonSerialized] public float letteringHeight = 9.6f;
+        [System.NonSerialized] public float letteringHeight = 7.6f;
         [Tooltip("Cap height of the lettering, metres. Her rule: body text >= 1 degree; at 50 m that is 0.87 m.")]
-        [System.NonSerialized] public float letteringCapHeight = 1.5f;
-        [System.NonSerialized] public float letteringWidth = 16f;
+        [System.NonSerialized] public float letteringCapHeight = 1.0f;
+        [System.NonSerialized] public float letteringWidth = 14f;
         [Tooltip("Within this many metres of the doorway (horizontally) counts as walking through it.")]
         [System.NonSerialized] public float doorwayRadius = 4f;
 
@@ -127,18 +127,23 @@ namespace MusePico.Journey
             // Weight: Gilda ships one weight, so thicken the face a little for a title read at 50 m.
             _lettering.fontMaterial.SetFloat(ShaderUtilities.ID_FaceDilate, 0.22f);
 
-            // An exhibition title needs a ground: a pale stone plaque with a thin gilt edge, sized to
-            // the words when they are set, so the lettering never sits on vine and finial.
-            _plaqueGilt = Panel("Gate Plaque Gilt", _lettering.transform.position + toArch * 0.06f, awayFromViewer,
-                                new Color(0.72f, 0.58f, 0.3f, 0f), out _plaqueGiltT);
-            _plaque = Panel("Gate Plaque", _lettering.transform.position + toArch * 0.03f, awayFromViewer,
-                            new Color(0.95f, 0.92f, 0.85f, 0f), out _plaqueT);
+            // A ground for the title, so it never sits on vine and finial - but soft, a wash of pale
+            // stone light feathered at every edge, not a pasted placard (blind review, 3 Oct: the hard
+            // gilt-edged plaque read as a label stuck on the building and hid the dome).
+            _plaque = Panel("Gate Title Ground", _lettering.transform.position + toArch * 0.03f, awayFromViewer,
+                            new Color(0.96f, 0.93f, 0.86f, 0f), out _plaqueT);
+            _plaque.SetTexture("_BaseMap", Feathered(128, 64, 0.32f));
+
+            // Her concept art has the doors standing open: dark wooden leaves either side of a lit
+            // gallery. The capture's doorway is already open, so "the doors open" needs doors: two
+            // leaves close the doorway while the visitor chooses and swing inward when it opens.
+            BuildDoors(toArch, awayFromViewer);
 
             var glow = GameObject.CreatePrimitive(PrimitiveType.Quad);
             glow.name = "Gate Doorway Glow";
             Destroy(glow.GetComponent<Collider>());
             glow.transform.SetParent(transform, false);
-            glow.transform.SetPositionAndRotation(_doorway + Vector3.up * 2.4f - toArch * 0.5f, awayFromViewer);
+            glow.transform.SetPositionAndRotation(_doorway + Vector3.up * 2.4f + toArch * 0.6f, awayFromViewer);   // behind the leaves: the shut doors hide it
             glow.transform.localScale = new Vector3(3.4f, 5.2f, 1f);
             _glow = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
             _glow.SetTexture("_BaseMap", ArchGlow());   // feathered and arch-shaped: no hard quad edge
@@ -170,10 +175,10 @@ namespace MusePico.Journey
             var promptDir = Quaternion.Euler(0f, questionsFrom + questionsStep * 0.5f, 0f) * forward;
             var promptRot = Quaternion.LookRotation(promptDir, Vector3.up);
             var promptPos = origin + promptDir * 2.3f + Vector3.up * 1.78f;
-            Backing("Gate Prompt Glass", promptPos + promptDir * 0.01f, promptRot, new Vector2(1.5f, 0.4f));
-            _prompt = Text("Gate Prompt", promptPos, promptRot, 1.4f, 0.38f, 0.05f, titleFont, letteringInk);
+            Backing("Gate Prompt Glass", promptPos + promptDir * 0.01f, promptRot, new Vector2(1.6f, 0.42f));
+            _prompt = Text("Gate Prompt", promptPos, promptRot, 1.5f, 0.4f, 0.05f, titleFont, letteringInk);
             var undoPos = origin + promptDir * 2.3f + Vector3.up * 0.66f;
-            _undoBar = Text("Gate Undo", undoPos, promptRot, 1.2f, 0.12f, 0.035f, null, letteringInk);
+            _undoBar = Text("Gate Undo", undoPos, promptRot, 1.2f, 0.12f, 0.045f, titleFont, letteringInk);
 
             _audio = gameObject.AddComponent<AudioSource>();
             _audio.playOnAwake = false; _audio.spatialBlend = 0f; _audio.volume = 0.5f;
@@ -212,8 +217,70 @@ namespace MusePico.Journey
 
         readonly System.Collections.Generic.List<(Material glass, TextMeshPro text)> _plates =
             new System.Collections.Generic.List<(Material, TextMeshPro)>();
-        Material _plaque, _plaqueGilt;
-        Transform _plaqueT, _plaqueGiltT;
+        Material _plaque;
+        Transform _plaqueT, _leafL, _leafR;
+        float _doorOpen;
+
+        /// <summary>Two dark wooden leaves hinged at the doorway's sides, closed across it.</summary>
+        void BuildDoors(Vector3 toArch, Quaternion awayFromViewer)
+        {
+            const float width = 2.4f, height = 4.6f, thick = 0.12f;   // the opening measures ~2.4 m in the capture
+            var right = Vector3.Cross(Vector3.up, toArch).normalized;
+            var wood = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            wood.SetTexture("_BaseMap", DoorPanel());
+            wood.SetColor("_BaseColor", Color.white);
+            foreach (var side in new[] { -1f, 1f })
+            {
+                var hinge = new GameObject(side < 0 ? "Gate Door Hinge L" : "Gate Door Hinge R").transform;
+                hinge.SetParent(transform, false);
+                hinge.SetPositionAndRotation(_doorway + right * (side * width / 2f) + Vector3.up * 0.02f, awayFromViewer);
+                var leaf = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                leaf.name = "Leaf";
+                Destroy(leaf.GetComponent<Collider>());
+                leaf.transform.SetParent(hinge, false);
+                // Each leaf reaches from its hinge to the centre. Measured, not reasoned: with the
+                // opposite sign both leaves stood outside the doorway, beside it (3 Oct 2026).
+                leaf.transform.localPosition = new Vector3(side * width / 4f, height / 2f, 0f);
+                leaf.transform.localScale = new Vector3(width / 2f, height, thick);
+                leaf.GetComponent<Renderer>().sharedMaterial = wood;
+                if (side < 0) _leafL = hinge; else _leafR = hinge;
+            }
+        }
+
+        /// <summary>Dark wood with a raised panel and a lighter rail - reads as a door at 50 m.</summary>
+        static Texture2D DoorPanel()
+        {
+            const int w = 32, h = 96;
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { name = "gate-door" };
+            var dark = new Color(0.24f, 0.15f, 0.09f);
+            var mid = new Color(0.36f, 0.23f, 0.13f);
+            var px = new Color[w * h];
+            for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+            {
+                bool rail = x < 3 || x >= w - 3 || y < 4 || y >= h - 4 || (y > 44 && y < 50);
+                float grain = 0.92f + 0.08f * Mathf.Sin(x * 1.7f + y * 0.05f);
+                px[y * w + x] = (rail ? mid : dark) * grain;
+            }
+            tex.SetPixels(px); tex.Apply();
+            return tex;
+        }
+
+        /// <summary>A rectangle whose alpha falls to nothing at every edge.</summary>
+        static Texture2D Feathered(int w, int h, float edge)
+        {
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = "feathered" };
+            var px = new Color[w * h];
+            for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+            {
+                float u = Mathf.Min(x + 0.5f, w - x - 0.5f) / w, v = Mathf.Min(y + 0.5f, h - y - 0.5f) / h;
+                float a = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(u / (edge * 0.5f))) * Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(v / edge));
+                px[y * w + x] = new Color(1f, 1f, 1f, a);
+            }
+            tex.SetPixels(px); tex.Apply();
+            return tex;
+        }
 
         Material Panel(string name, Vector3 pos, Quaternion awayFromViewer, Color colour, out Transform t)
         {
@@ -321,9 +388,7 @@ namespace MusePico.Journey
                 _lettering.text = GateFlow.Lettering(Flow.Question);
                 // Size the plaque to the words: the set text's width plus a margin.
                 var size = _lettering.GetPreferredValues(_lettering.text, letteringWidth, 0f);
-                var plaque = new Vector3(Mathf.Min(size.x, letteringWidth) + 1.4f, size.y + 0.9f, 1f);
-                _plaqueT.localScale = plaque;
-                _plaqueGiltT.localScale = plaque + new Vector3(0.24f, 0.24f, 0f);
+                _plaqueT.localScale = new Vector3(Mathf.Min(size.x, letteringWidth) * 1.45f + 1.2f, size.y * 1.9f + 0.8f, 1f);
                 _letteringAlpha = 0f;
                 if (_audio != null && _chime != null) _audio.PlayOneShot(_chime);
                 Buzz(0.45f, 0.12f);
@@ -363,15 +428,21 @@ namespace MusePico.Journey
             float targetAlpha = Flow.Current == GateFlow.Phase.Asking ? 0f : 1f;
             _letteringAlpha = Mathf.MoveTowards(_letteringAlpha, targetAlpha, Time.deltaTime);
             _lettering.alpha = _letteringAlpha;
-            _plaque.SetColor("_BaseColor", new Color(0.95f, 0.92f, 0.85f, 0.94f * _letteringAlpha));
-            _plaqueGilt.SetColor("_BaseColor", new Color(0.72f, 0.58f, 0.3f, 0.96f * _letteringAlpha));
+            _plaque.SetColor("_BaseColor", new Color(0.96f, 0.93f, 0.86f, 0.92f * _letteringAlpha));
+
+            // The doors: shut while asking and choosing, swinging inward over 2.5 s once open.
+            float open = Flow.Current == GateFlow.Phase.DoorsOpen || Flow.Current == GateFlow.Phase.Entered ? 1f : 0f;
+            _doorOpen = Mathf.MoveTowards(_doorOpen, open, Time.deltaTime / 2.5f);
+            float swing = Mathf.SmoothStep(0f, 1f, _doorOpen) * 100f;
+            if (_leafL != null) _leafL.localRotation = Quaternion.Euler(0f, swing, 0f);
+            if (_leafR != null) _leafR.localRotation = Quaternion.Euler(0f, -swing, 0f);
 
             // The chosen question warms; the others step back; once the doors open the walk clears.
             for (var i = 0; i < _plates.Count; i++)
             {
                 bool chosen = Flow.Current != GateFlow.Phase.Asking && GateFlow.Samples[i] == Flow.Question;
                 float a = Flow.Current == GateFlow.Phase.Asking ? 1f
-                        : Flow.Current == GateFlow.Phase.Chosen ? (chosen ? 1f : 0.3f)
+                        : Flow.Current == GateFlow.Phase.Chosen ? (chosen ? 1f : 0f)
                         : 0f;
                 var (glass, text) = _plates[i];
                 var c = chosen ? new Color(0.99f, 0.9f, 0.68f) : new Color(0.97f, 0.95f, 0.91f);
@@ -381,7 +452,7 @@ namespace MusePico.Journey
             }
 
             // The doorway: unlit while asking, warming when a question is chosen, full once open.
-            float targetGlow = Flow.Current == GateFlow.Phase.Asking ? 0f : Flow.Current == GateFlow.Phase.Chosen ? 0.45f : 1f;
+            float targetGlow = Flow.Current == GateFlow.Phase.Asking ? 0.3f : Flow.Current == GateFlow.Phase.Chosen ? 0.6f : 1.4f;
             _glowLevel = Mathf.MoveTowards(_glowLevel, targetGlow, Time.deltaTime * 0.6f);
             _glow.SetColor("_BaseColor", glowColour * (_glowLevel * 0.8f));
 
@@ -398,12 +469,12 @@ namespace MusePico.Journey
             if (_prompt == null) return;
             string body = Flow.Current switch
             {
-                GateFlow.Phase.Asking => "What question are you carrying?\n<size=75%>Point at one and pull the trigger — or hold <b>[X]</b> and speak your own</size>",
-                GateFlow.Phase.Chosen => "<size=75%>Point at another to change it — or hold <b>[X]</b> to say it differently</size>",
+                GateFlow.Phase.Asking => "What question are you carrying?\n<size=88%>Point at one and pull the trigger — or hold <b>[X]</b> and speak your own</size>",
+                GateFlow.Phase.Chosen => "<size=88%>Point at another to change it — or hold <b>[X]</b> to say it differently</size>",
                 GateFlow.Phase.DoorsOpen => "The doors are open",
                 _ => string.Empty,
             };
-            _prompt.text = note != null ? "<size=75%>" + note + "</size>" : body;
+            _prompt.text = note != null ? "<size=88%>" + note + "</size>" : body;
         }
 
         static void Buzz(float amplitude, float seconds)
