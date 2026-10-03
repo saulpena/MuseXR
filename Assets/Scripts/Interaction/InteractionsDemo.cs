@@ -121,12 +121,12 @@ namespace MuseXR.Interaction
             relief.transform.SetPositionAndRotation(centre + fwd * 0.35f + Vector3.up * 1.3f, awayFromViewer);
             relief.AddComponent<MeshFilter>().sharedMesh = ReliefMesh(1.1f, 0.8f, 72, 52);
             Relief = relief.AddComponent<MeshRenderer>();
-            Relief.sharedMaterial = Lit(new Color(0.72f, 0.66f, 0.56f), 0f, 0.25f);
+            Relief.sharedMaterial = Lit(new Color(0.55f, 0.5f, 0.43f), 0f, 0.25f);   // grotto stone; paler clips under daylight
             LampLight.MarkRelief(Relief);
 
             // The control: same stone, no relief layer. The lamp must never reach it.
             Control = Box(root, "Control Block", centre + fwd * 0.35f + right * 0.85f + Vector3.up * 1.1f, awayFromViewer,
-                          new Vector3(0.35f, 0.35f, 0.1f), Lit(new Color(0.72f, 0.66f, 0.56f), 0f, 0.25f)).GetComponent<Renderer>();
+                          new Vector3(0.35f, 0.35f, 0.1f), Lit(new Color(0.55f, 0.5f, 0.43f), 0f, 0.25f)).GetComponent<Renderer>();
 
             // "detail" before the wall relief; "whole" on the central rail post.
             var detailPost = centre + fwd * 0.05f - right * 0.2f;
