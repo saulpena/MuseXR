@@ -96,6 +96,16 @@ namespace MuseXR.Worlds
         /// <summary>Uniform scale for the splat object. Every world shipped in the release uses
         /// the pre-baked .spz convention, so this is the ONLY transform they need — no rotation,
         /// no offset. (Only bright-gallery-hall is rawMarble, and its .spz is not in the release.)</summary>
-        public Vector3 SplatScale => Vector3.one * worldScale;
+        public Vector3 SplatScale => new Vector3(mirrorX ? -worldScale : worldScale, worldScale, worldScale);
+
+        /// <summary>
+        /// Draw the splats mirrored in X. For worlds designed in Marble's own viewer to Skylar's
+        /// top-down diagrams (Palace, Grotto): our splat import shows them left-right reversed
+        /// against Marble's viewer, so "the moon gate in the right wall" lands on the left
+        /// (measured 3 Oct 2026). Her older worlds are already in her app's frame and stay false.
+        /// A mirrored world's splats agree with its glTFast-imported collider, which glTFast had
+        /// already flipped - so collider queries for it are NOT mirrored (CaptureProbe).
+        /// </summary>
+        public bool mirrorX;
     }
 }

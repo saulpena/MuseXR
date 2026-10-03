@@ -169,6 +169,18 @@ namespace MuseXR.Worlds
             //                    0 -> the back of the room
             //   shimmering       0 -> a corridor with a vanishing point, somewhere to walk
             //                  180 -> a cluttered alcove
+            // Her chapters A and B (VR plan, 3 Oct 2026), generated in Marble from her concept stills
+            // and her top-down diagrams. Mirrored: designed in Marble's viewer frame (mirrorX).
+            // Spawn = her diagram's entry view, facing the throne / the Buddha (-Z in the capture).
+            // Scale 1.4 from the colliders against her sizes (palace 24 x 18 m, 10 m ceiling:
+            // ceiling 6.4 units -> 1.56, depth 13.9 -> 1.29; grotto 14 m wide: 10 units -> 1.4).
+            // To be confirmed by eye in the headset.
+            new WorldDefinition { key = "palace-court-of-keeping" + SmallSuffix, displayName = "Palace · Court of Keeping",
+                worldScale = 1.4f, spawn = new Vector2(0f, 2.4f), groundY = 0f, yawDegrees = 180f, cameraFar = 200f,
+                hasMeasuredSpawn = true, mirrorX = true },
+            new WorldDefinition { key = "grotto-hall-of-time" + SmallSuffix, displayName = "Grotto · Hall of Time",
+                worldScale = 1.4f, spawn = new Vector2(0f, 0.6f), groundY = 0f, yawDegrees = 180f, cameraFar = 400f,
+                hasMeasuredSpawn = true, mirrorX = true },
             Small_("enchanted-palace-garden", "Palace Garden",
                    1.7f, Vector2.zero, 0f, 180f, 400f),
             // NO walk bounds on purpose. worlds.js does carry a profile for this capture, but

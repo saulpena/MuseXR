@@ -61,9 +61,18 @@ namespace MusePico.Tests
             // `empty-chinese-imperial-temple-hall` (chapter 01, where the monumental Buddha
             // stands). The FOURTEENTH is the world inside Pissarro's Woman Bathing Her Feet in a
             // Brook (PaintingWorlds), made in Chisel on 1 Oct 2026. The FIFTEENTH is the Buddha Hall
-            // (Chisel), where stages 05-09 happen since 1 Oct 2026 — a sixteenth means something was
-            // added without a note here.
-            Assert.AreEqual(15, WorldCatalog.Small.Count);
+            // (Chisel), where stages 05-09 happen since 1 Oct 2026. The SIXTEENTH and SEVENTEENTH are
+            // Skylar's VR-plan chapters A and B, generated in Marble on 3 Oct 2026 from her concept
+            // stills and top-down diagrams: `palace-court-of-keeping` and `grotto-hall-of-time`, both
+            // mirrorX - an eighteenth means something was added without a note here.
+            Assert.AreEqual(17, WorldCatalog.Small.Count);
+            foreach (var key in new[] { "palace-court-of-keeping-500k", "grotto-hall-of-time-500k" })
+            {
+                var w = WorldCatalog.Small.FirstOrDefault(x => x.key == key);
+                Assert.IsNotNull(w, key);
+                Assert.IsTrue(w.mirrorX, key + ": designed in Marble's viewer frame, drawn mirrored so her right wall is on the right");
+                Assert.Less(w.SplatScale.x, 0f, key);
+            }
 
             foreach (var key in new[] { "imperial-courtyard-forbidden-city-500k", "empty-chinese-imperial-temple-hall-500k" })
             {

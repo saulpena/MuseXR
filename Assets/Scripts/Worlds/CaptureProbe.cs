@@ -90,7 +90,7 @@ namespace MuseXR.Worlds
             float groundY = World.groundY * ws;
 
             var local = frame != null ? frame.InverseTransformPoint(worldPoint) : worldPoint;
-            var fromLocal = new Vector3(-local.x, groundY + 4f, local.z);
+            var fromLocal = new Vector3(World.mirrorX ? local.x : -local.x, groundY + 4f, local.z);
             var from = frame != null ? frame.TransformPoint(fromLocal) : fromLocal;
             var down = frame != null ? -frame.up : Vector3.down;
 
@@ -120,7 +120,7 @@ namespace MuseXR.Worlds
             var frame = _root.transform.parent;
             var o = frame != null ? frame.InverseTransformPoint(origin) : origin;
             var d = frame != null ? frame.InverseTransformDirection(direction) : direction;
-            o.x = -o.x; d.x = -d.x;
+            if (!World.mirrorX) { o.x = -o.x; d.x = -d.x; }
             if (frame != null) { o = frame.TransformPoint(o); d = frame.TransformDirection(d); }
 
             foreach (var c in _colliders) c.enabled = true;
@@ -136,7 +136,7 @@ namespace MuseXR.Worlds
         public Matrix4x4 MirrorInFrame()
         {
             var frame = _root.transform.parent;
-            var m = Matrix4x4.Scale(new Vector3(-1f, 1f, 1f));
+            var m = Matrix4x4.Scale(new Vector3(World.mirrorX ? 1f : -1f, 1f, 1f));
             return frame != null ? frame.localToWorldMatrix * m * frame.worldToLocalMatrix : m;
         }
 
@@ -163,7 +163,7 @@ namespace MuseXR.Worlds
             {
                 if (f.sharedMesh == null || f.transform.IsChildOf(_teleportFloor.transform)) continue;
                 var mc = _teleportFloor.AddComponent<MeshCollider>();
-                mc.sharedMesh = MirroredMesh.Bake(f.sharedMesh, rootInverse * f.transform.localToWorldMatrix);
+                mc.sharedMesh = MirroredMesh.Bake(f.sharedMesh, rootInverse * f.transform.localToWorldMatrix, mirror: !World.mirrorX);
                 area.colliders.Add(mc);
             }
             // The rig's teleport interactors select on the "Teleport" interaction layer, bit 31.

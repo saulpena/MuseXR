@@ -18,13 +18,13 @@ namespace MuseXR.Worlds
         /// frame), then mirrored in X in that frame. The result is meant for an identity transform
         /// under the frame.
         /// </summary>
-        public static Mesh Bake(Mesh source, Matrix4x4 toFrame)
+        public static Mesh Bake(Mesh source, Matrix4x4 toFrame, bool mirror = true)
         {
             var verts = source.vertices;
             for (int i = 0; i < verts.Length; i++)
             {
                 var v = toFrame.MultiplyPoint3x4(verts[i]);
-                verts[i] = new Vector3(-v.x, v.y, v.z);
+                verts[i] = new Vector3(mirror ? -v.x : v.x, v.y, v.z);
             }
 
             var mesh = new Mesh { name = source.name + " (mirrored)" };
@@ -34,8 +34,9 @@ namespace MuseXR.Worlds
             for (int s = 0; s < source.subMeshCount; s++)
             {
                 var tris = source.GetTriangles(s);
-                for (int i = 0; i + 2 < tris.Length; i += 3)
-                    (tris[i + 1], tris[i + 2]) = (tris[i + 2], tris[i + 1]);
+                if (mirror)
+                    for (int i = 0; i + 2 < tris.Length; i += 3)
+                        (tris[i + 1], tris[i + 2]) = (tris[i + 2], tris[i + 1]);
                 mesh.SetTriangles(tris, s);
             }
             mesh.RecalculateNormals();
