@@ -283,7 +283,7 @@ namespace MuseXR.UI
         static Vector3 Above(Vector3 p, float h) => p + Vector3.up * h;
 
         const float StripGap = 0.04f;
-        const float CardCeiling = 1.22f;   // a slot card's anchor stays below the relief's carving
+        const float CardCeiling = 1.15f;   // a slot card's anchor stays below the relief's carving
 
         /// <summary>The world top of a thing's renderers, centred over it - where a label clears it.</summary>
         static Vector3 TopOf(Component c)
