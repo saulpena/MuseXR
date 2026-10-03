@@ -45,6 +45,16 @@ namespace MuseXR.Interaction
         public const float CourtLightIntensity = 2.6f, CourtLightRange = 0.9f;   // a pool on the court, not the room
 
         const float ChipW = 0.5f, ChipH = 0.15f, ChipStep = 0.56f;
+        // At the court the chips are a narrow row over the piece, above the confirm strip: her 4.3
+        // prompt - the options, then A/B - centred on what was placed (Saul, headset test: "the UI is
+        // all over the place, not centred where I'm placing it").
+        const float CourtW = 0.3f, CourtH = 0.11f, CourtStep = 0.32f;
+        // Type ceilings in TMP world units (0.6 ~ 16 mm cap height). Measured: at the card chips' 0.9
+        // the court chips' text spilled off the bottom.
+        const float CourtFontMax = 0.5f, CourtFontMin = 0.25f;
+        static readonly Color ChipPaper = new Color(0.96f, 0.94f, 0.89f), ChipGold = new Color(0.86f, 0.66f, 0.26f),
+                              ChipDim = new Color(0.62f, 0.6f, 0.56f), InkDark = new Color(0.2f, 0.16f, 0.12f);
+        readonly List<Material> _chipMats = new List<Material>();
         readonly List<Pointable> _chips = new List<Pointable>();
         readonly List<TMPro.TextMeshPro> _chipText = new List<TMPro.TextMeshPro>();
         readonly Dictionary<Transform, GameObject> _glows = new Dictionary<Transform, GameObject>();
@@ -201,13 +211,13 @@ namespace MuseXR.Interaction
                 chip.transform.localPosition = new Vector3((i - 1) * ChipStep, 0f, 0f);
                 chip.transform.localScale = new Vector3(ChipW, ChipH, 1f);
                 var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
-                m.SetColor("_BaseColor", new Color(0.96f, 0.94f, 0.89f));
+                m.SetColor("_BaseColor", ChipPaper);
                 chip.GetComponent<Renderer>().sharedMaterial = m;
+                _chipMats.Add(m);
                 var t = new GameObject("Text").AddComponent<TMPro.TextMeshPro>();
                 t.transform.SetParent(chip.transform, false);
                 t.transform.localPosition = new Vector3(0f, 0f, -0.002f);
-                t.transform.localScale = new Vector3(1f / ChipW, 1f / ChipH, 1f);
-                t.rectTransform.sizeDelta = new Vector2(ChipW - 0.04f, ChipH - 0.03f);
+                t.transform.localScale = Vector3.one;   // set per layout in Lay()
                 // Shrinks to fit rather than spilling off the chip (blind review: the longest wrapped
                 // to three lines over a one-line chip).
                 t.enableAutoSizing = true;
@@ -238,32 +248,59 @@ namespace MuseXR.Interaction
                 var away = at - eye; away.y = 0f;
                 _chipRoot.SetPositionAndRotation(at, Quaternion.LookRotation(away.normalized, Vector3.up));
             }
-            else _chipRoot.SetPositionAndRotation(_courtChipsAt, _courtChipsRot);
+            else
+            {
+                // Facing wherever the visitor stands NOW (they walked up to place it), not the spawn.
+                var eye = Camera.main != null ? Camera.main.transform.position : _courtChipsAt - _courtChipsRot * Vector3.forward;
+                var away = _courtChipsAt - eye; away.y = 0f;
+                _chipRoot.SetPositionAndRotation(_courtChipsAt,
+                    away.sqrMagnitude > 1e-6f ? Quaternion.LookRotation(away.normalized, Vector3.up) : _courtChipsRot);
+            }
             var reasons = PalaceFlow.ReasonsFor(Flow.Piece);
             for (var i = 0; i < _chipText.Count; i++)
             {
                 _chipText[i].text = reasons[i];
                 _chipText[i].fontStyle = TMPro.FontStyles.Normal;
-                _chips[i].transform.localPosition = new Vector3((i - 1) * ChipStep, 0f, 0f);
-                _chips[i].transform.localScale = new Vector3(ChipW, ChipH, 1f);
+                _chipText[i].color = InkDark;
+                _chipMats[i].SetColor("_BaseColor", ChipPaper);
+                Lay(i, false);
             }
+        }
+
+        /// <summary>Narrow chips behind the court; wider ones under the cards in the card fallback.</summary>
+        bool AtCourt => Flow.Kind != PalaceFlow.Mode.Card;
+
+        void Lay(int i, bool chosen)
+        {
+            float w = AtCourt ? CourtW : ChipW, h = AtCourt ? CourtH : ChipH;
+            var at = new Vector3((i - 1) * (AtCourt ? CourtStep : ChipStep), 0f, 0f);
+            if (chosen) at.z = -0.04f;   // steps towards the visitor
+            _chips[i].transform.localPosition = at;
+            _chips[i].transform.localScale = new Vector3(w, h, 1f) * (chosen ? 1.1f : 1f);
+            _chipText[i].transform.localScale = new Vector3(1f / w, 1f / h, 1f);
+            _chipText[i].rectTransform.sizeDelta = new Vector2(w - 0.03f, h - 0.015f);
+            _chipText[i].fontSizeMax = AtCourt ? CourtFontMax : 0.024f * (0.6f / 0.016f);
+            _chipText[i].fontSizeMin = AtCourt ? CourtFontMin : 0.012f * (0.6f / 0.016f);
         }
 
         public bool PickChip(int index, Pointer pointer = null)
         {
             if (index < 0 || index >= _chipText.Count) return false;
             if (!Flow.ChooseReason(PalaceFlow.ReasonsFor(Flow.Piece)[index])) return false;
-            // The chosen chip gets a "»" mark, bold type, a larger size and steps forward: shape and
-            // weight, not colour alone. The others stay as they were, so the choice reads at a glance.
+            // The chosen chip turns solid gold, bold, with a "»", a little larger and nearer; the other
+            // two dim. Shape and weight as well as colour, so the choice reads at a glance (Saul: "I can
+            // keep clicking on them, I don't know if it's doing anything").
             var reasons = PalaceFlow.ReasonsFor(Flow.Piece);
             for (var i = 0; i < _chips.Count; i++)
             {
                 var on = i == index;
                 _chipText[i].text = (on ? "» " : "") + reasons[i];
                 _chipText[i].fontStyle = on ? TMPro.FontStyles.Bold : TMPro.FontStyles.Normal;
-                _chips[i].transform.localPosition = new Vector3((i - 1) * ChipStep, 0f, on ? -0.06f : 0f);
-                _chips[i].transform.localScale = new Vector3(ChipW, ChipH, 1f) * (on ? 1.15f : 1f);
+                _chipText[i].color = on ? InkDark : new Color(0.36f, 0.33f, 0.3f);
+                _chipMats[i].SetColor("_BaseColor", on ? ChipGold : ChipDim);
+                Lay(i, on);
             }
+            ChimePlayer.Play(ChimePlayer.TickClip(), _chips[index].transform.position, 0.4f);
             pointer?.Source.Buzz(SlotRules.LightAmplitude * 1.5f, SlotRules.LightSeconds);
             Retitle();
             _wantFocus = true;
