@@ -13,7 +13,8 @@
         "UnityEditor.TestRunner",
         "MusePico.Grab",
         "Unity.XR.Interaction.Toolkit",
-        "MuseXR.DynamicWorlds"
+        "MuseXR.DynamicWorlds",
+        "MuseXR.UI"
     ],
     "includePlatforms": [
         "Editor"

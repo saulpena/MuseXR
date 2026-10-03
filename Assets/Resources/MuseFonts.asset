@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17d9456d3a536704283a9ef8726aed86, type: 3}
+  m_Name: MuseFonts
+  m_EditorClassIdentifier: MuseXR.UI::MuseXR.UI.MuseFonts
+  serif: {fileID: 11400000, guid: 846ea4b8186f6394ebd67bf5d2b7862d, type: 2}
+  serifItalic: {fileID: 11400000, guid: 3ea3229eab167814080d09c7f413253c, type: 2}
+  sans: {fileID: 11400000, guid: 38530516f3e85994fa9be947bf4c171e, type: 2}
+  sansSemi: {fileID: 11400000, guid: e83367fcc592d224e898e6ec4bf2bae3, type: 2}
+  sansBold: {fileID: 11400000, guid: c38345cd044c12f40838dde33070fb7c, type: 2}
+  mono: {fileID: 11400000, guid: 1bd99215720a7464d81b04b78baf121b, type: 2}
