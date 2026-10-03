@@ -17,16 +17,22 @@ namespace MuseXR.UI
         public const float HoldDegrees = 28f;     // where a followed panel settles: inside the cone, not on its edge
         public const float EaseSeconds = 0.45f;   // time constant of the ease; never a snap
 
+        /// <summary>Extra height above <see cref="Up"/>: a tall panel lifts by half its height so its
+        /// lower edge clears the head rather than its centre.</summary>
+        public float ExtraUp;
+
         public Vector3 Current { get; private set; }
         public bool Following { get; private set; }
         bool _placed;
 
         /// <summary>Where the panel belongs with the visitor looking at the speaker.</summary>
-        public static Vector3 Home(Vector3 speakerHead, Vector3 eye)
+        public static Vector3 Home(Vector3 speakerHead, Vector3 eye) => Home(speakerHead, eye, 0f);
+
+        public static Vector3 Home(Vector3 speakerHead, Vector3 eye, float extraUp)
         {
             var toHead = speakerHead - eye; toHead.y = 0f;
             var right = toHead.sqrMagnitude > 1e-6f ? Vector3.Cross(Vector3.up, toHead.normalized) : Vector3.right;
-            return speakerHead + right * Right + Vector3.up * Up;
+            return speakerHead + right * Right + Vector3.up * (Up + extraUp);
         }
 
         /// <summary>Flat angle in degrees between the gaze and the direction to <paramref name="point"/>.</summary>
@@ -40,12 +46,12 @@ namespace MuseXR.UI
         /// <summary>Start a new line at its home, with no ease from wherever the last one was.</summary>
         public void Reset(Vector3 speakerHead, Vector3 eye)
         {
-            Current = Home(speakerHead, eye); Following = false; _placed = true;
+            Current = Home(speakerHead, eye, ExtraUp); Following = false; _placed = true;
         }
 
         public Vector3 Tick(Vector3 speakerHead, Vector3 eye, Vector3 gaze, float dt)
         {
-            var home = Home(speakerHead, eye);
+            var home = Home(speakerHead, eye, ExtraUp);
             if (!_placed) { Current = home; _placed = true; }
 
             float off = OffGaze(eye, gaze, home);
