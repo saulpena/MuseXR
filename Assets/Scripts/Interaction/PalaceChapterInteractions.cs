@@ -81,7 +81,12 @@ namespace MuseXR.Interaction
             Chapter.Group = Companions;
 
             // The board to the visitor's left of the court, readable from the spawn.
-            Board = EventBoard.Make(transform, courtT.position - right * (1.6f * side) + toViewer * 0.6f + Vector3.up * 0.65f, spawn,
+            // Beside the visitor's start, not among the masters (blind review: it hid Socrates).
+            var startFloor = new Vector3(spawn.x, 0f, spawn.z);
+            // Measured: at -47 deg it still hid Monet (-41 deg) from the start. At 80 deg to the side it
+            // clears every master, the court and the chips; the visitor turns to read it.
+            var boardDir = Quaternion.Euler(0f, 80f * side, 0f) * (-toViewer);
+            Board = EventBoard.Make(transform, startFloor + boardDir * 2.0f + Vector3.up * 1.5f, startFloor + Vector3.up * 1.6f,
                                     "PALACE · what just happened");
             Chapter.Note += Board.Note;
             Chapter.Saved += _ => Board.Note("[Record] " + Record.SummaryJson());
