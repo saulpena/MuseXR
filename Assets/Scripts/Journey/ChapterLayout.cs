@@ -58,6 +58,17 @@ namespace MusePico.Journey
         /// <summary>Where each diagram item ended up, by id (after snapping), for checks and the journey.</summary>
         public readonly Dictionary<string, Pose> Placed = new Dictionary<string, Pose>();
 
+        /// <summary>Each work's card by artwork id, hidden until <see cref="ShowCard"/> (her "appears on point").</summary>
+        public readonly Dictionary<string, GameObject> Cards = new Dictionary<string, GameObject>();
+
+        /// <summary>Build with every card showing - for review renders only.</summary>
+        [NonSerialized] public bool ShowCards;
+
+        public void ShowCard(string artworkId, bool show)
+        {
+            if (Cards.TryGetValue(artworkId, out var c) && c != null) c.SetActive(show);
+        }
+
         Func<Vector3, Vector3, float, float?> _ray;   // world origin, direction, max -> distance
 
         /// <summary>
@@ -180,6 +191,9 @@ namespace MusePico.Journey
                 anchor.position = onWall + viewerRight * (size.x / 2f + CardOffset + cardW / 2f) - wallDir * 0.02f;
                 anchor.rotation = faces;
                 MuseScreens.ArtworkCard(anchor, a, ViewingDistance);
+                // Her 4.1 card "appears on point": built, then hidden until a pointer asks for it.
+                anchor.gameObject.SetActive(ShowCards);
+                Cards[item.Id] = anchor.gameObject;
             }
         }
 
@@ -202,9 +216,10 @@ namespace MusePico.Journey
                 b.GetComponent<Renderer>().sharedMaterial = wood;
             }
             float top = FrameCentreHeight + 0.75f;
-            Leg(new Vector3(-0.42f, 0f, -0.18f), new Vector3(-0.08f, top, 0.06f));
-            Leg(new Vector3(0.42f, 0f, -0.18f), new Vector3(0.08f, top, 0.06f));
-            Leg(new Vector3(0f, 0f, 0.65f), new Vector3(0f, top - 0.1f, 0.08f));
+            // +Z is behind the canvas (it faces back along -Z at the visitor), so every leg is too.
+            Leg(new Vector3(-0.42f, 0f, 0.12f), new Vector3(-0.08f, top, 0.1f));
+            Leg(new Vector3(0.42f, 0f, 0.12f), new Vector3(0.08f, top, 0.1f));
+            Leg(new Vector3(0f, 0f, 0.8f), new Vector3(0f, top - 0.1f, 0.12f));
             // The ledge the canvas sits on.
             var ledge = GameObject.CreatePrimitive(PrimitiveType.Cube);
             ledge.name = "Ledge"; Destroy(ledge.GetComponent<Collider>());
@@ -247,14 +262,39 @@ namespace MusePico.Journey
 
         void Interaction(DiagramItem item, Vector3 p)
         {
+            // Her diagram's mark: a rose ring, a centre dot and a soft halo, flat on the floor. Real
+            // meshes rather than UI sprites, so it survives a saved scene and reads at a low angle.
             var root = new GameObject("Interaction " + item.Label).transform;
             root.SetParent(transform, false);
-            root.SetPositionAndRotation(p + Vector3.up * 0.01f, Quaternion.Euler(90f, 0f, 0f));
-            var c = MuseUi.Canvas(root, "Ring", ViewingDistance, 62f);
-            c.localScale = Vector3.one * (0.7f / 62f);
-            var row = MuseUi.Row(c, 0f, TextAnchor.MiddleCenter);
-            MuseUi.Ring(row, UiSprites.Ring(0.12f), MuseTheme.Rose, 62f);
+            root.position = p + Vector3.up * 0.012f;
+            Disc(root, "Halo", 0f, 0.46f, new Color(MuseTheme.Rose.r, MuseTheme.Rose.g, MuseTheme.Rose.b, 0.16f), 0f);
+            Disc(root, "Ring", 0.3f, 0.36f, MuseTheme.Rose, 0.004f);
+            Disc(root, "Dot", 0f, 0.07f, MuseTheme.Rose, 0.004f);
             Placed[item.Id] = new Pose(p, Quaternion.Euler(0f, Cal.yaw, 0f));
+        }
+
+        static void Disc(Transform parent, string name, float inner, float outer, Color colour, float lift)
+        {
+            const int n = 64;
+            var v = new List<Vector3>(); var t = new List<int>();
+            for (int i = 0; i <= n; i++)
+            {
+                float a = i * Mathf.PI * 2f / n, c = Mathf.Cos(a), s = Mathf.Sin(a);
+                v.Add(new Vector3(c * inner, lift, s * inner)); v.Add(new Vector3(c * outer, lift, s * outer));
+                if (i < n) { int k = i * 2; t.AddRange(new[] { k, k + 2, k + 1, k + 1, k + 2, k + 3 }); }
+            }
+            var mesh = new Mesh { name = name }; mesh.SetVertices(v); mesh.SetTriangles(t, 0); mesh.RecalculateBounds();
+            var go = new GameObject(name); go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            m.SetColor("_BaseColor", colour); m.SetFloat("_Cull", 0f);   // either winding reads from above
+            if (colour.a < 1f)
+            {
+                m.SetFloat("_Surface", 1f); m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha); m.SetFloat("_ZWrite", 0f);
+                m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); m.renderQueue = 3000;
+            }
+            go.AddComponent<MeshRenderer>().sharedMaterial = m;
         }
 
         void Exit(DiagramItem item, Vector3 p, Vector3 wallDir, GameObject model, float heightOffset, bool exact = false)

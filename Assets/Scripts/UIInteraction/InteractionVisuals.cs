@@ -25,6 +25,7 @@ namespace MuseXR.UI
     public sealed class InteractionVisuals : MonoBehaviour
     {
         const float NearDistance = 1.2f;   // panels read at arm's length
+        const float SlotReadDistance = 2.5f;   // slot plates read from the station's viewing mark
 
         sealed class SlotView
         {
@@ -50,7 +51,9 @@ namespace MuseXR.UI
         TextMeshProUGUI _angleText;
         Transform _eye;
 
-        void Update()
+        // LateUpdate, so a slot redraws in the frame its state changes rather than one after:
+        // the station's Cue(Placed) lands in its own Update.
+        void LateUpdate()
         {
             if (_eye == null && Camera.main != null) _eye = Camera.main.transform;
             foreach (var s in FindObjectsByType<SlotStation>(FindObjectsSortMode.None))
@@ -143,7 +146,15 @@ namespace MuseXR.UI
             var cardAnchor = new GameObject("Slot Card").transform;
             cardAnchor.SetParent(transform, false);
             cardAnchor.position = Above(sv.Slot.position, 0.48f);   // clear of a seated piece (the crane stands ~0.3 m)
-            var c = MuseUi.Canvas(cardAnchor, "Card", NearDistance, 150f);
+            // Never higher than CardCeiling: a socket in front of the 1.55 m relief would otherwise
+            // float its card over the carving's border.
+            if (cardAnchor.position.y > CardCeiling)
+            {
+                // Lower it and step it aside, so it clears both the carving above and a seated piece below.
+                var aside = _eye != null ? Vector3.ProjectOnPlane(_eye.right, Vector3.up).normalized : Vector3.right;
+                cardAnchor.position = new Vector3(cardAnchor.position.x, CardCeiling, cardAnchor.position.z) + aside * 0.3f;
+            }
+            var c = MuseUi.Canvas(cardAnchor, "Card", SlotReadDistance, 150f);   // read from where the visitor stands, not arm's length
             var card = MuseScreens.Slot(c, state == SlotState.Aligned ? SlotVisual.Aligned : state == SlotState.Placed ? SlotVisual.Placed : SlotVisual.Empty, 150f);
             // Her captions come from SlotLook (the placed one counts the undo down).
             var hint = FindText(card, "Hint"); if (hint != null) hint.text = look.Caption;
@@ -167,7 +178,7 @@ namespace MuseXR.UI
             {
                 var anchor = new GameObject("Held Angle").transform; anchor.SetParent(transform, false);
                 var c = MuseUi.Canvas(anchor, "Angle", NearDistance, 160f);
-                var tag = MuseUi.Tag(c, "Stick rotate · 0°", Color.white, MuseTheme.Rose);
+                var tag = MuseUi.Tag(c, "Stick rotate · 0°", MuseTheme.Rose, Color.white);   // her rose pill, white words
                 _angleText = tag.GetComponentInChildren<TextMeshProUGUI>();
                 _angleText.fontSize = 13f;
                 _angle = anchor;
@@ -272,6 +283,7 @@ namespace MuseXR.UI
         static Vector3 Above(Vector3 p, float h) => p + Vector3.up * h;
 
         const float StripGap = 0.04f;
+        const float CardCeiling = 1.22f;   // a slot card's anchor stays below the relief's carving
 
         /// <summary>The world top of a thing's renderers, centred over it - where a label clears it.</summary>
         static Vector3 TopOf(Component c)
