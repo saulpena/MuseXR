@@ -17,6 +17,8 @@ namespace MuseXR.Interaction
         /// <summary>The controller's aim pose: position is the hand, forward is the ray.</summary>
         Transform Aim { get; }
         bool Grip { get; }
+        /// <summary>Her "Trigger draws and selects".</summary>
+        bool Trigger { get; }
         Vector2 Stick { get; }
         void Buzz(float amplitude, float seconds);
     }
@@ -28,7 +30,7 @@ namespace MuseXR.Interaction
     /// </summary>
     public sealed class XrHandSource : IHandSource
     {
-        readonly InputAction _grip, _stick;
+        readonly InputAction _grip, _trigger, _stick;
         readonly XRNode _node;
 
         public XrHandSource(Hand hand, Transform aim)
@@ -38,6 +40,9 @@ namespace MuseXR.Interaction
             var side = hand == Hand.Left ? "{LeftHand}" : "{RightHand}";
             _grip = new InputAction("grip-" + hand, InputActionType.Value, expectedControlType: "Axis");
             _grip.AddBinding("<XRController>" + side + "/{Grip}");
+            _trigger = new InputAction("trigger-" + hand, InputActionType.Value, expectedControlType: "Axis");
+            _trigger.AddBinding("<XRController>" + side + "/{Trigger}");
+            _trigger.Enable();
             _stick = new InputAction("stick-" + hand, InputActionType.Value, expectedControlType: "Vector2");
             _stick.AddBinding("<XRController>" + side + "/{Primary2DAxis}");
             _grip.Enable(); _stick.Enable();
@@ -50,6 +55,8 @@ namespace MuseXR.Interaction
         /// <summary>Held past half travel. An analogue threshold, so a resting finger does not grab.</summary>
         public bool Grip => _grip.ReadValue<float>() > 0.55f;
 
+        public bool Trigger => _trigger.ReadValue<float>() > 0.55f;
+
         public Vector2 Stick => _stick.ReadValue<Vector2>();
 
         public void Buzz(float amplitude, float seconds)
@@ -60,7 +67,7 @@ namespace MuseXR.Interaction
 
         public void Dispose()
         {
-            _grip.Dispose(); _stick.Dispose();
+            _grip.Dispose(); _trigger.Dispose(); _stick.Dispose();
         }
     }
 
@@ -71,6 +78,7 @@ namespace MuseXR.Interaction
         public Hand Hand { get; }
         public Transform Aim { get; }
         public bool Grip { get; set; }
+        public bool Trigger { get; set; }
         public Vector2 Stick { get; set; }
         /// <summary>The last buzz asked for, so a check can see the haptic fired.</summary>
         public float LastBuzzAmplitude { get; private set; }

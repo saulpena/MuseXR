@@ -10,6 +10,7 @@ namespace MuseXR.Interaction
     /// transforms are the controllers' aim poses) and puts a <see cref="GripHand"/> beside each. With
     /// no headset running it adds a mouse hand instead, so the test scene works at a desk:
     ///
+    ///   left click trigger (points at and chooses: standees, cards, artworks)
     ///   hold G     grip (takes what the mouse points at)
     ///   Q / E      stick left / right (15° steps)
     ///   Z / C      roll the wrist (turns the time ring)
@@ -19,6 +20,7 @@ namespace MuseXR.Interaction
     public sealed class HandsBootstrap : MonoBehaviour
     {
         public readonly List<GripHand> Hands = new List<GripHand>();
+        public readonly List<Pointer> Pointers = new List<Pointer>();
         public DesktopHand Desktop { get; private set; }
 
         void Start()
@@ -30,12 +32,16 @@ namespace MuseXR.Interaction
                 if (nf.handedness == InteractorHandedness.None) continue;
                 var hand = nf.handedness == InteractorHandedness.Left ? Hand.Left : Hand.Right;
                 if (Hands.Exists(h => h.Source.Hand == hand)) continue;
-                Hands.Add(GripHand.Attach(nf.gameObject, new XrHandSource(hand, nf.transform)));
+                var source = new XrHandSource(hand, nf.transform);
+                var grip = GripHand.Attach(nf.gameObject, source);
+                Hands.Add(grip);
+                Pointers.Add(Pointer.Attach(nf.gameObject, source, grip));
             }
             if (!UnityEngine.XR.XRSettings.isDeviceActive && Camera.main != null)
             {
                 Desktop = DesktopHand.Make(Camera.main);
                 Hands.Add(Desktop.Grip);
+                Pointers.Add(Desktop.Pointer);
             }
             Debug.Log("[Interaction] grips: " + Hands.Count + (Desktop != null ? " (incl. mouse hand)" : ""));
         }
@@ -46,6 +52,7 @@ namespace MuseXR.Interaction
     {
         public ScriptedHandSource Source { get; private set; }
         public GripHand Grip { get; private set; }
+        public Pointer Pointer { get; private set; }
 
         /// <summary>When true, code drives the hand (the test harness) and the mouse is ignored.</summary>
         public bool Scripted { get; set; }
@@ -60,6 +67,7 @@ namespace MuseXR.Interaction
             d._cam = cam;
             d.Source = new ScriptedHandSource(Hand.Right, go.transform);
             d.Grip = GripHand.Attach(go, d.Source);
+            d.Pointer = Pointer.Attach(go, d.Source, d.Grip);
             return d;
         }
 
@@ -77,6 +85,7 @@ namespace MuseXR.Interaction
             var held = Grip.Held != null;
             transform.SetPositionAndRotation(held ? ray.origin + ray.direction * _depth : ray.origin, rot);
             Source.Grip = kb.gKey.isPressed;
+            Source.Trigger = mouse.leftButton.isPressed;
             Source.Stick = new Vector2(kb.eKey.isPressed ? 1f : kb.qKey.isPressed ? -1f : 0f, 0f);
         }
     }

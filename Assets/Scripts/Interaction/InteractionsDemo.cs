@@ -1,6 +1,5 @@
 using MuseXR.Slots;
 using MuseXR.Worlds;
-using TMPro;
 using UnityEngine;
 
 namespace MuseXR.Interaction
@@ -29,8 +28,16 @@ namespace MuseXR.Interaction
         public Renderer Relief { get; private set; }
         public Renderer Control { get; private set; }
         public Holdable Lamp { get; private set; }
+        public CompanyStage Company { get; private set; }
+        public ArtworkWatcher Artwork { get; private set; }
+        public CardChoiceStation Cards { get; private set; }
+        public ApproachChime Plinth { get; private set; }
+        public HeightCalibrator Calibrator { get; private set; }
 
-        TextMeshPro _angle;
+        [Tooltip("Portraits for the six standees, in her row order: Monet, Van Gogh, Socrates, Frida, Hilma, Morisot.")]
+        public Texture2D[] portraits = new Texture2D[0];
+        [Tooltip("The work hung in the gallery zone (Water Lilies).")]
+        public Texture2D artwork;
 
         void Start() => Build();
 
@@ -53,6 +60,13 @@ namespace MuseXR.Interaction
             BuildPalace(At(-38f, 1.45f), Facing(At(-38f, 1.45f)));
             BuildGrotto(At(2f, 2.1f), Facing(At(2f, 2.1f)));
             BuildMonet(At(42f, 1.35f), Facing(At(42f, 1.35f)));
+
+            // Turn round: the Company row stands behind the spawn.
+            BuildCompany(o + (f * Vector3.back) * 3.2f, Facing(o + (f * Vector3.back) * 3.2f));
+            // Turn left: a hung work with its viewing mark, the Palace card fallback, a Your-world plinth.
+            BuildGallery(o, f * Quaternion.Euler(0f, -90f, 0f));
+
+            Calibrator = gameObject.AddComponent<HeightCalibrator>();
         }
 
         // ---- Palace ---------------------------------------------------------------------
@@ -268,31 +282,123 @@ namespace MuseXR.Interaction
             return m;
         }
 
-        // ---- the held angle (a stand-in readout until the UI layer draws hers) -----------
+        // ---- Company: six standees in a row ----------------------------------------------
 
-        void LateUpdate()
+        void BuildCompany(Vector3 centre, Quaternion awayFromViewer)
         {
-            Holdable held = null;
-            foreach (var h in GripHand.All) if (h.Held is Holdable hh) held = hh;
-            if (held == null || Palace == null || !held.transform.IsChildOf(Palace.transform))
+            var root = Group("Company", centre, awayFromViewer);
+            var right = awayFromViewer * Vector3.right;
+            var standees = new System.Collections.Generic.Dictionary<string, Transform>();
+            for (var i = 0; i < Masters.Row.Count; i++)
             {
-                if (_angle != null) _angle.gameObject.SetActive(false);
-                return;
+                var id = Masters.Row[i];
+                var at = centre + right * ((i - 2.5f) * 0.85f);
+                var s = new GameObject("Standee " + id).transform;
+                s.SetParent(root, true);
+                s.SetPositionAndRotation(at, awayFromViewer);
+                // A board on a foot: her standee fallback, so a master never vanishes.
+                var board = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                board.name = "Board";
+                Object.DestroyImmediate(board.GetComponent<Collider>());
+                board.transform.SetParent(s, false);
+                board.transform.localPosition = new Vector3(0f, 0.95f, 0.02f);
+                board.transform.localScale = new Vector3(0.6f, 1.7f, 0.03f);
+                board.GetComponent<Renderer>().sharedMaterial = _stone;
+                Part(s.gameObject, PrimitiveType.Cylinder, "Foot", new Vector3(0f, 0.02f, 0f), Vector3.zero, new Vector3(0.4f, 0.02f, 0.4f), _wood);
+                var face = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                face.name = "Portrait";
+                Object.DestroyImmediate(face.GetComponent<Collider>());
+                face.transform.SetParent(s, false);
+                face.transform.localPosition = new Vector3(0f, 1.42f, 0f);   // in front of the board (+Z is away)
+                face.transform.localScale = new Vector3(0.5f, 0.62f, 1f);
+                var m = Unlit(Color.white);
+                if (i < portraits.Length && portraits[i] != null) m.SetTexture("_BaseMap", portraits[i]);
+                face.GetComponent<Renderer>().sharedMaterial = m;
+                standees[id] = s;
             }
-            if (_angle == null)
+            Company = CompanyStage.Make(root.gameObject, standees);
+            Company.Question = "What is worth keeping?";
+            Company.Toggled += (id, r) => Debug.Log("[Company] " + id + " -> " + r + "  chosen: " + string.Join(", ", Company.Invitation.Chosen));
+            Company.Group.LineStarted += (id, line) => Debug.Log("[Company] " + id + " says: " + line);
+            Company.Completed += ids => Debug.Log("[Company] companions[] = " + string.Join(", ", ids));
+        }
+
+        // ---- Gallery: an artwork, the card fallback, a Your-world plinth ------------------
+
+        void BuildGallery(Vector3 origin, Quaternion facing)
+        {
+            var fwd = facing * Vector3.forward;
+            var right = facing * Vector3.right;
+            var root = Group("Gallery", origin + fwd * 2f, facing);
+
+            // The work, frame centre at 1.5 m (her rule), and its viewing mark 2.0 m in front.
+            var wallAt = origin + fwd * 4.2f;
+            var frame = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            frame.name = "Artwork Water Lilies";
+            Object.DestroyImmediate(frame.GetComponent<Collider>());
+            frame.transform.SetParent(root, true);
+            frame.transform.SetPositionAndRotation(wallAt + Vector3.up * 1.5f, facing);
+            frame.transform.localScale = new Vector3(1.0f, 0.95f, 1f);
+            var am = Unlit(Color.white);
+            if (artwork != null) am.SetTexture("_BaseMap", artwork);
+            frame.GetComponent<Renderer>().sharedMaterial = am;
+            Box(root, "Wall", wallAt + fwd * 0.05f + Vector3.up * 1.4f, facing, new Vector3(3f, 2.8f, 0.08f), _stone);
+            var mark = Point(root, "Viewing Mark", wallAt - fwd * 2.0f, facing);
+            SnapCircle(mark);
+            Artwork = ArtworkWatcher.Make(frame, "aic-16568", mark);
+            Artwork.CardWanted += w => Debug.Log("[Gallery] card wanted for " + w.ArtworkId);
+            Artwork.Seen += (w, sec) => Debug.Log("[Gallery] seen " + w.ArtworkId + " after " + sec.ToString("F1") + " s");
+
+            // The card fallback: two exhibit cards on a lectern, right of the path.
+            var lectern = origin + fwd * 1.6f + right * 1.1f;
+            Box(root, "Lectern", lectern + Vector3.up * 0.5f, facing, new Vector3(0.7f, 1.0f, 0.3f), _stone);
+            var cards = new Transform[2];
+            var names = new[] { "Crane", "Turtle" };
+            for (var i = 0; i < 2; i++)
             {
-                _angle = new GameObject("Held Angle").AddComponent<TextMeshPro>();
-                _angle.fontSize = 0.6f; _angle.alignment = TextAlignmentOptions.Center;
-                _angle.rectTransform.sizeDelta = new Vector2(0.6f, 0.1f);
-                _angle.enableWordWrapping = false;
-                _angle.color = new Color(0.75f, 0.29f, 0.42f);
+                var c = new GameObject("Card " + names[i]).transform;
+                c.SetParent(root, true);
+                c.SetPositionAndRotation(lectern + Vector3.up * 1.25f + right * ((i - 0.5f) * 0.36f), facing);
+                var back = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                back.name = "Back";
+                Object.DestroyImmediate(back.GetComponent<Collider>());
+                back.transform.SetParent(c, false);
+                back.transform.localScale = new Vector3(0.3f, 0.42f, 1f);
+                back.GetComponent<Renderer>().sharedMaterial = Unlit(new Color(0.55f, 0.18f, 0.16f));   // red lacquer
+                var front = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                front.name = "Front";
+                Object.DestroyImmediate(front.GetComponent<Collider>());
+                front.transform.SetParent(c, false);
+                front.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                front.transform.localPosition = new Vector3(0f, 0f, 0.002f);
+                front.transform.localScale = new Vector3(0.3f, 0.42f, 1f);
+                front.GetComponent<Renderer>().sharedMaterial = Unlit(new Color(0.95f, 0.92f, 0.85f));
+                var label = new GameObject("Name").AddComponent<TMPro.TextMeshPro>();
+                label.transform.SetParent(c, false);
+                label.transform.localPosition = new Vector3(0f, 0f, 0.004f);
+                label.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                label.rectTransform.sizeDelta = new Vector2(0.28f, 0.1f);
+                label.fontSize = 0.6f;
+                label.alignment = TMPro.TextAlignmentOptions.Center;
+                label.color = new Color(0.2f, 0.16f, 0.12f);
+                label.text = names[i];
+                cards[i] = c;
             }
-            _angle.gameObject.SetActive(true);
-            var cam = Camera.main != null ? Camera.main.transform : transform;
-            var slot = Palace.Slots[0];
-            _angle.text = "Stick rotate · " + StickStepper.Display(held.Yaw - slot.eulerAngles.y) + "°";
-            _angle.transform.position = held.BasePoint + Vector3.up * 0.34f;
-            _angle.transform.rotation = Quaternion.LookRotation(_angle.transform.position - cam.position, Vector3.up);
+            Cards = CardChoiceStation.Make(root.gameObject, cards, names);
+            Cards.Kept += (st, id) => Debug.Log("[Gallery] card kept: " + id);
+
+            // A Your-world plinth that rings the bronze bell as you approach.
+            var plinth = Box(root, "Your-world Plinth", origin + fwd * 1.4f - right * 1.4f + Vector3.up * 0.45f, facing,
+                             new Vector3(0.4f, 0.9f, 0.4f), _stone);
+            Plinth = ApproachChime.Make(plinth, ChapterSound.BronzeBell);
+            Plinth.Rang += c => Debug.Log("[Gallery] plinth chimed " + c.Sound);
+        }
+
+        void Update()
+        {
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb != null && kb.hKey.wasPressedThisFrame && Calibrator != null)
+                Debug.Log("[Calibration] offset " + Calibrator.Calibrate().ToString("F2") + " m");
         }
 
         // ---- helpers --------------------------------------------------------------------
