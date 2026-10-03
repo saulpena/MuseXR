@@ -40,7 +40,8 @@ namespace MusePico.Tests
             for (int i = 0; i < 72 * 4; i++) f.Tick(Head, Eye, gaze, 1f / 72f);
             Assert.LessOrEqual(SubtitleFollow.OffGaze(Eye, gaze, f.Current), SubtitleFollow.FollowDegrees,
                                "after a few seconds it is back inside the visitor's view");
-            Assert.AreEqual(Eye.y, f.Current.y, 1e-3f, "away from the speaker it waits at eye height");
+            Assert.Greater(f.Current.y, Eye.y, "away from the speaker it waits just above eye height");
+            Assert.Less(f.Current.y, home.y, "not up at the speaker's head height");
         }
 
         [Test]
@@ -83,7 +84,8 @@ namespace MusePico.Tests
             f.Reset(Head, Eye, gaze);
             var start = f.Current;
             Assert.LessOrEqual(SubtitleFollow.OffGaze(Eye, gaze, start), SubtitleFollow.FollowDegrees, "readable at once");
-            Assert.AreEqual(Eye.y, start.y, 1e-3f, "at eye height, not above the view");
+            Assert.Greater(start.y, Eye.y, "lower edge above eye height, clear of what the hands hold");
+            Assert.Less(start.y - Eye.y, 0.5f, "and not up out of view");
             for (int i = 0; i < 72 * 2; i++) f.Tick(Head, Eye, gaze, 1f / 72f);
             Assert.AreEqual(start, f.Current, "and it does not move");
         }

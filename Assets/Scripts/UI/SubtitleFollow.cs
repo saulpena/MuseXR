@@ -87,18 +87,24 @@ namespace MuseXR.UI
             return Current;
         }
 
+        /// <summary>Away from the speaker, the panel's lower edge sits this far above eye height.</summary>
+        public const float EdgeAboveEye = 0.05f;
+        const float HeadClearance = 0.22f;   // SubtitleRig's: ExtraUp = halfHeight + this - Up
+
         /// <summary>
-        /// Home swung round towards the gaze until it is HoldDegrees off it, at the same distance and
-        /// centred at eye height: away from the speaker there is no head to clear, and at the speaker's
-        /// head height a large panel ran off the top of the view (measured in the Palace, 3 Oct 2026).
+        /// Home swung round towards the gaze until it is HoldDegrees off it, at the same distance, with
+        /// its lower edge just above eye height. At the speaker's head height a large panel ran off the
+        /// top of the view; centred at eye height it sat behind whatever the visitor was handling
+        /// (blind review, Palace, 3 Oct 2026: the reason chips hid its disclaimer and Next).
         /// </summary>
-        static Vector3 ConeEdge(Vector3 home, Vector3 eye, Vector3 gaze)
+        Vector3 ConeEdge(Vector3 home, Vector3 eye, Vector3 gaze)
         {
             var g = gaze; g.y = 0f; g.Normalize();
             var d = home - eye; d.y = 0f; float dist = d.magnitude; d /= Mathf.Max(dist, 1e-4f);
             float side = Mathf.Sign(Vector3.Cross(g, d).y);
             var dir = Quaternion.AngleAxis(side * HoldDegrees, Vector3.up) * g;
-            return eye + dir * dist;
+            float half = Mathf.Max(0f, ExtraUp + Up - HeadClearance);
+            return eye + dir * dist + Vector3.up * (half + EdgeAboveEye);
         }
     }
 }

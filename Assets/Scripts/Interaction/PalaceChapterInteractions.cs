@@ -129,7 +129,7 @@ namespace MuseXR.Interaction
         /// 0.5 m up, ~0.16 m tall), so it reads top to bottom as her 4.3 prompt - options, then A/B,
         /// then the piece. Measured: a row behind the court and lower was hidden behind the strip.
         /// </summary>
-        public const float ChipsBehind = 0f, ChipsUp = 0.68f;
+        public const float ChipsBehind = 0f, ChipsUp = 0.7f;
         /// <summary>The event board's distance to the side of the court.</summary>
         public const float BoardAside = 1.5f, BoardBehind = 0.6f;
 

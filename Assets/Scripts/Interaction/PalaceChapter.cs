@@ -52,8 +52,10 @@ namespace MuseXR.Interaction
         // Type ceilings in TMP world units (0.6 ~ 16 mm cap height). Measured: at the card chips' 0.9
         // the court chips' text spilled off the bottom.
         const float CourtFontMax = 0.5f, CourtFontMin = 0.25f;
+        // Not-chosen chips stay legible (dark ink on a paler stone), so they read "not chosen, still
+        // pickable" rather than disabled (blind review: grey on grey at ~2:1).
         static readonly Color ChipPaper = new Color(0.96f, 0.94f, 0.89f), ChipGold = new Color(0.86f, 0.66f, 0.26f),
-                              ChipDim = new Color(0.62f, 0.6f, 0.56f), InkDark = new Color(0.2f, 0.16f, 0.12f);
+                              ChipDim = new Color(0.78f, 0.76f, 0.72f), InkDark = new Color(0.2f, 0.16f, 0.12f);
         readonly List<Material> _chipMats = new List<Material>();
         readonly List<Pointable> _chips = new List<Pointable>();
         readonly List<TMPro.TextMeshPro> _chipText = new List<TMPro.TextMeshPro>();
@@ -84,7 +86,9 @@ namespace MuseXR.Interaction
             {
                 case SlotCue.Placed:
                     Flow.Placed(s.Pieces[e.Piece].Id, s.YawOf(s.Pieces[e.Piece]));
-                    s.Board.Choice.Retitle(Flow.Summary);
+                    // Until a reason is chosen the strip says so: A here is refused (blind review: a
+                    // bare "Keep this moment?" read as if A could skip the choice).
+                    s.Board.Choice.Retitle(Flow.Summary + " · pick a reason above");
                     Respond(s.Pieces[e.Piece].Id);
                     break;
                 case SlotCue.Undone:
@@ -161,7 +165,7 @@ namespace MuseXR.Interaction
                 if (up)
                 {
                     Flow.Placed(cards.Logic.Ids[i], 0, PalaceFlow.Mode.Card);
-                    cards.Logic.Choice.Retitle(Flow.Summary);
+                    cards.Logic.Choice.Retitle(Flow.Summary + " · pick a reason");
                     Respond(cards.Logic.Ids[i]);
                 }
                 else if (cards.Logic.FaceUp < 0)
@@ -276,7 +280,7 @@ namespace MuseXR.Interaction
             var at = new Vector3((i - 1) * (AtCourt ? CourtStep : ChipStep), 0f, 0f);
             if (chosen) at.z = -0.04f;   // steps towards the visitor
             _chips[i].transform.localPosition = at;
-            _chips[i].transform.localScale = new Vector3(w, h, 1f) * (chosen ? 1.1f : 1f);
+            _chips[i].transform.localScale = new Vector3(w, h, 1f) * (chosen ? 1.05f : 1f);
             _chipText[i].transform.localScale = new Vector3(1f / w, 1f / h, 1f);
             _chipText[i].rectTransform.sizeDelta = new Vector2(w - 0.03f, h - 0.015f);
             _chipText[i].fontSizeMax = AtCourt ? CourtFontMax : 0.024f * (0.6f / 0.016f);
@@ -296,7 +300,7 @@ namespace MuseXR.Interaction
                 var on = i == index;
                 _chipText[i].text = (on ? "» " : "") + reasons[i];
                 _chipText[i].fontStyle = on ? TMPro.FontStyles.Bold : TMPro.FontStyles.Normal;
-                _chipText[i].color = on ? InkDark : new Color(0.36f, 0.33f, 0.3f);
+                _chipText[i].color = on ? InkDark : new Color(0.28f, 0.25f, 0.22f);
                 _chipMats[i].SetColor("_BaseColor", on ? ChipGold : ChipDim);
                 Lay(i, on);
             }
