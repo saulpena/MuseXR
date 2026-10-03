@@ -42,7 +42,7 @@ namespace MuseXR.UI
         public MementoChoice(string letter, string text) { Letter = letter; Text = text; }
     }
 
-    public enum SlotLook { Empty, Aligned, Placed }
+    public enum SlotVisual { Empty, Aligned, Placed }
 
     /// <summary>
     /// Skylar's five interface screens (her plan, section 04), built from <see cref="MuseUi"/>.
@@ -123,7 +123,7 @@ namespace MuseXR.UI
         // ---- 4.3 Choice prompts and slots -----------------------------------------------------------
 
         /// <summary>One slot card in her three states: shape, word and hint change together, never colour alone.</summary>
-        public static RectTransform Slot(Transform parent, SlotLook look, float widthPx = 140f)
+        public static RectTransform Slot(Transform parent, SlotVisual look, float widthPx = 140f)
         {
             var card = MuseUi.Card(parent, new Color(1f, 253f / 255f, 249f / 255f, 0.86f), MuseTheme.CardRadius, MuseTheme.GlassEdge, 1f,
                                    widthPx, 6f, 12f, 4f, "Slot " + look);
@@ -137,14 +137,14 @@ namespace MuseXR.UI
             string word, title, hint;
             switch (look)
             {
-                case SlotLook.Aligned:
+                case SlotVisual.Aligned:
                     Layer(h, UiSprites.Disc(), MuseTheme.RoseSoft, 74f);                 // her 6px halo
                     Layer(h, UiSprites.Disc(), Color.white, 62f);
                     Layer(h, UiSprites.Ring(0.1f), MuseTheme.Rose, 62f);
                     word = "Release"; title = "Aligned"; hint = "Snap preview + light haptic";
                     Label(h, word, MuseTheme.Rose);
                     break;
-                case SlotLook.Placed:
+                case SlotVisual.Placed:
                     Layer(h, UiSprites.Disc(), MuseTheme.GoldSoft, 62f);
                     Layer(h, UiSprites.Ring(0.1f), MuseTheme.Gold, 62f);
                     word = "Saved"; title = "Placed"; hint = "Undo 3s · B";
@@ -156,7 +156,7 @@ namespace MuseXR.UI
                     Label(h, word, MuseTheme.Ink3);
                     break;
             }
-            var t = MuseUi.Text(card, title, MuseUi.Face.SansSemi, 12.5f, look == SlotLook.Aligned ? MuseTheme.Rose : MuseTheme.Ink, name: "State");
+            var t = MuseUi.Text(card, title, MuseUi.Face.SansSemi, 12.5f, look == SlotVisual.Aligned ? MuseTheme.Rose : MuseTheme.Ink, name: "State");
             t.alignment = TextAlignmentOptions.Center;
             var s = MuseUi.Text(card, hint, MuseUi.Face.Sans, 11.5f, MuseTheme.Ink3, name: "Hint");
             s.alignment = TextAlignmentOptions.Center;
@@ -179,11 +179,11 @@ namespace MuseXR.UI
         }
 
         /// <summary>Her three slot states side by side, as in her 4.3 mockup.</summary>
-        public static RectTransform SlotStates(Transform parent, float viewingDistance, SlotLook highlight = SlotLook.Empty)
+        public static RectTransform SlotStates(Transform parent, float viewingDistance, SlotVisual highlight = SlotVisual.Empty)
         {
             var canvas = MuseUi.Canvas(parent, "Slot States", viewingDistance, 450f);
             var row = MuseUi.Row(canvas, 10f, TextAnchor.UpperCenter);
-            Slot(row, SlotLook.Empty); Slot(row, SlotLook.Aligned); Slot(row, SlotLook.Placed);
+            Slot(row, SlotVisual.Empty); Slot(row, SlotVisual.Aligned); Slot(row, SlotVisual.Placed);
             return canvas;
         }
 

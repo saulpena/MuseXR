@@ -103,6 +103,64 @@ namespace MuseXR.UI
             return s;
         }
 
+        /// <summary>Her time-ring icons ("the ring always shows text plus icon: mist, sun, sunset").</summary>
+        public static Sprite Icon(string kind)
+        {
+            var key = "icon-" + kind;
+            if (Cache.TryGetValue(key, out var s)) return s;
+            const int n = 96, ss = 3;
+            var tex = NewTex(n, n, key);
+            var px = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                float cover = 0f;
+                for (int sy = 0; sy < ss; sy++)
+                for (int sx = 0; sx < ss; sx++)
+                {
+                    float u = (x + (sx + 0.5f) / ss) / n * 2f - 1f, v = (y + (sy + 0.5f) / ss) / n * 2f - 1f;
+                    if (IconCovers(kind, u, v)) cover += 1f;
+                }
+                px[y * n + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(255f * cover / (ss * ss)));
+            }
+            tex.SetPixels32(px); tex.Apply();
+            s = Sprite.Create(tex, new UnityEngine.Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f);
+            Cache[key] = s;
+            return s;
+        }
+
+        static bool IconCovers(string kind, float u, float v)
+        {
+            float r = Mathf.Sqrt(u * u + v * v);
+            switch (kind)
+            {
+                case "sun":    // a disc with eight rays
+                {
+                    if (r < 0.36f) return true;
+                    float a = Mathf.Atan2(v, u) / (Mathf.PI / 4f);
+                    return r > 0.52f && r < 0.86f && Mathf.Abs(a - Mathf.Round(a)) < 0.13f;
+                }
+                case "sunset": // half a sun on a horizon, three rays
+                {
+                    if (v < -0.18f && v > -0.32f && Mathf.Abs(u) < 0.9f) return true;
+                    if (v < -0.18f) return false;
+                    float dy = v + 0.18f, rr = Mathf.Sqrt(u * u + dy * dy);
+                    if (rr < 0.42f) return true;
+                    float a = Mathf.Atan2(dy, u) / (Mathf.PI / 4f);
+                    return rr > 0.56f && rr < 0.84f && Mathf.Abs(a - Mathf.Round(a)) < 0.12f && dy > 0.05f;
+                }
+                default:       // mist: three soft wavy bands
+                {
+                    for (int i = -1; i <= 1; i++)
+                    {
+                        float cy = i * 0.42f + 0.06f * Mathf.Sin(u * 5f + i);
+                        if (Mathf.Abs(v - cy) < 0.09f && Mathf.Abs(u) < 0.85f - 0.15f * Mathf.Abs(i)) return true;
+                    }
+                    return false;
+                }
+            }
+        }
+
         /// <summary>A filled disc.</summary>
         public static Sprite Disc() => Ring("disc", 0f, 0f, 0f);
 
