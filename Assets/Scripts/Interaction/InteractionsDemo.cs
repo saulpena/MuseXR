@@ -79,8 +79,8 @@ namespace MuseXR.Interaction
             Quaternion Facing(Vector3 p) { var d = p - o; d.y = 0f; return Quaternion.LookRotation(d.normalized, Vector3.up); }
 
             BuildPalace(At(-50f, 1.45f), Facing(At(-50f, 1.45f)));   // -50, not -38: the turtle plinth met the lamp stand
-            BuildGrotto(At(2f, 2.6f), Facing(At(2f, 2.6f)));
-            BuildMonet(At(42f, 1.35f), Facing(At(42f, 1.35f)));
+            BuildGrotto(At(8f, 2.6f), Facing(At(8f, 2.6f)));   // 8, not 2: from the spawn the lamp lined up behind the turtle
+            BuildMonet(At(52f, 1.35f), Facing(At(52f, 1.35f)));   // 52, not 42: its Mist label lay on the Grotto WHOLE card from the spawn
 
             // Turn round: the Company row stands behind the spawn.
             BuildCompany(o + (f * Vector3.back) * 3.2f, Facing(o + (f * Vector3.back) * 3.2f));
@@ -468,12 +468,12 @@ namespace MuseXR.Interaction
                 "Over the court: light buzz = aligned. Let go: it seats, bronze bell.\n" +
                 "A keeps · B within 3 s undoes · or lift it back out.\n" +
                 "Let go anywhere else: it floats home.");
-            Sign("Sign Grotto", At(4f, signDistance + 0.9f) + Vector3.up * (signHeight + 0.15f), o,
+            Sign("Sign Grotto", At(10f, signDistance + 0.9f) + Vector3.up * (signHeight + 0.15f), o,
                 "<b>GROTTO · the lamp</b>\n" +
                 "Grip the lamp on its stand. Hold it beside the carving:\n" +
                 "only the carving lights. Set it on DETAIL (left post)\n" +
                 "or WHOLE (rail post, right): stone chime. A keeps · B undoes.");
-            Sign("Sign Monet", At(44f, signDistance) + Vector3.up * signHeight, o,
+            Sign("Sign Monet", At(54f, signDistance) + Vector3.up * signHeight, o,
                 "<b>MONET · the time ring</b>\n" +
                 "Grip the ring and roll your wrist.\n" +
                 "Three detents: Mist · Afternoon · Dusk,\n" +
