@@ -5,6 +5,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
+using MuseXR.UI;
+using UnityEngine.UI;
 
 namespace MusePico.Journey
 {
@@ -70,7 +72,13 @@ namespace MusePico.Journey
         const float FontSizePerMetreOfCap = 0.6f / 0.016f;
 
         InputAction _talk, _undo;
-        TextMeshPro _lettering, _prompt, _undoBar;
+        TextMeshPro _lettering;
+        // Her UI kit (section 04): the prompt is her glass panel, the questions her numbered option cards.
+        TextMeshProUGUI _promptTitle, _promptHint, _undoLabel;
+        GameObject _promptRoot, _undoPill, _meter;
+        RectTransform _meterFill;
+        bool _listening;
+        const float PlateDistance = 2.2f, PromptDistance = 2.3f;
         Material _glow;
         AudioSource _audio;
         AudioClip _chime;
@@ -170,15 +178,47 @@ namespace MusePico.Journey
                 Plate(i, pos, Quaternion.LookRotation(dir, Vector3.up));
             }
 
-            // Her explicit prompt: icon, text and the controller letter together, on milk glass,
-            // above the questions it is about.
+            // Her prompt, in her kit: a glass panel above the questions it is about - kicker, the
+            // question it asks, how to answer (trigger, or the X pill to speak), and a level meter
+            // while listening, because "recording silence" and "no microphone" look identical.
             var promptDir = Quaternion.Euler(0f, questionsFrom + questionsStep * 0.5f, 0f) * forward;
-            var promptRot = Quaternion.LookRotation(promptDir, Vector3.up);
-            var promptPos = origin + promptDir * 2.3f + Vector3.up * 1.78f;
-            Backing("Gate Prompt Glass", promptPos + promptDir * 0.01f, promptRot, new Vector2(1.6f, 0.42f));
-            _prompt = Text("Gate Prompt", promptPos, promptRot, 1.5f, 0.4f, 0.05f, titleFont, letteringInk);
-            var undoPos = origin + promptDir * 2.3f + Vector3.up * 0.66f;
-            _undoBar = Text("Gate Undo", undoPos, promptRot, 1.2f, 0.12f, 0.045f, titleFont, letteringInk);
+            var promptAnchor = new GameObject("Gate Prompt").transform;
+            promptAnchor.SetParent(transform, false);
+            promptAnchor.SetPositionAndRotation(origin + promptDir * PromptDistance + Vector3.up * 1.86f,
+                                                Quaternion.LookRotation(promptDir, Vector3.up));
+            _promptRoot = promptAnchor.gameObject;
+            var pc = MuseUi.Canvas(promptAnchor, "Prompt", PromptDistance, 380f);
+            var glass = MuseUi.Glass(pc, 380f, gap: 8f);
+            MuseUi.Kicker(glass, "The gate · your question", MuseTheme.Gold);
+            _promptTitle = MuseUi.Title(glass, "What question are you carrying?", 22f);
+            _promptHint = MuseUi.Body(glass, "");
+            var how = MuseUi.Row(glass, 10f);
+            MuseUi.Pill(how, "X", "Hold to speak your own", false);
+            _meter = MuseUi.Row(glass, 0f, TextAnchor.MiddleLeft, "Level").gameObject;
+            var track = _meter.AddComponent<Image>();
+            track.sprite = UiSprites.Rounded(4f); track.type = Image.Type.Sliced; track.color = MuseTheme.Line;
+            var tle = _meter.AddComponent<LayoutElement>(); tle.preferredHeight = 8f; tle.minHeight = 8f;
+            var fill = new GameObject("Fill", typeof(RectTransform), typeof(Image));
+            fill.transform.SetParent(_meter.transform, false);
+            _meterFill = (RectTransform)fill.transform;
+            var fi = fill.GetComponent<Image>();
+            fi.sprite = UiSprites.Rounded(4f); fi.type = Image.Type.Sliced; fi.color = MuseTheme.Rose;
+            fill.AddComponent<LayoutElement>().ignoreLayout = true;
+            _meterFill.anchorMin = Vector2.zero; _meterFill.anchorMax = new Vector2(0f, 1f); _meterFill.pivot = new Vector2(0f, 0.5f);
+            _meterFill.offsetMin = Vector2.zero; _meterFill.offsetMax = Vector2.zero;
+            _meter.SetActive(false);
+
+            // Her undo: the B pill and its countdown, under the questions, only while a choice can be undone.
+            var undoAnchor = new GameObject("Gate Undo").transform;
+            undoAnchor.SetParent(transform, false);
+            undoAnchor.SetPositionAndRotation(origin + promptDir * PromptDistance + Vector3.up * 0.62f,
+                                              Quaternion.LookRotation(promptDir, Vector3.up));
+            var uc = MuseUi.Canvas(undoAnchor, "Undo", PromptDistance, 200f);
+            var urow = MuseUi.Row(uc, 0f, TextAnchor.MiddleCenter);
+            var ub = MuseUi.Pill(urow, "B", "Undo · 3 s", false, () => { if (Flow.Undo()) Buzz(0.25f, 0.06f); });
+            _undoLabel = FindLabel(ub.transform);
+            _undoPill = undoAnchor.gameObject;
+            _undoPill.SetActive(false);
 
             _audio = gameObject.AddComponent<AudioSource>();
             _audio.playOnAwake = false; _audio.spatialBlend = 0f; _audio.volume = 0.5f;
@@ -188,35 +228,43 @@ namespace MusePico.Journey
 
         void Plate(int index, Vector3 pos, Quaternion awayFromViewer)
         {
-            var plate = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            plate.name = "Gate Question " + index;
-            plate.transform.SetParent(transform, false);
-            plate.transform.SetPositionAndRotation(pos, awayFromViewer);
-            plate.transform.localScale = new Vector3(0.74f, 0.34f, 1f);
-            Destroy(plate.GetComponent<Collider>());
-            var box = plate.AddComponent<BoxCollider>();   // not a trigger: XRI drops triggers
-            box.size = new Vector3(1f, 1f, 0.05f);
+            // Her option card (.opt): white paper, a hairline, the number in mono, the question in sans.
+            var anchor = new GameObject("Gate Question " + index).transform;
+            anchor.SetParent(transform, false);
+            anchor.SetPositionAndRotation(pos, awayFromViewer);
+            var c = MuseUi.Canvas(anchor, "Question", PlateDistance, 230f);
+            var card = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 14f, padY: 12f, name: "Option");
+            var line = MuseUi.Row(card, 9f, TextAnchor.UpperLeft, "OptionRow");
+            var num = MuseUi.Text(line, "0" + (index + 1), MuseUi.Face.Mono, 12f, MuseTheme.Ink3, name: "Number");
+            num.enableWordWrapping = false; num.gameObject.AddComponent<LayoutElement>().flexibleWidth = 0f;
+            var txt = MuseUi.Text(line, GateFlow.Samples[index], MuseUi.Face.Sans, MuseTheme.BodyPx + 1f, MuseTheme.Ink, name: "Question");
+            txt.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+            var group = c.gameObject.AddComponent<CanvasGroup>();
 
-            // Her milk glass: pale, mostly opaque, warm.
-            plate.GetComponent<Renderer>().sharedMaterial = MilkGlass(0.82f);
+            // Pointable: a collider the size of the card, measured once the layout has run.
+            Canvas.ForceUpdateCanvases();
+            var corners = new Vector3[4]; card.GetWorldCorners(corners);
+            var box = anchor.gameObject.AddComponent<BoxCollider>();   // not a trigger: XRI drops triggers
+            var lo = anchor.InverseTransformPoint(corners[0]); var hi = anchor.InverseTransformPoint(corners[2]);
+            box.center = (lo + hi) / 2f;
+            box.size = new Vector3(Mathf.Abs(hi.x - lo.x), Mathf.Abs(hi.y - lo.y), 0.05f);
 
-            // Her rule: body text >= 1 degree. At 2.2 m that is a 3.8 cm cap; 4.2 cm here.
-            var t = Text("Text", Vector3.zero, Quaternion.identity, 0.68f, 0.3f, 0.042f, titleFont, letteringInk);
-            t.transform.SetParent(plate.transform, false);
-            t.transform.localPosition = new Vector3(0f, 0f, -0.01f);
-            t.transform.localScale = new Vector3(1f / 0.74f, 1f / 0.34f, 1f);
-            t.text = GateFlow.Samples[index];
+            _plates.Add((card.GetComponent<Image>(), group, txt));
 
-            _plates.Add((plate.GetComponent<Renderer>().sharedMaterial, t));
-
-            var interactable = plate.AddComponent<XRSimpleInteractable>();
+            var interactable = anchor.gameObject.AddComponent<XRSimpleInteractable>();
             interactable.colliders.Clear();
             interactable.colliders.Add(box);
             interactable.selectEntered.AddListener(_ => Choose(index));
         }
 
-        readonly System.Collections.Generic.List<(Material glass, TextMeshPro text)> _plates =
-            new System.Collections.Generic.List<(Material, TextMeshPro)>();
+        static TextMeshProUGUI FindLabel(Transform root)
+        {
+            foreach (var t in root.GetComponentsInChildren<TextMeshProUGUI>(true)) if (t.name == "Label") return t;
+            return null;
+        }
+
+        readonly System.Collections.Generic.List<(Image back, CanvasGroup group, TextMeshProUGUI text)> _plates =
+            new System.Collections.Generic.List<(Image, CanvasGroup, TextMeshProUGUI)>();
         Material _plaque;
         Transform _plaqueT, _leafL, _leafR;
         float _doorOpen;
@@ -378,6 +426,7 @@ namespace MusePico.Journey
 
         void OnDictated(string text)
         {
+            _listening = false;
             if (!Flow.SetSpoken(text)) RefreshPrompt("Nothing heard. Hold X and speak again.");
         }
 
@@ -405,9 +454,19 @@ namespace MusePico.Journey
             if (_talk.WasPressedThisFrame())
             {
                 if (dialogue == null) RefreshPrompt("No microphone in this scene. Point at a question instead.");
-                else { dialogue.ListenForText(); RefreshPrompt("Listening… release X to send."); }
+                else { dialogue.ListenForText(); _listening = true; RefreshPrompt("Listening… release X to send."); }
             }
-            if (_talk.WasReleasedThisFrame() && dialogue != null) dialogue.FinishListening();
+            if (_talk.WasReleasedThisFrame() && dialogue != null) { dialogue.FinishListening(); _listening = false; }
+            if (_meter != null)
+            {
+                if (_meter.activeSelf != _listening) _meter.SetActive(_listening);
+                if (_listening && _meterFill != null)
+                {
+                    float level = dialogue != null && dialogue.voice != null ? dialogue.voice.Level : 0f;
+                    float w = ((RectTransform)_meter.transform).rect.width;
+                    _meterFill.sizeDelta = new Vector2(w * Mathf.Clamp01(level * 4f), 0f);
+                }
+            }
             if (_undo.WasPressedThisFrame() && Flow.Undo()) Buzz(0.25f, 0.06f);
 
             if (editorKeys && Keyboard.current != null)
@@ -421,8 +480,9 @@ namespace MusePico.Journey
             }
 
             Flow.Tick(Time.deltaTime);
-            if (Flow.Current == GateFlow.Phase.Chosen) _undoBar.text = $"<b>B</b>  undo · {Mathf.CeilToInt(Flow.UndoLeft)} s";
-            else _undoBar.text = string.Empty;
+            bool canUndo = Flow.Current == GateFlow.Phase.Chosen;
+            if (_undoPill != null && _undoPill.activeSelf != canUndo) _undoPill.SetActive(canUndo);
+            if (canUndo && _undoLabel != null) _undoLabel.text = $"Undo · {Mathf.CeilToInt(Flow.UndoLeft)} s";
 
             // Feedback eases in: the lettering over a second, the doorway glow toward "lit".
             float targetAlpha = Flow.Current == GateFlow.Phase.Asking ? 0f : 1f;
@@ -444,11 +504,13 @@ namespace MusePico.Journey
                 float a = Flow.Current == GateFlow.Phase.Asking ? 1f
                         : Flow.Current == GateFlow.Phase.Chosen ? (chosen ? 1f : 0f)
                         : 0f;
-                var (glass, text) = _plates[i];
-                var c = chosen ? new Color(0.99f, 0.9f, 0.68f) : new Color(0.97f, 0.95f, 0.91f);
-                var cur = glass.GetColor("_BaseColor");
-                glass.SetColor("_BaseColor", new Color(c.r, c.g, c.b, Mathf.MoveTowards(cur.a, 0.82f * a, Time.deltaTime * 2f)));
-                text.alpha = Mathf.MoveTowards(text.alpha, a, Time.deltaTime * 2f);
+                var (back, group, text) = _plates[i];
+                // Chosen: her gold-soft card with gold ink, never colour alone (it also goes bold); the
+                // others step back, and the walk clears once the doors open.
+                back.color = chosen ? MuseTheme.GoldSoft : MuseTheme.Paper;
+                text.color = chosen ? MuseTheme.GoldInk : MuseTheme.Ink;
+                text.fontStyle = chosen ? FontStyles.Bold : FontStyles.Normal;
+                group.alpha = Mathf.MoveTowards(group.alpha, a, Time.deltaTime * 2f);
             }
 
             // The doorway: unlit while asking, warming when a question is chosen, full once open.
@@ -466,15 +528,22 @@ namespace MusePico.Journey
 
         void RefreshPrompt(string note = null)
         {
-            if (_prompt == null) return;
-            string body = Flow.Current switch
+            if (_promptTitle == null) return;
+            _promptTitle.text = Flow.Current switch
             {
-                GateFlow.Phase.Asking => "What question are you carrying?\n<size=88%>Point at one and pull the trigger — or hold <b>[X]</b> and speak your own</size>",
-                GateFlow.Phase.Chosen => "<size=88%>Point at another to change it — or hold <b>[X]</b> to say it differently</size>",
                 GateFlow.Phase.DoorsOpen => "The doors are open",
+                GateFlow.Phase.Chosen => "Your question is above the doors",
+                _ => "What question are you carrying?",
+            };
+            string hint = Flow.Current switch
+            {
+                GateFlow.Phase.Asking => "Point at one and pull the trigger, or hold X and say your own.",
+                GateFlow.Phase.Chosen => "Point at another to change it, or hold X to say it differently.",
+                GateFlow.Phase.DoorsOpen => "Walk through when you are ready.",
                 _ => string.Empty,
             };
-            _prompt.text = note != null ? "<size=88%>" + note + "</size>" : body;
+            _promptHint.text = note ?? hint;
+            if (_promptRoot != null) _promptRoot.SetActive(Flow.Current != GateFlow.Phase.Entered);
         }
 
         static void Buzz(float amplitude, float seconds)
