@@ -165,6 +165,11 @@ namespace MuseXR.UI
 
         // ---- text ---------------------------------------------------------------------------------
 
+        /// <summary>Her sizes are CSS px; TMP sets the same fonts ~13% larger at the same number, which
+        /// made every panel wrap earlier than her render (a blind diff against ui.png, all five
+        /// panels). Layout px are unchanged; only type is brought to her size.</summary>
+        public const float PxToTmp = 0.87f;
+
         public static TextMeshProUGUI Text(Transform parent, string text, Face face, float px, Color colour,
                                            float letterSpacingEm = 0f, bool upper = false, float lineHeight = 1.4f, string name = "Text")
         {
@@ -183,7 +188,7 @@ namespace MuseXR.UI
                 if (fa != null) t.font = fa;
             }
             t.text = text;
-            t.fontSize = px;
+            t.fontSize = px * PxToTmp;
             t.color = colour;
             t.characterSpacing = letterSpacingEm * 100f;
             if (upper) t.fontStyle |= FontStyles.UpperCase;

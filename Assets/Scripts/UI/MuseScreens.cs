@@ -229,7 +229,7 @@ namespace MuseXR.UI
                 var nameRow = MuseUi.Row(c, 6f);
                 MuseUi.Text(nameRow, t.SpeakerName, MuseUi.Face.SansBold, 13.5f, MuseTheme.Ink, name: "Name").enableWordWrapping = false;
                 MuseUi.Tag(nameRow, "AI");
-                MuseUi.Text(c, "“" + t.Line + "”", MuseUi.Face.Sans, 13.5f, MuseTheme.Ink, name: "Line");
+                MuseUi.Text(c, "\"" + t.Line + "\"", MuseUi.Face.Sans, 13.5f, MuseTheme.Ink, name: "Line");   // her 4.4 render: straight quotes
                 MuseUi.Text(c, "Based on: " + t.BasedOn, MuseUi.Face.Sans, 11f, MuseTheme.Ink3, name: "BasedOn");
             }
             var a = MuseUi.Card(col, new Color(1f, 253f / 255f, 249f / 255f, 0.94f), 20f, MuseTheme.Gold, 1.5f, padX: 18f, padY: 16f, gap: 6f, name: "Answer");
@@ -262,12 +262,20 @@ namespace MuseXR.UI
             body.GetComponent<VerticalLayoutGroup>().padding = new RectOffset(16, 16, 14, 14);
             MuseUi.Kicker(body, "MUSE∞ · Memento" + (m.Sample ? " · sample" : ""), MuseTheme.Gold, upper: false);
             MuseUi.Title(body, m.WorldTitle, 22f);
-            MuseUi.Text(body, "“" + m.Question + "”", MuseUi.Face.SerifItalic, 13.5f, MuseTheme.Ink2, name: "Question");
+            MuseUi.Text(body, "\"" + m.Question + "\"", MuseUi.Face.SerifItalic, 13.5f, MuseTheme.Ink2, name: "Question");
             MuseUi.Space(body, 4f);
             foreach (var c in m.Choices)
-                MuseUi.Text(body, "<color=#26221d>" + c.Letter + "</color>   " + c.Text, MuseUi.Face.Sans, 12.5f, MuseTheme.Ink2, name: "Choice " + c.Letter);
+            {
+                // Her .lst grid: the letter in its own column, every choice's text starting at one x.
+                var line = MuseUi.Row(body, 10f, TextAnchor.UpperLeft, "Choice " + c.Letter);
+                var letter = MuseUi.Text(line, c.Letter, MuseUi.Face.Sans, 12.5f, MuseTheme.Ink, name: "Letter");
+                letter.enableWordWrapping = false;
+                var lle = letter.gameObject.AddComponent<UnityEngine.UI.LayoutElement>(); lle.minWidth = lle.preferredWidth = 10f; lle.flexibleWidth = 0f;
+                var txt = MuseUi.Text(line, c.Text, MuseUi.Face.Sans, 12.5f, MuseTheme.Ink2, name: "Text");
+                txt.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
+            }
             MuseUi.Space(body, 6f); MuseUi.Rule(body, MuseTheme.Line); MuseUi.Space(body, 6f);
-            MuseUi.Text(body, "“" + m.Answer + "”", MuseUi.Face.SerifMedium, 17f, MuseTheme.Ink, lineHeight: 1.3f, name: "Answer");
+            MuseUi.Text(body, "\"" + m.Answer + "\"", MuseUi.Face.SerifMedium, 17f, MuseTheme.Ink, lineHeight: 1.3f, name: "Answer");
             MuseUi.Space(body, 4f);
             MuseUi.Text(body, "With " + string.Join(" · ", m.Companions) + " (AI interpretations)", MuseUi.Face.Sans, 11f, MuseTheme.Ink3, name: "Credits");
             // In the headset only Save and Start again (her 4.5).
