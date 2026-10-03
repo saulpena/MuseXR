@@ -94,7 +94,10 @@ namespace MuseXR.UI
                 {
                     var anchor = new GameObject("Confirm Strip Anchor").transform;
                     anchor.SetParent(transform, false);
-                    anchor.position = Above(v.Slots.Count > 0 ? v.Slots[0].Slot.position : st.transform.position, 0.62f);
+                    // Above every slot card, never across one: a placed card reads "Saved / Placed"
+                    // and must stay visible beside "Keep this moment?".
+                    anchor.position = Above(v.Slots.Count > 0 ? v.Slots[0].Slot.position : st.transform.position, 0.5f);
+                    anchor.position = new Vector3(anchor.position.x, Mathf.Max(anchor.position.y, CardsTop(v) + StripGap), anchor.position.z);
                     string detail = st.Board.Choice.Summary;
                     v.Strip = MuseScreens.ConfirmStrip(anchor, detail, NearDistance,
                                                        () => st.Confirm(), () => st.Undo(), st.Board.Choice.UndoFraction);
@@ -104,6 +107,8 @@ namespace MuseXR.UI
             }
             if (v.Strip != null)
             {
+                var sp = v.Strip.parent.position;
+                v.Strip.parent.position = new Vector3(sp.x, Mathf.Max(sp.y, CardsTop(v) + StripGap + HalfHeight(v.Strip)), sp.z);
                 Face(v.Strip.parent);
                 if (v.Undo != null) v.Undo.text = st.Board.Choice.CanRedo ? "Undo " + Mathf.CeilToInt(st.Board.Choice.UndoLeft) + "s" : "";
             }
@@ -168,9 +173,12 @@ namespace MuseXR.UI
                 _angle = anchor;
             }
             _angle.gameObject.SetActive(true);
-            _angle.position = held.transform.position + Vector3.up * 0.16f;
+            _angle.position = TopOf(held) + Vector3.up * 0.07f;
             Face(_angle);
-            int deg = Mathf.RoundToInt(Mathf.Repeat(held.StickDegrees, 360f));
+            // The station's own reading, so it agrees with the strip ("Crane · 250°"); the pieces
+            // idle-spin, so the stick's own count starts anywhere.
+            var station = StationOf(held);
+            int deg = station != null ? station.YawOf(held) : Mathf.RoundToInt(Mathf.Repeat(held.StickDegrees, 360f));
             _angleText.text = "Stick rotate · " + deg + "°";
         }
 
@@ -206,7 +214,7 @@ namespace MuseXR.UI
             var holdable = target as Holdable;
             var basePoint = holdable != null ? holdable.BasePoint : target.transform.position;
             _hoverHalo.SetPositionAndRotation(basePoint + Vector3.up * 0.006f, Quaternion.Euler(90f, 0f, 0f));
-            _hoverTip.position = target.transform.position + Vector3.up * 0.22f;
+            _hoverTip.position = TopOf(target) + Vector3.up * 0.09f;
             Face(_hoverTip);
             var tipText = _hoverTip.GetComponentInChildren<TextMeshProUGUI>();
             if (tipText != null) tipText.text = target is TimeRingDial ? "Grip the ring and turn" : (byRay ? "Hold Grip to pick it up" : "Hold Grip to pick up");
@@ -227,8 +235,10 @@ namespace MuseXR.UI
             {
                 var a = new GameObject("Detent " + DetentWord[i]).transform;
                 a.SetParent(transform, false);
-                var dir = Quaternion.AngleAxis(DialDetents.AngleOf(i), ring.up) * Vector3.ProjectOnPlane(-(_eye != null ? _eye.forward : Vector3.forward), ring.up).normalized;
-                a.position = ring.position + dir * (radius + 0.09f) + ring.up * 0.02f;
+                // The dial's convention (as its notches): local XY, +Z away from the visitor, +X their
+                // right, a detent at (sin a, cos a) * r. Mist -60 upper left, Afternoon 0 top, Dusk +60.
+                float ang = DialDetents.AngleOf(i) * Mathf.Deg2Rad;
+                a.position = dial.transform.TransformPoint(new Vector3(Mathf.Sin(ang), Mathf.Cos(ang), 0f) * (LocalRadius(dial, radius) + 0.09f / Mathf.Max(1e-4f, dial.transform.lossyScale.x)));
                 var c = MuseUi.Canvas(a, "Detent", NearDistance, 120f);
                 var pill = MuseUi.Card(c, MuseTheme.Paper, 14f, MuseTheme.Line, 1f, padX: 8f, padY: 4f, gap: 0f, name: "Detent");
                 var row = MuseUi.Row(pill, 6f, TextAnchor.MiddleCenter);
@@ -260,6 +270,49 @@ namespace MuseXR.UI
         }
 
         static Vector3 Above(Vector3 p, float h) => p + Vector3.up * h;
+
+        const float StripGap = 0.04f;
+
+        /// <summary>The world top of a thing's renderers, centred over it - where a label clears it.</summary>
+        static Vector3 TopOf(Component c)
+        {
+            var rs = c.GetComponentsInChildren<Renderer>();
+            if (rs.Length == 0) return c.transform.position;
+            var b = rs[0].bounds;
+            foreach (var r in rs) b.Encapsulate(r.bounds);
+            return new Vector3(b.center.x, b.max.y, b.center.z);
+        }
+
+        SlotStation StationOf(Holdable piece)
+        {
+            foreach (var st in _stations.Keys)
+                if (st != null) foreach (var p in st.Pieces) if (p == piece) return st;
+            return null;
+        }
+
+        static float CardsTop(StationView v)
+        {
+            float top = float.MinValue;
+            foreach (var sv in v.Slots)
+                if (sv.Card != null)
+                    foreach (var rt in sv.Card.GetComponentsInChildren<RectTransform>())
+                    {
+                        var corners = new Vector3[4]; rt.GetWorldCorners(corners);
+                        foreach (var c in corners) top = Mathf.Max(top, c.y);
+                    }
+            return top == float.MinValue ? (v.Station != null ? v.Station.transform.position.y : 0f) : top;
+        }
+
+        static float HalfHeight(RectTransform rt)
+        {
+            var corners = new Vector3[4]; rt.GetWorldCorners(corners);
+            float lo = float.MaxValue, hi = float.MinValue;
+            foreach (var c in corners) { lo = Mathf.Min(lo, c.y); hi = Mathf.Max(hi, c.y); }
+            return (hi - lo) * 0.5f;
+        }
+
+        static float LocalRadius(TimeRingDial dial, float worldRadius) =>
+            worldRadius / Mathf.Max(1e-4f, dial.transform.lossyScale.x);
 
         static TextMeshProUGUI FindText(Transform root, string name)
         {

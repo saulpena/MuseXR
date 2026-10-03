@@ -36,7 +36,14 @@ namespace MusePico.Journey
 
         /// <summary>A placement her schematic cannot reach in this world: a point in the entry's frame
         /// (x right, z ahead, metres) and the wall to snap to from there.</summary>
-        public struct Override { public float x, z; public WallSide wall; }
+        public struct Override
+        {
+            public float x, z; public WallSide wall;
+            /// <summary>Place exactly here, facing <see cref="faceYaw"/> (degrees from the entry's facing:
+            /// into the wall for a work, out of the door for an exit) - for parts of a capture its
+            /// collider does not cover, placed by eye from renders.</summary>
+            public bool fixedPlace; public float faceYaw;
+        }
 
         public const float FrameCentreHeight = 1.5f;   // her rule
         public const float CardOffset = 0.3f;          // her rule: 0.3 m right of the frame
@@ -72,12 +79,15 @@ namespace MusePico.Journey
                 if (cal.flipX) lx = -lx;
                 if (overrides != null && overrides.TryGetValue(item.Id, out var o)) { lx = o.x; lz = o.z; if (o.wall != WallSide.None) wallSide = o.wall; }
                 var p = cal.entry + right * lx + fwd * lz;
+                Vector3? fixedDir = null;
+                if (overrides != null && overrides.TryGetValue(item.Id, out var fo) && fo.fixedPlace)
+                    fixedDir = Quaternion.Euler(0f, cal.yaw + fo.faceYaw, 0f) * Vector3.forward;
                 switch (item.Kind)
                 {
-                    case DiagramKind.Work: Work(item, p, WallDir(wallSide, right, fwd), image, info); break;
+                    case DiagramKind.Work: Work(item, p, fixedDir ?? WallDir(wallSide, right, fwd), image, info, fixedDir.HasValue); break;
                     case DiagramKind.Mark: Mark(item, p, master); break;
                     case DiagramKind.Interaction: Interaction(item, p); break;
-                    case DiagramKind.Exit: Exit(item, p, WallDir(wallSide, right, fwd), exitModel, exitHeightOffset); break;
+                    case DiagramKind.Exit: Exit(item, p, fixedDir.HasValue ? -fixedDir.Value : WallDir(wallSide, right, fwd), exitModel, exitHeightOffset, fixedDir.HasValue); break;
                     default: Placed[item.Id] = new Pose(p, rot); break;
                 }
             }
@@ -99,11 +109,29 @@ namespace MusePico.Journey
             return d.HasValue && d.Value > 0.25f ? d : null;
         }
 
-        void Work(DiagramItem item, Vector3 p, Vector3 wallDir, Func<string, Texture2D> image, Func<string, ArtworkInfo> info)
+        /// <summary>The wall's inward direction (horizontal), from three hits spread along it; null when
+        /// the wall is not continuous enough there to say.</summary>
+        Vector3? WallNormalInto(Vector3 p, Vector3 dir)
         {
-            var d = WallFrom(p, wallDir);
+            var side = Vector3.Cross(Vector3.up, dir).normalized;
+            var o = p + Vector3.up * FrameCentreHeight;
+            float? a = _ray?.Invoke(o - side * 0.35f, dir, 12f), b = _ray?.Invoke(o + side * 0.35f, dir, 12f);
+            if (!a.HasValue || !b.HasValue || a.Value < 0.25f || b.Value < 0.25f) return null;
+            var pa = o - side * 0.35f + dir * a.Value; var pb = o + side * 0.35f + dir * b.Value;
+            var along = pb - pa; along.y = 0f;
+            if (along.magnitude > 2.5f) return null;   // a corner or an opening, not one wall
+            var n = Vector3.Cross(Vector3.up, along.normalized);
+            return Vector3.Dot(n, dir) < 0f ? -n : n;
+        }
+
+        void Work(DiagramItem item, Vector3 p, Vector3 wallDir, Func<string, Texture2D> image, Func<string, ArtworkInfo> info, bool exact = false)
+        {
+            var d = exact ? null : WallFrom(p, wallDir);
             var onWall = (d.HasValue ? p + wallDir * (d.Value - 0.06f) : p) + Vector3.up * FrameCentreHeight;
-            var faces = Quaternion.LookRotation(wallDir, Vector3.up);   // +Z into the wall: reads from the room
+            // Square to the wall itself, not to the direction it was looked for in: a probe that
+            // meets a wall at 40 degrees would otherwise hang the work edge-on to it.
+            var into = exact ? wallDir : WallNormalInto(p, wallDir) ?? wallDir;
+            var faces = Quaternion.LookRotation(into, Vector3.up);   // +Z into the wall: reads from the room
 
             var tex = image?.Invoke(item.Id);
             float aspect = tex != null ? tex.width / (float)tex.height : 1.25f;
@@ -128,7 +156,7 @@ namespace MusePico.Journey
             var a = info?.Invoke(item.Id);
             if (a != null)
             {
-                var viewerRight = -(faces * Vector3.right);   // the frame faces back at the viewer
+                var viewerRight = faces * Vector3.right;   // +Z points away from the viewer, so +X is their right
                 var anchor = new GameObject("Card " + item.Label).transform;
                 anchor.SetParent(work.transform, false);
                 float cardW = 440f * PanelScale.MetresPerPixel(ViewingDistance);
@@ -181,9 +209,9 @@ namespace MusePico.Journey
             Placed[item.Id] = new Pose(p, Quaternion.Euler(0f, Cal.yaw, 0f));
         }
 
-        void Exit(DiagramItem item, Vector3 p, Vector3 wallDir, GameObject model, float heightOffset)
+        void Exit(DiagramItem item, Vector3 p, Vector3 wallDir, GameObject model, float heightOffset, bool exact = false)
         {
-            var d = WallFrom(p, wallDir, 20f);
+            var d = exact ? null : WallFrom(p, wallDir, 20f);
             var at = d.HasValue ? p + wallDir * (d.Value - 0.1f) : p;
             var faces = Quaternion.LookRotation(-wallDir, Vector3.up);   // the door's front (+Z) faces into the room
             Transform go;
