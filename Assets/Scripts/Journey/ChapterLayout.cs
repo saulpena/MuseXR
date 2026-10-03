@@ -60,7 +60,8 @@ namespace MusePico.Journey
 
         public const float FrameCentreHeight = 1.5f;   // her rule
         public const float CardOffset = 0.3f;          // her rule: 0.3 m right of the frame
-        public const float ViewingDistance = 2.0f;     // her viewing mark is 1.8-2.5 m from a work
+        public const float ViewingDistance = 2.0f;
+        public const float GroundTolerance = 0.6f;     // how far a floor may sit from the entry's level     // her viewing mark is 1.8-2.5 m from a work
 
         public ChapterDiagrams.Diagram Diagram { get; private set; }
         public Calibration Cal { get; private set; }
@@ -136,7 +137,10 @@ namespace MusePico.Journey
             if (_ray == null) return p;
             const float up = 1.6f;
             var d = _ray(p + Vector3.up * up, Vector3.down, up + 2.5f);
-            return d.HasValue && d.Value > 0.3f ? new Vector3(p.x, p.y + up - d.Value, p.z) : p;
+            if (!d.HasValue || d.Value <= 0.3f) return p;
+            float y = p.y + up - d.Value;
+            // A bench, a sill or a ledge is not the floor: only a surface near the entry's own level counts.
+            return Mathf.Abs(y - Cal.entry.y) <= GroundTolerance ? new Vector3(p.x, y, p.z) : p;
         }
 
         /// <summary>The wall's distance from p along dir at frame height, or null when there is none within reach.</summary>
