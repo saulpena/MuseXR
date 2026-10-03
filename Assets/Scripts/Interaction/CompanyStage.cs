@@ -25,7 +25,7 @@ namespace MuseXR.Interaction
     {
         public enum Phase { Choosing, Stepping, Answering, Done }
 
-        public const float StepForward = 0.3f, StepSeconds = 0.8f, ShakeSeconds = 0.35f;
+        public const float StepForward = 0.45f, StepSeconds = 0.8f, ShakeSeconds = 0.35f;
 
         public Phase Current { get; private set; } = Phase.Choosing;
         public Invitation Invitation { get; } = new Invitation();
