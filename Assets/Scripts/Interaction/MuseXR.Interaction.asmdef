@@ -9,7 +9,8 @@
         "Unity.RenderPipelines.Universal.Runtime",
         "Unity.RenderPipelines.Core.Runtime",
         "Unity.TextMeshPro",
-        "Unity.XR.CoreUtils"
+        "Unity.XR.CoreUtils",
+        "MusePico.Dialogue"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

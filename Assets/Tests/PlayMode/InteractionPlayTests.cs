@@ -357,6 +357,66 @@ namespace MusePico.Tests
             Assert.IsFalse(station.Board.Choice.IsConfirmed, "and did not keep the crane");
         }
 
+        [UnityTest]
+        public IEnumerator TurningTheWristDoesNotTurnThePieceOnlyTheStickDoes()
+        {
+            // Her storyboard: "the stick turns it in 15° steps". The piece stays upright.
+            var (station, crane, _, _) = Palace();
+            var h = Hand();
+            h.aim.SetPositionAndRotation(crane.transform.position, Quaternion.identity);
+            h.source.Grip = true; yield return Frames(2);
+            var yaw = crane.Yaw;
+            h.aim.rotation = Quaternion.Euler(30f, 70f, 40f); yield return Frames(3);
+            Assert.AreEqual(yaw, crane.Yaw, 0.01f, "a wrist turn left the yaw alone");
+            Assert.Greater(crane.transform.up.y, 0.9999f, "and the piece upright");
+            h.source.Stick = new Vector2(1f, 0f); yield return Frames(2);
+            h.source.Stick = Vector2.zero; yield return Frames(2);
+            Assert.AreEqual(Mathf.Repeat(yaw + 15f, 360f), crane.Yaw, 0.01f, "one flick: 15°");
+        }
+
+        [UnityTest]
+        public IEnumerator ThePalaceChapterLightsCallsTheCompanionsAndSavesObjectYawReasonAndMode()
+        {
+            var (stage, _, _) = Company();
+            var (station, crane, _, slot) = Palace();
+            var record = new MusePico.Dialogue.JourneyRecord();
+            var chapter = PalaceChapter.Make(station.gameObject, station, null, stage, record,
+                                             new Vector3(0f, 1.1f, 0.6f), Quaternion.identity);
+            var lines = new List<string>();
+            stage.Group.LineStarted += (id, line) => lines.Add(id + ": " + line);
+
+            var h = Hand();
+            h.aim.SetPositionAndRotation(crane.transform.position, Quaternion.identity);
+            h.source.Grip = true; yield return Frames(2);
+            h.source.Stick = new Vector2(1f, 0f); yield return Frames(2);
+            h.source.Stick = Vector2.zero; yield return Frames(2);
+            h.aim.position += slot.position - crane.BasePoint; yield return Frames(2);
+            h.source.Grip = false; yield return Frames(3);
+            Assert.AreEqual(PalaceFlow.Phase.Placed, chapter.Flow.Current);
+            Assert.AreEqual(15, chapter.Flow.YawDeg);
+
+            Assert.IsFalse(ConfirmInput.PressA(), "A before a reason is refused");
+            Assert.AreEqual("refuse", ChimePlayer.LastPlayed);
+
+            yield return new WaitForSeconds(0.7f);
+            Assert.Greater(chapter.CourtLight.intensity, 1f, "the court lights");
+            yield return new WaitForSeconds(CompanyStage.StepSeconds + 0.5f);
+            CollectionAssert.AreEquivalent(Masters.DefaultTrio, stage.Invitation.Chosen, "nobody invited: her default trio is called");
+            Assert.IsTrue(lines.Exists(l => l.StartsWith(Masters.Monet)), "the companions respond, Monet first");
+            Assert.IsTrue(lines[0].StartsWith(Masters.Monet));
+
+            Assert.IsTrue(chapter.PickChip(0));
+            Assert.AreEqual("Keep this moment? Crane · 15° · It still looks up", station.Board.Choice.StripLine);
+            Assert.IsTrue(ConfirmInput.PressA());
+            Assert.AreEqual(PalaceFlow.Phase.Saved, chapter.Flow.Current);
+            Assert.IsNotNull(record.Palace);
+            Assert.AreEqual("crane", record.Palace.Object);
+            Assert.AreEqual(15f, record.Palace.YawDeg);
+            Assert.AreEqual("It still looks up", record.Palace.Reason);
+            Assert.AreEqual("miniature", record.Palace.Mode);
+            StringAssert.Contains("It still looks up", record.SummaryJson());
+        }
+
         // ---- artwork, cards, plinth, dial ------------------------------------------------
 
         [UnityTest]

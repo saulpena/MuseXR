@@ -32,6 +32,13 @@ namespace MuseXR.Interaction
         public const float BehindDegrees = 100f, BehindSeconds = 1.5f;
 
         public Transform Head { get; set; }
+
+        /// <summary>
+        /// True: the companions stand on marks around the visitor and follow (her §3.4, between
+        /// chapters). False: they stay where a chapter's diagram put them (her chapter diagrams mark
+        /// M/V/S), and only take turns.
+        /// </summary>
+        public bool FollowVisitor { get; set; } = true;
         public IReadOnlyList<string> Ids => _ids;
         public IReadOnlyDictionary<string, Transform> Figures => _figures;
         public TurnTaking Turns { get; private set; }
@@ -182,7 +189,8 @@ namespace MuseXR.Interaction
             if (Head == null && Camera.main != null) Head = Camera.main.transform;
             if (Head == null || _ids.Count == 0) return;
 
-            if (!_placedOnce) PlaceAll();
+            if (!FollowVisitor) { _placedOnce = true; }
+            else if (!_placedOnce) PlaceAll();
             else
             {
                 var moved = Vector3.Distance(Flat3(Head.position), Flat3(_lastPos));

@@ -12,7 +12,8 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "MuseXR.Slots",
-        "MuseXR.Interaction"
+        "MuseXR.Interaction",
+        "MusePico.Dialogue"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
