@@ -117,8 +117,26 @@ namespace MuseXR.Interaction
             return false;
         }
 
-        static float FloorBelow(Vector3 eye) =>
-            Physics.Raycast(eye, Vector3.down, out var hit, 3f, ~0, QueryTriggerInteraction.Ignore) ? hit.point.y : eye.y - 1.6f;
+        /// <summary>
+        /// The floor the companions stand on. Under a floor-tracked XR Origin that is the origin's own
+        /// height - exact, and it never hits the visitor's body. Otherwise the first upward-facing
+        /// surface below the eye that is not a CharacterController: measured in the Editor, a plain
+        /// downward ray struck the rig's own capsule and stood every companion at y 1.31.
+        /// </summary>
+        float FloorBelow(Vector3 eye)
+        {
+            var origin = Head != null ? Head.GetComponentInParent<Unity.XR.CoreUtils.XROrigin>() : null;
+            if (origin != null) return origin.transform.position.y;
+            var n = Physics.RaycastNonAlloc(eye, Vector3.down, _hits, 3f, ~0, QueryTriggerInteraction.Ignore);
+            var best = float.MaxValue; var y = eye.y - 1.6f;
+            for (var i = 0; i < n; i++)
+            {
+                var h = _hits[i];
+                if (h.collider is CharacterController || h.normal.y < 0.7f || h.distance >= best) continue;
+                best = h.distance; y = h.point.y;
+            }
+            return y;
+        }
 
         static Vector3 Flat(Vector3 v) { v.y = 0f; return v.sqrMagnitude < 1e-6f ? Vector3.forward : v.normalized; }
 

@@ -161,6 +161,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b2fed378a2ac5141b55561384f42745, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MuseXR.Interaction::MuseXR.Interaction.InteractionsDemo
+  portraits:
+  - {fileID: 2800000, guid: 5fbe919ce26da7043bc197f90686b901, type: 3}
+  - {fileID: 2800000, guid: d10d6c630d3e2dd45bfab25135eb669b, type: 3}
+  - {fileID: 2800000, guid: ccecc0fa77fa74449837646e7ac130de, type: 3}
+  - {fileID: 2800000, guid: c3a2bfcf339f6d647bd6d03eb32cc8b1, type: 3}
+  - {fileID: 2800000, guid: c002177d04e73a14ebf971d701fd3ec2, type: 3}
+  - {fileID: 2800000, guid: 9db8369bf17d8a0478e293badf8e8ef4, type: 3}
+  artwork: {fileID: 2800000, guid: bde640907196b6e42bb121f21f80f271, type: 3}
 --- !u!4 &1011156016
 Transform:
   m_ObjectHideFlags: 0
@@ -373,6 +381,50 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1103560743
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1103560745}
+  - component: {fileID: 1103560744}
+  m_Layer: 0
+  m_Name: Interaction Visuals
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1103560744
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1103560743}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 653929a6f2607444e91f3e4b378236d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MuseXR.UI.Interaction::MuseXR.UI.InteractionVisuals
+--- !u!4 &1103560745
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1103560743}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1170588729
 GameObject:
   m_ObjectHideFlags: 0
@@ -565,3 +617,4 @@ SceneRoots:
   - {fileID: 1526764059}
   - {fileID: 1056676146}
   - {fileID: 1011156016}
+  - {fileID: 1103560745}

@@ -305,6 +305,23 @@ namespace MusePico.Tests
             }
         }
 
+        [UnityTest]
+        public IEnumerator CompanionsStandOnTheFloorNotOnTheVisitorsBody()
+        {
+            // Measured in the Editor: a plain downward ray from the eye struck the rig's own
+            // CharacterController and stood every companion at y 1.31.
+            var floor = Make("Floor", PrimitiveType.Plane); floor.transform.localScale = Vector3.one * 2f;
+            var (stage, standees, head) = Company();
+            var body = Make("Body"); body.transform.position = new Vector3(0f, 0f, 0f);
+            var cc = body.AddComponent<CharacterController>(); cc.height = 1.4f; cc.center = new Vector3(0f, 0.7f, 0f); cc.radius = 0.2f;   // top below the eye, so the old ray would strike it
+            Physics.SyncTransforms();
+            stage.Preselect(Masters.DefaultTrio);
+            ConfirmInput.PressA();
+            yield return new WaitForSeconds(CompanyStage.StepSeconds + 0.2f);
+            foreach (var kv in stage.Group.Figures)
+                Assert.AreEqual(0f, kv.Value.position.y, 0.01f, kv.Key + " stands on the floor");
+        }
+
         // ---- artwork, cards, plinth, dial ------------------------------------------------
 
         [UnityTest]

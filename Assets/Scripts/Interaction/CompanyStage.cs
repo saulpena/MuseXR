@@ -16,7 +16,8 @@ namespace MuseXR.Interaction
     ///   Answering  each speaks one line in her fixed order, behind the gaze gate (<see cref="CompanionGroup"/>).
     ///   Done       <see cref="Completed"/> carries companions[] for the record.
     ///
-    /// The standees are given to it: a rigged master or a portrait board, built by the scene. What
+    /// The standees are given to it: a rigged master or a portrait board, built by the scene. Every
+    /// figure's front is its +Z, as on a character model, so the row and the flank marks agree. What
     /// they look like when hovered or chosen is the UI layer's, from the events here.
     /// </summary>
     public sealed class CompanyStage : MonoBehaviour, IConfirmable
@@ -127,7 +128,7 @@ namespace MuseXR.Interaction
                     foreach (var id in _standees.Keys)
                     {
                         var (pos, rot) = _rowPose[id];
-                        var target = Invitation.IsChosen(id) ? pos - (rot * Vector3.forward) * StepForward : pos;
+                        var target = Invitation.IsChosen(id) ? pos + (rot * Vector3.forward) * StepForward : pos;   // +Z is the figure's front
                         var t = _standees[id];
                         var next = Vector3.MoveTowards(t.position, target, Time.deltaTime * 1.2f);
                         if (_shake.TryGetValue(id, out var left) && left > 0f)

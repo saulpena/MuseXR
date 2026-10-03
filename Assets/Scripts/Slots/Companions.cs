@@ -94,7 +94,9 @@ namespace MuseXR.Slots
             public override string ToString() => Bearing + "° " + Distance + " m";
         }
 
-        static readonly Mark[] Slots = { new Mark(-48f, 1.7f), new Mark(46f, 1.6f), new Mark(26f, 2.1f) };
+        // The third at 22° / 2.15 m, not 26° / 2.1: a blind review saw the second and third boards
+        // nearly coplanar and touching from the visitor's eye (about 1° apart at their edges); now ~5°.
+        static readonly Mark[] Slots = { new Mark(-48f, 1.7f), new Mark(46f, 1.6f), new Mark(22f, 2.15f) };
 
         /// <summary>The mark for the companion who speaks <paramref name="order"/>th (0-based).</summary>
         public static Mark For(int order) => Slots[Math.Max(0, Math.Min(Slots.Length - 1, order))];

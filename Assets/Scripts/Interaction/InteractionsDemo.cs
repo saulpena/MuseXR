@@ -295,13 +295,14 @@ namespace MuseXR.Interaction
                 var at = centre + right * ((i - 2.5f) * 0.85f);
                 var s = new GameObject("Standee " + id).transform;
                 s.SetParent(root, true);
-                s.SetPositionAndRotation(at, awayFromViewer);
+                // Its front (+Z) to the visitor, as a character's is - the marks turn figures the same way.
+                s.SetPositionAndRotation(at, awayFromViewer * Quaternion.Euler(0f, 180f, 0f));
                 // A board on a foot: her standee fallback, so a master never vanishes.
                 var board = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 board.name = "Board";
                 Object.DestroyImmediate(board.GetComponent<Collider>());
                 board.transform.SetParent(s, false);
-                board.transform.localPosition = new Vector3(0f, 0.95f, 0.02f);
+                board.transform.localPosition = new Vector3(0f, 0.88f, 0f);   // bottom at 0.03, on its foot
                 board.transform.localScale = new Vector3(0.6f, 1.7f, 0.03f);
                 board.GetComponent<Renderer>().sharedMaterial = _stone;
                 Part(s.gameObject, PrimitiveType.Cylinder, "Foot", new Vector3(0f, 0.02f, 0f), Vector3.zero, new Vector3(0.4f, 0.02f, 0.4f), _wood);
@@ -309,7 +310,9 @@ namespace MuseXR.Interaction
                 face.name = "Portrait";
                 Object.DestroyImmediate(face.GetComponent<Collider>());
                 face.transform.SetParent(s, false);
-                face.transform.localPosition = new Vector3(0f, 1.42f, 0f);   // in front of the board (+Z is away)
+                // A flat thing shows when its +Z points away from the viewer: turned 180 to face out of the front.
+                face.transform.localPosition = new Vector3(0f, 1.42f, 0.02f);
+                face.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
                 face.transform.localScale = new Vector3(0.5f, 0.62f, 1f);
                 var m = Unlit(Color.white);
                 if (i < portraits.Length && portraits[i] != null) m.SetTexture("_BaseMap", portraits[i]);
@@ -342,7 +345,7 @@ namespace MuseXR.Interaction
             var am = Unlit(Color.white);
             if (artwork != null) am.SetTexture("_BaseMap", artwork);
             frame.GetComponent<Renderer>().sharedMaterial = am;
-            Box(root, "Wall", wallAt + fwd * 0.05f + Vector3.up * 1.4f, facing, new Vector3(3f, 2.8f, 0.08f), _stone);
+            Box(root, "Wall", wallAt + fwd * 0.05f + Vector3.up * 1.4f, facing, new Vector3(1.8f, 2.6f, 0.08f), _stone);
             var mark = Point(root, "Viewing Mark", wallAt - fwd * 2.0f, facing);
             SnapCircle(mark);
             Artwork = ArtworkWatcher.Make(frame, "aic-16568", mark);
@@ -350,7 +353,7 @@ namespace MuseXR.Interaction
             Artwork.Seen += (w, sec) => Debug.Log("[Gallery] seen " + w.ArtworkId + " after " + sec.ToString("F1") + " s");
 
             // The card fallback: two exhibit cards on a lectern, right of the path.
-            var lectern = origin + fwd * 1.6f + right * 1.1f;
+            var lectern = origin + fwd * 1.6f - right * 1.1f;   // the side away from the Palace zone
             Box(root, "Lectern", lectern + Vector3.up * 0.5f, facing, new Vector3(0.7f, 1.0f, 0.3f), _stone);
             var cards = new Transform[2];
             var names = new[] { "Crane", "Turtle" };
@@ -358,7 +361,7 @@ namespace MuseXR.Interaction
             {
                 var c = new GameObject("Card " + names[i]).transform;
                 c.SetParent(root, true);
-                c.SetPositionAndRotation(lectern + Vector3.up * 1.25f + right * ((i - 0.5f) * 0.36f), facing);
+                c.SetPositionAndRotation(lectern + Vector3.up * 1.25f - right * ((i - 0.5f) * 0.36f), facing);
                 var back = GameObject.CreatePrimitive(PrimitiveType.Quad);
                 back.name = "Back";
                 Object.DestroyImmediate(back.GetComponent<Collider>());
@@ -388,7 +391,7 @@ namespace MuseXR.Interaction
             Cards.Kept += (st, id) => Debug.Log("[Gallery] card kept: " + id);
 
             // A Your-world plinth that rings the bronze bell as you approach.
-            var plinth = Box(root, "Your-world Plinth", origin + fwd * 1.4f - right * 1.4f + Vector3.up * 0.45f, facing,
+            var plinth = Box(root, "Your-world Plinth", origin + fwd * 2.6f - right * 1.9f + Vector3.up * 0.45f, facing,
                              new Vector3(0.4f, 0.9f, 0.4f), _stone);
             Plinth = ApproachChime.Make(plinth, ChapterSound.BronzeBell);
             Plinth.Rang += c => Debug.Log("[Gallery] plinth chimed " + c.Sound);
