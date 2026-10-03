@@ -97,7 +97,7 @@ namespace MuseXR.Interaction
             var court = Palace.transform.position;
             var toViewer = o - court; toViewer.y = 0f; toViewer.Normalize();
             PalaceFlowStation = PalaceChapter.Make(Palace.gameObject, Palace, Cards, Company, Record,
-                court + toViewer * 0.55f + Vector3.up * 1.12f, Quaternion.LookRotation(-toViewer, Vector3.up));
+                court + toViewer * 0.6f + Vector3.up * 0.62f   /* below the court top: never between the eye and the crane */, Quaternion.LookRotation(-toViewer, Vector3.up));
             PalaceFlowStation.Note += Note;
             PalaceFlowStation.Saved += _ => Note("[Record] " + Record.SummaryJson());
             ConfirmInput.Pressed += (button, target, ok) =>

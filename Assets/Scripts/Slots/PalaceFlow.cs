@@ -28,7 +28,7 @@ namespace MuseXR.Slots
         public static IReadOnlyList<string> ReasonsFor(string piece) =>
             string.Equals(piece, "Turtle", StringComparison.OrdinalIgnoreCase)
                 ? new[] { "It holds steady", "It outlasts what hurries", "It carries its home" }
-                : new[] { "It still looks up", "It is ready to fly", "It stands on one leg and keeps its balance" };
+                : new[] { "It still looks up", "It is ready to fly", "It keeps its balance" };
 
         public Phase Current { get; private set; } = Phase.Choosing;
         public Mode Kind { get; private set; } = Mode.Miniature;

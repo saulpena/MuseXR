@@ -35,8 +35,9 @@ namespace MuseXR.Interaction
         public event Action<string> Note;
         public event Action<PalaceFlow> Saved;
 
-        public const float CourtLightIntensity = 1.6f, CourtLightRange = 1.3f;
+        public const float CourtLightIntensity = 2.6f, CourtLightRange = 0.9f;   // a pool on the court, not the room
 
+        const float ChipW = 0.5f, ChipH = 0.15f, ChipStep = 0.56f;
         readonly List<Pointable> _chips = new List<Pointable>();
         readonly List<TMPro.TextMeshPro> _chipText = new List<TMPro.TextMeshPro>();
         readonly Dictionary<Transform, GameObject> _glows = new Dictionary<Transform, GameObject>();
@@ -185,17 +186,21 @@ namespace MuseXR.Interaction
                 chip.name = "Reason " + i;
                 DestroyImmediate(chip.GetComponent<Collider>());
                 chip.transform.SetParent(_chipRoot, false);
-                chip.transform.localPosition = new Vector3((i - 1) * 0.44f, 0f, 0f);
-                chip.transform.localScale = new Vector3(0.4f, 0.13f, 1f);
+                chip.transform.localPosition = new Vector3((i - 1) * ChipStep, 0f, 0f);
+                chip.transform.localScale = new Vector3(ChipW, ChipH, 1f);
                 var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
                 m.SetColor("_BaseColor", new Color(0.96f, 0.94f, 0.89f));
                 chip.GetComponent<Renderer>().sharedMaterial = m;
                 var t = new GameObject("Text").AddComponent<TMPro.TextMeshPro>();
                 t.transform.SetParent(chip.transform, false);
                 t.transform.localPosition = new Vector3(0f, 0f, -0.002f);
-                t.transform.localScale = new Vector3(1f / 0.4f, 1f / 0.13f, 1f);
-                t.rectTransform.sizeDelta = new Vector2(0.38f, 0.12f);
-                t.fontSize = 0.022f * (0.6f / 0.016f);
+                t.transform.localScale = new Vector3(1f / ChipW, 1f / ChipH, 1f);
+                t.rectTransform.sizeDelta = new Vector2(ChipW - 0.04f, ChipH - 0.03f);
+                // Shrinks to fit rather than spilling off the chip (blind review: the longest wrapped
+                // to three lines over a one-line chip).
+                t.enableAutoSizing = true;
+                t.fontSizeMax = 0.024f * (0.6f / 0.016f);
+                t.fontSizeMin = 0.012f * (0.6f / 0.016f);
                 t.alignment = TMPro.TextAlignmentOptions.Center;
                 t.enableWordWrapping = true;
                 t.color = new Color(0.2f, 0.16f, 0.12f);
@@ -227,19 +232,25 @@ namespace MuseXR.Interaction
             {
                 _chipText[i].text = reasons[i];
                 _chipText[i].fontStyle = TMPro.FontStyles.Normal;
-                _chips[i].transform.localPosition = new Vector3((i - 1) * 0.44f, 0f, 0f);
+                _chips[i].transform.localPosition = new Vector3((i - 1) * ChipStep, 0f, 0f);
+                _chips[i].transform.localScale = new Vector3(ChipW, ChipH, 1f);
             }
         }
 
         public bool PickChip(int index, Pointer pointer = null)
         {
             if (index < 0 || index >= _chipText.Count) return false;
-            if (!Flow.ChooseReason(_chipText[index].text)) return false;
-            // The chosen chip steps forward and turns bold: shape and weight, not colour alone.
+            if (!Flow.ChooseReason(PalaceFlow.ReasonsFor(Flow.Piece)[index])) return false;
+            // The chosen chip gets a "»" mark, bold type, a larger size and steps forward: shape and
+            // weight, not colour alone. The others stay as they were, so the choice reads at a glance.
+            var reasons = PalaceFlow.ReasonsFor(Flow.Piece);
             for (var i = 0; i < _chips.Count; i++)
             {
-                _chipText[i].fontStyle = i == index ? TMPro.FontStyles.Bold : TMPro.FontStyles.Normal;
-                _chips[i].transform.localPosition = new Vector3((i - 1) * 0.44f, 0f, i == index ? -0.05f : 0f);
+                var on = i == index;
+                _chipText[i].text = (on ? "» " : "") + reasons[i];
+                _chipText[i].fontStyle = on ? TMPro.FontStyles.Bold : TMPro.FontStyles.Normal;
+                _chips[i].transform.localPosition = new Vector3((i - 1) * ChipStep, 0f, on ? -0.06f : 0f);
+                _chips[i].transform.localScale = new Vector3(ChipW, ChipH, 1f) * (on ? 1.15f : 1f);
             }
             pointer?.Source.Buzz(SlotRules.LightAmplitude * 1.5f, SlotRules.LightSeconds);
             Retitle();
