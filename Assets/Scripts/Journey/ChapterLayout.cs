@@ -43,6 +43,9 @@ namespace MusePico.Journey
             /// into the wall for a work, out of the door for an exit) - for parts of a capture its
             /// collider does not cover, placed by eye from renders.</summary>
             public bool fixedPlace; public float faceYaw;
+            /// <summary>Stand the work on a wooden easel rather than a wall: her diagrams draw some
+            /// works across the path, facing the visitor, where there is no wall.</summary>
+            public bool stand;
         }
 
         public const float FrameCentreHeight = 1.5f;   // her rule
@@ -78,13 +81,17 @@ namespace MusePico.Journey
                 var wallSide = cal.flipX ? Flip(item.Wall) : item.Wall;
                 if (cal.flipX) lx = -lx;
                 if (overrides != null && overrides.TryGetValue(item.Id, out var o)) { lx = o.x; lz = o.z; if (o.wall != WallSide.None) wallSide = o.wall; }
-                var p = cal.entry + right * lx + fwd * lz;
+                var p = Ground(cal.entry + right * lx + fwd * lz);
                 Vector3? fixedDir = null;
-                if (overrides != null && overrides.TryGetValue(item.Id, out var fo) && fo.fixedPlace)
+                Override fo = default;
+                if (overrides != null && overrides.TryGetValue(item.Id, out fo) && fo.fixedPlace)
                     fixedDir = Quaternion.Euler(0f, cal.yaw + fo.faceYaw, 0f) * Vector3.forward;
                 switch (item.Kind)
                 {
-                    case DiagramKind.Work: Work(item, p, fixedDir ?? WallDir(wallSide, right, fwd), image, info, fixedDir.HasValue); break;
+                    case DiagramKind.Work:
+                        Work(item, p, fixedDir ?? WallDir(wallSide, right, fwd), image, info, fixedDir.HasValue);
+                        if (fixedDir.HasValue && fo.stand) Easel(item, p, fixedDir.Value);
+                        break;
                     case DiagramKind.Mark: Mark(item, p, master); break;
                     case DiagramKind.Interaction: Interaction(item, p); break;
                     case DiagramKind.Exit: Exit(item, p, fixedDir.HasValue ? -fixedDir.Value : WallDir(wallSide, right, fwd), exitModel, exitHeightOffset, fixedDir.HasValue); break;
@@ -99,6 +106,16 @@ namespace MusePico.Journey
         {
             WallSide.Left => -right, WallSide.Right => right, WallSide.Ahead => fwd, WallSide.Behind => -fwd, _ => right,
         };
+
+        /// <summary>p moved onto the capture's floor beneath it (a garden path falls away from its
+        /// entry); unchanged when the collider has no floor there.</summary>
+        Vector3 Ground(Vector3 p)
+        {
+            if (_ray == null) return p;
+            const float up = 1.6f;
+            var d = _ray(p + Vector3.up * up, Vector3.down, up + 2.5f);
+            return d.HasValue && d.Value > 0.3f ? new Vector3(p.x, p.y + up - d.Value, p.z) : p;
+        }
 
         /// <summary>The wall's distance from p along dir at frame height, or null when there is none within reach.</summary>
         float? WallFrom(Vector3 p, Vector3 dir, float reach = 12f)
@@ -164,6 +181,37 @@ namespace MusePico.Journey
                 anchor.rotation = faces;
                 MuseScreens.ArtworkCard(anchor, a, ViewingDistance);
             }
+        }
+
+        void Easel(DiagramItem item, Vector3 floor, Vector3 into)
+        {
+            // Three legs of an artist's easel: two in front splayed out, one behind leaning in.
+            var wood = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            wood.SetColor("_BaseColor", new Color(0.42f, 0.3f, 0.2f)); wood.SetFloat("_Smoothness", 0.25f);
+            var root = new GameObject("Easel " + item.Label).transform; root.SetParent(transform, false);
+            root.SetPositionAndRotation(floor, Quaternion.LookRotation(into, Vector3.up));
+            void Leg(Vector3 foot, Vector3 top)
+            {
+                var b = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                b.name = "Leg"; Destroy(b.GetComponent<Collider>());
+                b.transform.SetParent(root, false);
+                var a = root.TransformPoint(foot); var t = root.TransformPoint(top);
+                b.transform.position = (a + t) / 2f;
+                b.transform.rotation = Quaternion.FromToRotation(Vector3.up, (t - a).normalized);
+                b.transform.localScale = new Vector3(0.035f, (t - a).magnitude, 0.035f);
+                b.GetComponent<Renderer>().sharedMaterial = wood;
+            }
+            float top = FrameCentreHeight + 0.75f;
+            Leg(new Vector3(-0.42f, 0f, -0.18f), new Vector3(-0.08f, top, 0.06f));
+            Leg(new Vector3(0.42f, 0f, -0.18f), new Vector3(0.08f, top, 0.06f));
+            Leg(new Vector3(0f, 0f, 0.65f), new Vector3(0f, top - 0.1f, 0.08f));
+            // The ledge the canvas sits on.
+            var ledge = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            ledge.name = "Ledge"; Destroy(ledge.GetComponent<Collider>());
+            ledge.transform.SetParent(root, false);
+            ledge.transform.localPosition = new Vector3(0f, FrameCentreHeight - 0.55f, -0.04f);
+            ledge.transform.localScale = new Vector3(1.0f, 0.03f, 0.08f);
+            ledge.GetComponent<Renderer>().sharedMaterial = wood;
         }
 
         static void Frame(Transform work, Vector2 size)
