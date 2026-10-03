@@ -1,6 +1,7 @@
 using MuseXR.Slots;
 using MuseXR.Worlds;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace MuseXR.Interaction
 {
@@ -67,6 +68,7 @@ namespace MuseXR.Interaction
             BuildGallery(o, f * Quaternion.Euler(0f, -90f, 0f));
 
             Calibrator = gameObject.AddComponent<HeightCalibrator>();
+            BuildTestKit(o, f);
         }
 
         // ---- Palace ---------------------------------------------------------------------
@@ -91,8 +93,8 @@ namespace MuseXR.Interaction
             var pieces = new[] { Holdable.Make(crane, "Crane"), Holdable.Make(turtle, "Turtle") };
 
             Palace = SlotStation.Make(root.gameObject, Chapter.Palace, new[] { slot }, pieces);
-            Palace.Cue += (s, e) => Debug.Log("[Palace] " + e + "  strip: " + s.Board.Choice.StripLine);
-            Palace.Confirmed += (s, piece, at, yaw) => Debug.Log("[Palace] kept " + s.Pieces[piece].Id + " at " + yaw + "°");
+            Palace.Cue += (s, e) => Note("[Palace] " + e + "  strip: " + s.Board.Choice.StripLine);
+            Palace.Confirmed += (s, piece, at, yaw) => Note("[Palace] kept " + s.Pieces[piece].Id + " at " + yaw + "°");
         }
 
         GameObject Crane(Transform parent, Vector3 baseAt, Quaternion rot)
@@ -164,7 +166,7 @@ namespace MuseXR.Interaction
 
             Grotto = SlotStation.Make(root.gameObject, Chapter.Grotto, new[] { detail, whole }, new[] { Lamp },
                                       new[] { "Detail", "Whole" });
-            Grotto.Cue += (s, e) => Debug.Log("[Grotto] " + e + "  strip: " + s.Board.Choice.StripLine);
+            Grotto.Cue += (s, e) => Note("[Grotto] " + e + "  strip: " + s.Board.Choice.StripLine);
         }
 
         GameObject LampModel(Transform parent, Vector3 baseAt, Quaternion rot)
@@ -255,7 +257,7 @@ namespace MuseXR.Interaction
             Driver = new GameObject("Time Ring Driver").AddComponent<TimeRingDriver>();
             Driver.transform.SetParent(root, false);
             Dial = TimeRingDial.Make(dial, ring.transform, Driver);
-            Dial.Clicked += t => Debug.Log("[Monet] ring -> " + t);
+            Dial.Clicked += t => Note("[Monet] ring -> " + t);
         }
 
         static Mesh Torus(float radius, float tube, int seg, int sides)
@@ -321,9 +323,10 @@ namespace MuseXR.Interaction
             }
             Company = CompanyStage.Make(root.gameObject, standees);
             Company.Question = "What is worth keeping?";
-            Company.Toggled += (id, r) => Debug.Log("[Company] " + id + " -> " + r + "  chosen: " + string.Join(", ", Company.Invitation.Chosen));
-            Company.Group.LineStarted += (id, line) => Debug.Log("[Company] " + id + " says: " + line);
-            Company.Completed += ids => Debug.Log("[Company] companions[] = " + string.Join(", ", ids));
+            Company.Toggled += (id, r) => Note("[Company] " + id + " -> " + r + "  chosen: " + string.Join(", ", Company.Invitation.Chosen));
+            Company.Group.LineStarted += (id, line) => Note("[Company] " + id + " says: " + line);
+            Company.Group.Remarked += () => Note("[Company] companions re-placed around you");
+            Company.Completed += ids => Note("[Company] companions[] = " + string.Join(", ", ids));
         }
 
         // ---- Gallery: an artwork, the card fallback, a Your-world plinth ------------------
@@ -349,8 +352,8 @@ namespace MuseXR.Interaction
             var mark = Point(root, "Viewing Mark", wallAt - fwd * 2.0f, facing);
             SnapCircle(mark);
             Artwork = ArtworkWatcher.Make(frame, "aic-16568", mark);
-            Artwork.CardWanted += w => Debug.Log("[Gallery] card wanted for " + w.ArtworkId);
-            Artwork.Seen += (w, sec) => Debug.Log("[Gallery] seen " + w.ArtworkId + " after " + sec.ToString("F1") + " s");
+            Artwork.CardWanted += w => Note("[Gallery] card wanted for " + w.ArtworkId);
+            Artwork.Seen += (w, sec) => Note("[Gallery] seen " + w.ArtworkId + " after " + sec.ToString("F1") + " s");
 
             // The card fallback: two exhibit cards on a lectern, right of the path.
             var lectern = origin + fwd * 1.6f - right * 1.1f;   // the side away from the Palace zone
@@ -388,20 +391,130 @@ namespace MuseXR.Interaction
                 cards[i] = c;
             }
             Cards = CardChoiceStation.Make(root.gameObject, cards, names);
-            Cards.Kept += (st, id) => Debug.Log("[Gallery] card kept: " + id);
+            Cards.Kept += (st, id) => Note("[Gallery] card kept: " + id);
 
             // A Your-world plinth that rings the bronze bell as you approach.
             var plinth = Box(root, "Your-world Plinth", origin + fwd * 2.6f - right * 1.9f + Vector3.up * 0.45f, facing,
                              new Vector3(0.4f, 0.9f, 0.4f), _stone);
             Plinth = ApproachChime.Make(plinth, ChapterSound.BronzeBell);
-            Plinth.Rang += c => Debug.Log("[Gallery] plinth chimed " + c.Sound);
+            Plinth.Rang += c => Note("[Gallery] plinth chimed " + c.Sound);
+        }
+
+
+        // ---- the headset test kit: a sign per zone, an event board, reset and calibration -----
+
+        TMPro.TextMeshPro _board;
+        readonly System.Collections.Generic.List<string> _events = new System.Collections.Generic.List<string>();
+        UnityEngine.InputSystem.InputAction _reset, _calibrate;
+
+        /// <summary>Every event goes to the console and to the board on the right, newest first.</summary>
+        void Note(string line)
+        {
+            Debug.Log(line);
+            _events.Insert(0, System.DateTime.Now.ToString("HH:mm:ss") + "  " + line);
+            if (_events.Count > 9) _events.RemoveAt(_events.Count - 1);
+            if (_board != null) _board.text = "<b>WHAT JUST HAPPENED</b>\n<size=80%>" + string.Join("\n", _events) + "</size>";
+        }
+
+        void BuildTestKit(Vector3 o, Quaternion f)
+        {
+            Vector3 At(float bearing, float distance) => o + Quaternion.Euler(0f, bearing, 0f) * (f * Vector3.forward) * distance;
+
+            Sign("Sign Palace", At(-38f, 1.75f) + Vector3.up * 2.0f, o,
+                "<b>PALACE · lift, turn, place</b>\n" +
+                "Grip a miniature - reach for it, or point and grip.\n" +
+                "Stick left/right while holding: turns it 15° (a tick).\n" +
+                "Over the court: light buzz = aligned. Let go: it seats, bronze bell.\n" +
+                "A keeps · B within 3 s undoes · or lift it back out.\n" +
+                "Let go anywhere else: it floats home.");
+            Sign("Sign Grotto", At(2f, 2.75f) + Vector3.up * 2.25f, o,
+                "<b>GROTTO · the lamp</b>\n" +
+                "Grip the lamp (front-left). Hold it to the carving, from the side:\n" +
+                "only the carving lights. Set it on DETAIL (post before the carving)\n" +
+                "or WHOLE (rail post): stone chime. A keeps · B undoes.");
+            Sign("Sign Monet", At(42f, 1.75f) + Vector3.up * 1.85f, o,
+                "<b>MONET · the time ring</b>\n" +
+                "Grip the ring and roll your wrist.\n" +
+                "Three detents - Mist · Afternoon · Dusk -\n" +
+                "each a tick in the hand and a water drop.");
+            Sign("Sign Company", o + (f * Vector3.back) * 3.2f + Vector3.up * 2.35f, o,
+                "<b>COMPANY · behind you</b>\n" +
+                "Point and pull the trigger to invite a master (1-3). They step forward.\n" +
+                "A fourth is refused: shake, knock, hard buzz. Trigger again to uninvite.\n" +
+                "A: the chosen walk to your side, the rest fade, each speaks in turn (A skips).\n" +
+                "Teleport or snap-turn: they re-place around you.");
+            Sign("Sign Gallery", o + (f * Quaternion.Euler(0f, -90f, 0f)) * Vector3.forward * 2.6f + Vector3.up * 2.6f, o,
+                "<b>GALLERY · to your left</b>\n" +
+                "Point at the painting for a moment, or step onto its ring: card request.\n" +
+                "Look at it for 4 s: seen. Trigger a red card: it flips. A keeps · B undoes.\n" +
+                "Walk up to the plinth: bronze bell, once per approach.");
+
+            // The board on the right, where nothing else stands.
+            var right = f * Quaternion.Euler(0f, 90f, 0f);
+            var boardAt = o + right * Vector3.forward * 2.2f + Vector3.up * 1.55f;
+            _board = Sign("Event Board", boardAt, o, "", 1.3f, 1.0f, 0.022f);
+            _board.alignment = TMPro.TextAlignmentOptions.TopLeft;
+            Sign("Sign Start", boardAt + Vector3.up * 0.75f, o,
+                "<b>INTERACTIONS TEST</b>  ·  ahead: Palace, Grotto, Monet  ·  behind: Company  ·  left: Gallery\n" +
+                "Teleport and 30° snap turn on either stick  ·  left stick click: height calibration  ·  left menu: reset",
+                1.6f, 0.22f, 0.022f);
+            Note("Ready. Grip, trigger, A and B are all live.");
+
+            _reset = new UnityEngine.InputSystem.InputAction("test-reset", UnityEngine.InputSystem.InputActionType.Button);
+            _reset.AddBinding("<XRController>{LeftHand}/menu");
+            _reset.AddBinding("<Keyboard>/r");
+            _calibrate = new UnityEngine.InputSystem.InputAction("test-calibrate", UnityEngine.InputSystem.InputActionType.Button);
+            _calibrate.AddBinding("<XRController>{LeftHand}/{Primary2DAxisClick}");
+            _calibrate.AddBinding("<Keyboard>/h");
+            _reset.Enable(); _calibrate.Enable();
+        }
+
+        void OnDestroy()
+        {
+            _reset?.Dispose(); _calibrate?.Dispose();
         }
 
         void Update()
         {
-            var kb = UnityEngine.InputSystem.Keyboard.current;
-            if (kb != null && kb.hKey.wasPressedThisFrame && Calibrator != null)
-                Debug.Log("[Calibration] offset " + Calibrator.Calibrate().ToString("F2") + " m");
+            if (_calibrate != null && _calibrate.WasPressedThisFrame() && Calibrator != null)
+                Note("Height calibrated: camera offset " + Calibrator.Calibrate().ToString("+0.00;-0.00") + " m");
+            if (_reset != null && _reset.WasPressedThisFrame())
+            {
+                var path = UnityEngine.SceneManagement.SceneManager.GetActiveScene().path;
+#if UNITY_EDITOR
+                UnityEditor.SceneManagement.EditorSceneManager.LoadSceneInPlayMode(path,
+                    new UnityEngine.SceneManagement.LoadSceneParameters(UnityEngine.SceneManagement.LoadSceneMode.Single));
+#else
+                UnityEngine.SceneManagement.SceneManager.LoadScene(path);
+#endif
+            }
+        }
+
+        /// <summary>A pale board with dark text, facing the spawn. Flat things read with +Z away from the viewer.</summary>
+        TMPro.TextMeshPro Sign(string name, Vector3 at, Vector3 viewer, string text, float width = 1.5f, float height = 0.5f, float cap = 0.026f)
+        {
+            var away = at - viewer; away.y = 0f;
+            var rot = Quaternion.LookRotation(away.normalized, Vector3.up);
+            var root = new GameObject(name).transform;
+            root.SetParent(transform, true);
+            root.SetPositionAndRotation(at, rot);
+            var back = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            back.name = "Backing";
+            Object.DestroyImmediate(back.GetComponent<Collider>());
+            back.transform.SetParent(root, false);
+            back.transform.localPosition = new Vector3(0f, 0f, 0.01f);
+            back.transform.localScale = new Vector3(width + 0.08f, height + 0.08f, 1f);
+            back.GetComponent<Renderer>().sharedMaterial = Unlit(new Color(0.95f, 0.93f, 0.88f));
+            var t = new GameObject("Text").AddComponent<TMPro.TextMeshPro>();
+            t.transform.SetParent(root, false);
+            t.rectTransform.sizeDelta = new Vector2(width, height);
+            // TMP's world fontSize is neither metres nor points: measured here, 0.6 renders ~16 mm of cap.
+            t.fontSize = cap * (0.6f / 0.016f);
+            t.color = new Color(0.2f, 0.16f, 0.12f);
+            t.alignment = TMPro.TextAlignmentOptions.Center;
+            t.enableWordWrapping = true;
+            t.text = text;
+            return t;
         }
 
         // ---- helpers --------------------------------------------------------------------

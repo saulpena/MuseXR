@@ -322,6 +322,21 @@ namespace MusePico.Tests
                 Assert.AreEqual(0f, kv.Value.position.y, 0.01f, kv.Key + " stands on the floor");
         }
 
+        [UnityTest]
+        public IEnumerator TheUninvitedFadeOutAndTheInvitedStay()
+        {
+            var (stage, standees, _) = Company();
+            stage.Preselect(new[] { Masters.Monet, Masters.Hilma });
+            ConfirmInput.PressA();
+            yield return new WaitForSeconds(Fader.DefaultSeconds * 0.5f);
+            var a = standees[Masters.Socrates].GetComponent<Renderer>().material.GetColor("_BaseColor").a;
+            Assert.That(a, Is.InRange(0.05f, 0.95f), "Socrates is mid-fade, not cut");
+            yield return new WaitForSeconds(Fader.DefaultSeconds);
+            foreach (var kv in standees)
+                Assert.AreEqual(stage.Invitation.IsChosen(kv.Key), kv.Value.gameObject.activeSelf,
+                                kv.Key + (stage.Invitation.IsChosen(kv.Key) ? " stays" : " is gone"));
+        }
+
         // ---- artwork, cards, plinth, dial ------------------------------------------------
 
         [UnityTest]
