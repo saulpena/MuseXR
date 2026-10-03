@@ -287,6 +287,15 @@ namespace MusePico.Journey
             Placed[item.Id] = new Pose(p, Quaternion.Euler(0f, Cal.yaw, 0f));
         }
 
+        /// <summary>Hang a work exactly here, framed, its face toward -<paramref name="into"/> - for
+        /// works that float free (Your world's "works you stayed with").</summary>
+        public void HangFree(string id, string label, Vector3 floorPoint, Vector3 into, float centreHeight,
+                             Func<string, Texture2D> image, Func<string, ArtworkInfo> info, float width = 0f)
+        {
+            var item = new DiagramItem(id, DiagramKind.Work, 0f, 0f, label);
+            Work(item, floorPoint, into, image, info, true, centreHeight, width > 0f ? new Vector2(width, width * 1.5f) : default);
+        }
+
         /// <summary>A display stand: a body, a gold cap and a gold foot. Returns the cap's top centre,
         /// where a piece stands.</summary>
         public Vector3 Plinth(string name, Vector3 floor, Quaternion facing, Color body, float height = 1.0f, float width = 0.34f)
