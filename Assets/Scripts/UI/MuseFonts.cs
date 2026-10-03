@@ -9,6 +9,7 @@ namespace MuseXR.UI
     public sealed class MuseFonts : ScriptableObject
     {
         public TMP_FontAsset serif;         // Cormorant Garamond SemiBold (600)
+        public TMP_FontAsset serifMedium;   // Cormorant Garamond Medium (500): quotes and answers
         public TMP_FontAsset serifItalic;   // Cormorant Garamond Medium Italic (500)
         public TMP_FontAsset sans;          // Inter Regular
         public TMP_FontAsset sansSemi;      // Inter SemiBold (600)

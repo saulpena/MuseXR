@@ -77,6 +77,32 @@ namespace MuseXR.UI
             return s;
         }
 
+        /// <summary>The faked frost: white light top-left, warm at the right, inside a rounded rect.
+        /// Stretched (not sliced) across the panel, so the corner is approximate - it is faint.</summary>
+        public static Sprite Sheen(float radiusPx)
+        {
+            var key = "sheen" + Mathf.RoundToInt(radiusPx);
+            if (Cache.TryGetValue(key, out var s)) return s;
+            const int w = 128, h = 96;
+            var tex = NewTex(w, h, key);
+            var px = new Color32[w * h];
+            for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                float u = (x + 0.5f) / w, v = (y + 0.5f) / h;              // v = 0 bottom
+                float light = Mathf.Clamp01(1.1f - (u * 0.6f + (1f - v) * 0.9f)) * 0.55f;
+                float warm = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((u - 0.55f) / 0.45f)) * 0.22f;
+                float edge = Mathf.Clamp01(RoundedDistance((u - 0.5f) * w, (v - 0.5f) * h, w / 2f - 1f, h / 2f - 1f, 10f) * -0.6f);
+                var c = Color.Lerp(new Color(1f, 1f, 1f, light), new Color(0.96f, 0.88f, 0.78f, warm), warm / (light + warm + 1e-4f));
+                c.a = Mathf.Max(light, warm) * edge;
+                px[y * w + x] = c;
+            }
+            tex.SetPixels32(px); tex.Apply();
+            s = Sprite.Create(tex, new UnityEngine.Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
+            Cache[key] = s;
+            return s;
+        }
+
         /// <summary>A filled disc.</summary>
         public static Sprite Disc() => Ring("disc", 0f, 0f, 0f);
 

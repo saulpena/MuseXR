@@ -13,7 +13,7 @@ namespace MuseXR.UI
     /// </summary>
     public static class MuseUi
     {
-        public enum Face { Serif, SerifItalic, Sans, SansSemi, SansBold, Mono }
+        public enum Face { Serif, SerifMedium, SerifItalic, Sans, SansSemi, SansBold, Mono }
 
         // ---- canvas -------------------------------------------------------------------------------
 
@@ -50,6 +50,7 @@ namespace MuseXR.UI
         public static RectTransform Glass(Transform parent, float widthPx, float padX = 20f, float padY = 18f, float gap = 6f)
         {
             var rt = Box(parent, "Glass", MuseTheme.Glass, MuseTheme.PanelRadius, widthPx, padX, padY, gap);
+            Sheen(rt, MuseTheme.PanelRadius);
             Edge(rt, MuseTheme.GlassEdge, MuseTheme.PanelRadius, 1f);
             Shadow(rt, MuseTheme.PanelRadius, 34f, new Vector2(0f, -18f));
             return rt;
@@ -87,6 +88,23 @@ namespace MuseXR.UI
             Stretch((RectTransform)go.transform, 0f);
             var img = go.GetComponent<Image>();
             img.sprite = UiSprites.Outline(radius, px); img.type = Image.Type.Sliced; img.color = colour;
+            img.raycastTarget = false;
+        }
+
+        /// <summary>
+        /// Her glass is a 22px backdrop blur with saturate(1.4). A real blur behind every panel is too
+        /// dear over splats in a headset, so the frost is faked: a soft white light from the top-left
+        /// fading to a warm tint at the right, as her mockups read.
+        /// </summary>
+        static void Sheen(RectTransform box, float radius)
+        {
+            var go = new GameObject("Sheen", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+            go.transform.SetParent(box, false);
+            go.transform.SetAsFirstSibling();
+            go.GetComponent<LayoutElement>().ignoreLayout = true;
+            Stretch((RectTransform)go.transform, 0f);
+            var img = go.GetComponent<Image>();
+            img.sprite = UiSprites.Sheen(radius); img.type = Image.Type.Simple; img.color = Color.white;
             img.raycastTarget = false;
         }
 
@@ -158,7 +176,8 @@ namespace MuseXR.UI
             {
                 var fa = face switch
                 {
-                    Face.Serif => f.serif, Face.SerifItalic => f.serifItalic, Face.SansSemi => f.sansSemi,
+                    Face.Serif => f.serif, Face.SerifMedium => f.serifMedium != null ? f.serifMedium : f.serif,
+                    Face.SerifItalic => f.serifItalic, Face.SansSemi => f.sansSemi,
                     Face.SansBold => f.sansBold, Face.Mono => f.mono, _ => f.sans,
                 };
                 if (fa != null) t.font = fa;

@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: MuseFonts
   m_EditorClassIdentifier: MuseXR.UI::MuseXR.UI.MuseFonts
   serif: {fileID: 11400000, guid: 846ea4b8186f6394ebd67bf5d2b7862d, type: 2}
+  serifMedium: {fileID: 11400000, guid: ce845c7c4d22244498db9669adc81393, type: 2}
   serifItalic: {fileID: 11400000, guid: 3ea3229eab167814080d09c7f413253c, type: 2}
   sans: {fileID: 11400000, guid: 38530516f3e85994fa9be947bf4c171e, type: 2}
   sansSemi: {fileID: 11400000, guid: e83367fcc592d224e898e6ec4bf2bae3, type: 2}

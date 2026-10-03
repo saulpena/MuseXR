@@ -90,7 +90,7 @@ namespace MuseXR.UI
             MuseUi.Kicker(names, "Speaking", MuseTheme.Master(d.SpeakerId));
             MuseUi.Text(names, d.SpeakerName, MuseUi.Face.SansBold, 14f, MuseTheme.Ink, name: "Name");
 
-            MuseUi.Text(p, "“" + d.Line + "”", MuseUi.Face.Serif, MuseTheme.QuotePx, MuseTheme.Ink, lineHeight: 1.3f, name: "Quote");
+            MuseUi.Text(p, "“" + d.Line + "”", MuseUi.Face.SerifMedium, MuseTheme.QuotePx, MuseTheme.Ink, lineHeight: 1.3f, name: "Quote");
             MuseUi.Text(p, Disclaimer, MuseUi.Face.SansSemi, 10f, MuseTheme.Ink3, 0.04f, upper: true, name: "Disclaimer");
 
             var nav = MuseUi.Row(p, 6f);
@@ -198,8 +198,10 @@ namespace MuseXR.UI
             dot.transform.SetParent(top, false);
             var dle = dot.GetComponent<LayoutElement>(); dle.minWidth = dle.preferredWidth = 8f; dle.minHeight = dle.preferredHeight = 8f;
             var di = dot.GetComponent<Image>(); di.sprite = UiSprites.Disc(); di.color = MuseTheme.Gold;
-            var q = MuseUi.Text(top, "<b>Keep this moment?</b>  <color=#5d554b>" + detail + "</color>", MuseUi.Face.Sans, 13.5f, MuseTheme.Ink, name: "Question");
-            q.GetComponent<RectTransform>(); q.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+            var q = MuseUi.Text(top, "Keep this moment?", MuseUi.Face.SansSemi, 13.5f, MuseTheme.Ink, name: "Question");
+            q.enableWordWrapping = false;
+            MuseUi.Text(top, detail, MuseUi.Face.Sans, 13.5f, MuseTheme.Ink2, name: "Detail").gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+            
             MuseUi.Pill(top, "A", "Confirm", true, confirm);
             var bottom = MuseUi.Row(p, 8f);
             MuseUi.Pill(bottom, "B", "Redo", false, redo);
@@ -230,7 +232,7 @@ namespace MuseXR.UI
             }
             var a = MuseUi.Card(col, new Color(1f, 253f / 255f, 249f / 255f, 0.94f), 20f, MuseTheme.Gold, 1.5f, padX: 18f, padY: 16f, gap: 6f, name: "Answer");
             MuseUi.Kicker(a, localFallback ? "Your answer · draft · local fallback" : "Your answer · draft", MuseTheme.Gold);
-            MuseUi.Text(a, draft, MuseUi.Face.Serif, MuseTheme.QuotePx, MuseTheme.Ink, lineHeight: 1.35f, name: "Draft");
+            MuseUi.Text(a, draft, MuseUi.Face.SerifMedium, MuseTheme.QuotePx, MuseTheme.Ink, lineHeight: 1.35f, name: "Draft");
             var row2 = MuseUi.Row(a, 8f);
             MuseUi.Pill(row2, "A", "Keep", true, keep);
             MuseUi.Pill(row2, "X", "Rewrite via " + rewriteVia, false, rewrite);
@@ -263,7 +265,7 @@ namespace MuseXR.UI
             foreach (var c in m.Choices)
                 MuseUi.Text(body, "<color=#26221d>" + c.Letter + "</color>   " + c.Text, MuseUi.Face.Sans, 12.5f, MuseTheme.Ink2, name: "Choice " + c.Letter);
             MuseUi.Space(body, 6f); MuseUi.Rule(body, MuseTheme.Line); MuseUi.Space(body, 6f);
-            MuseUi.Text(body, "“" + m.Answer + "”", MuseUi.Face.Serif, 17f, MuseTheme.Ink, lineHeight: 1.3f, name: "Answer");
+            MuseUi.Text(body, "“" + m.Answer + "”", MuseUi.Face.SerifMedium, 17f, MuseTheme.Ink, lineHeight: 1.3f, name: "Answer");
             MuseUi.Space(body, 4f);
             MuseUi.Text(body, "With " + string.Join(" · ", m.Companions) + " (AI interpretations)", MuseUi.Face.Sans, 11f, MuseTheme.Ink3, name: "Credits");
             // In the headset only Save and Start again (her 4.5).
