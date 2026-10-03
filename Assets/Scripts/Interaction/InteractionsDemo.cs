@@ -40,6 +40,26 @@ namespace MuseXR.Interaction
         [Tooltip("The work hung in the gallery zone (Water Lilies).")]
         public Texture2D artwork;
 
+        [Header("Props (generated, Assets/Art/Props). Empty = a primitive stand-in.")]
+        [Tooltip("Front +Z, origin at the bottom centre.")]
+        public GameObject cranePrefab;
+        public GameObject turtlePrefab;
+        [Tooltip("Flame at local (0, 0.31, 0).")]
+        public GameObject lampPrefab;
+        [Tooltip("1.2 x 1.55 x 0.22 m, plain card back - stands against a wall.")]
+        public GameObject reliefPrefab;
+
+        /// <summary>Where the lamp's flame sits in the generated lamp, its own space.</summary>
+        public static readonly Vector3 LampFlame = new Vector3(0f, 0.31f, 0f);
+
+        /// <summary>A prop, front to the viewer (+Z toward them), its bottom centre at <paramref name="baseAt"/>.</summary>
+        GameObject Prop(GameObject prefab, Transform parent, string name, Vector3 baseAt, Quaternion awayFromViewer)
+        {
+            var go = Instantiate(prefab, baseAt, awayFromViewer * Quaternion.Euler(0f, 180f, 0f), parent);
+            go.name = name;
+            return go;
+        }
+
         void Start() => Build();
 
         Material _stone, _bronze, _jade, _brass, _wood, _glass;
@@ -88,8 +108,10 @@ namespace MuseXR.Interaction
             Box(root, "Crane Plinth", cranePlinth + Vector3.up * 0.42f, awayFromViewer, new Vector3(0.28f, 0.84f, 0.28f), _stone);
             Box(root, "Turtle Plinth", turtlePlinth + Vector3.up * 0.42f, awayFromViewer, new Vector3(0.28f, 0.84f, 0.28f), _stone);
 
-            var crane = Crane(root, cranePlinth + Vector3.up * 0.84f, awayFromViewer);
-            var turtle = Turtle(root, turtlePlinth + Vector3.up * 0.84f, awayFromViewer);
+            var crane = cranePrefab != null ? Prop(cranePrefab, root, "Crane", cranePlinth + Vector3.up * 0.84f, awayFromViewer)
+                                            : Crane(root, cranePlinth + Vector3.up * 0.84f, awayFromViewer);
+            var turtle = turtlePrefab != null ? Prop(turtlePrefab, root, "Turtle", turtlePlinth + Vector3.up * 0.84f, awayFromViewer)
+                                              : Turtle(root, turtlePlinth + Vector3.up * 0.84f, awayFromViewer);
             var pieces = new[] { Holdable.Make(crane, "Crane"), Holdable.Make(turtle, "Turtle") };
 
             Palace = SlotStation.Make(root.gameObject, Chapter.Palace, new[] { slot }, pieces);
@@ -132,13 +154,26 @@ namespace MuseXR.Interaction
             var right = awayFromViewer * Vector3.right;
 
             // The relief: a carved panel standing at the back. Lit by the room and by the lamp.
-            var relief = new GameObject("Relief");
-            relief.transform.SetParent(root, false);
-            relief.transform.SetPositionAndRotation(centre + fwd * 0.35f + Vector3.up * 1.3f, awayFromViewer);
-            relief.AddComponent<MeshFilter>().sharedMesh = ReliefMesh(1.1f, 0.8f, 72, 52);
-            Relief = relief.AddComponent<MeshRenderer>();
-            Relief.sharedMaterial = Lit(new Color(0.55f, 0.5f, 0.43f), 0f, 0.25f);   // grotto stone; paler clips under daylight
-            LampLight.MarkRelief(Relief);
+            GameObject relief;
+            if (reliefPrefab != null)
+            {
+                // The carved relief stands on the floor against a wall (its back is plain card).
+                relief = Prop(reliefPrefab, root, "Relief", centre + fwd * 0.45f + Vector3.up * 0.05f, awayFromViewer);
+                Box(root, "Grotto Wall", centre + fwd * 0.62f + Vector3.up * 1.0f, awayFromViewer, new Vector3(1.6f, 2.0f, 0.1f), _stone);
+                var rs = relief.GetComponentsInChildren<Renderer>();
+                foreach (var r in rs) LampLight.MarkRelief(r);
+                Relief = rs.Length > 0 ? rs[0] : null;
+            }
+            else
+            {
+                relief = new GameObject("Relief");
+                relief.transform.SetParent(root, false);
+                relief.transform.SetPositionAndRotation(centre + fwd * 0.35f + Vector3.up * 1.3f, awayFromViewer);
+                relief.AddComponent<MeshFilter>().sharedMesh = ReliefMesh(1.1f, 0.8f, 72, 52);
+                Relief = relief.AddComponent<MeshRenderer>();
+                Relief.sharedMaterial = Lit(new Color(0.55f, 0.5f, 0.43f), 0f, 0.25f);   // grotto stone; paler clips under daylight
+                LampLight.MarkRelief(Relief);
+            }
 
             // The control: same stone, no relief layer. The lamp must never reach it.
             Control = Box(root, "Control Block", centre + fwd * 0.35f + right * 0.85f + Vector3.up * 1.1f, awayFromViewer,
@@ -160,8 +195,9 @@ namespace MuseXR.Interaction
             var stand = centre - fwd * 0.45f - right * 0.6f;
             Box(root, "Brass Stand", stand + Vector3.up * 0.45f, awayFromViewer, new Vector3(0.05f, 0.9f, 0.05f), _brass);
             Box(root, "Brass Tray", stand + Vector3.up * 0.905f, awayFromViewer, new Vector3(0.18f, 0.01f, 0.18f), _brass);
-            var lamp = LampModel(root, stand + Vector3.up * 0.91f, awayFromViewer);
-            LampLight.Make(lamp, new Vector3(0f, 0.11f, 0f));
+            var lamp = lampPrefab != null ? Prop(lampPrefab, root, "Lamp", stand + Vector3.up * 0.91f, awayFromViewer)
+                                          : LampModel(root, stand + Vector3.up * 0.91f, awayFromViewer);
+            LampLight.Make(lamp, lampPrefab != null ? LampFlame : new Vector3(0f, 0.11f, 0f));
             Lamp = Holdable.Make(lamp, "Lamp", idleSpin: false);
 
             Grotto = SlotStation.Make(root.gameObject, Chapter.Grotto, new[] { detail, whole }, new[] { Lamp },

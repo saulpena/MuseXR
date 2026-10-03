@@ -337,6 +337,26 @@ namespace MusePico.Tests
                                 kv.Key + (stage.Invitation.IsChosen(kv.Key) ? " stays" : " is gone"));
         }
 
+        [UnityTest]
+        public IEnumerator AGoesToWhatWasChosenLastNotToAnEarlierStation()
+        {
+            // Measured in the test scene: a crane placed at the Palace, then three masters invited -
+            // and A kept the crane instead of sending the companions.
+            // Built first, as in the scene: the stage exists before anything is placed elsewhere.
+            var (stage, _, _) = Company();
+            var (station, crane, _, slot) = Palace();
+            var h = Hand();
+            h.aim.position = crane.transform.position; h.source.Grip = true; yield return Frames(2);
+            h.aim.position += slot.position - crane.BasePoint; yield return Frames(2);
+            h.source.Grip = false; yield return Frames(3);
+            Assert.AreEqual(SlotState.Placed, station.Board.StateOf(0));
+
+            stage.Preselect(Masters.DefaultTrio);
+            Assert.IsTrue(ConfirmInput.PressA());
+            Assert.AreEqual(CompanyStage.Phase.Stepping, stage.Current, "A sent the companions");
+            Assert.IsFalse(station.Board.Choice.IsConfirmed, "and did not keep the crane");
+        }
+
         // ---- artwork, cards, plinth, dial ------------------------------------------------
 
         [UnityTest]

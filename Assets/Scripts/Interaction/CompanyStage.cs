@@ -72,6 +72,9 @@ namespace MuseXR.Interaction
         {
             if (Current != Phase.Choosing) return Invitation.Result.Unknown;
             var r = Invitation.Toggle(id);
+            // Choosing here takes A and B. Measured in the test scene: with a piece placed at the
+            // Palace a moment before, A confirmed the Palace instead of sending the companions.
+            if (r != Invitation.Result.Unknown) ConfirmInput.Take(this);
             var hand = pointer != null ? pointer.Source : null;
             switch (r)
             {
