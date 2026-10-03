@@ -79,7 +79,7 @@ namespace MuseXR.Interaction
             Quaternion Facing(Vector3 p) { var d = p - o; d.y = 0f; return Quaternion.LookRotation(d.normalized, Vector3.up); }
 
             BuildPalace(At(-50f, 1.45f), Facing(At(-50f, 1.45f)));   // -50, not -38: the turtle plinth met the lamp stand
-            BuildGrotto(At(2f, 2.6f), Facing(At(2f, 2.6f)));
+            BuildGrotto(At(8f, 2.6f), Facing(At(8f, 2.6f)));   // 8, not 2: from the spawn the lamp lined up behind the turtle
             BuildMonet(At(42f, 1.35f), Facing(At(42f, 1.35f)));
 
             // Turn round: the Company row stands behind the spawn.
@@ -468,7 +468,7 @@ namespace MuseXR.Interaction
                 "Over the court: light buzz = aligned. Let go: it seats, bronze bell.\n" +
                 "A keeps · B within 3 s undoes · or lift it back out.\n" +
                 "Let go anywhere else: it floats home.");
-            Sign("Sign Grotto", At(4f, signDistance + 0.9f) + Vector3.up * (signHeight + 0.15f), o,
+            Sign("Sign Grotto", At(10f, signDistance + 0.9f) + Vector3.up * (signHeight + 0.15f), o,
                 "<b>GROTTO · the lamp</b>\n" +
                 "Grip the lamp on its stand. Hold it beside the carving:\n" +
                 "only the carving lights. Set it on DETAIL (left post)\n" +
