@@ -25,9 +25,16 @@ namespace MuseXR.Interaction
         public SlotStation Court { get; private set; }
         public CardChoiceStation Cards { get; private set; }
         public CompanyStage Company { get; private set; }
+        /// <summary>Companions already standing in the chapter (her diagram's marks), when there is no Company stage.</summary>
+        public CompanionGroup Group { get; set; }
         public JourneyRecord Record { get; private set; }
         public IReadOnlyList<Pointable> Chips => _chips;
         public Light CourtLight { get; private set; }
+        /// <summary>
+        /// The visible half of "the court lights": a warm glow on the court's surface. Splat floors take
+        /// no light, so the point light alone shows only on the piece (blind review: "no warm light").
+        /// </summary>
+        public Renderer CourtGlow { get; private set; }
 
         /// <summary>What a companion says about the kept piece. Canned until DialogueClient is wired here.</summary>
         public Func<string, string, string> LineFor = CannedLine;
@@ -90,7 +97,11 @@ namespace MuseXR.Interaction
 
         void CallCompanions()
         {
-            if (Company == null) return;
+            if (Company == null)
+            {
+                if (Group != null && Group.Ids.Count > 0) StartTurns(Group);
+                return;
+            }
             if (Company.Current == CompanyStage.Phase.Choosing)
             {
                 // Nobody invited yet: her demo route's default trio comes to the court.
@@ -104,10 +115,11 @@ namespace MuseXR.Interaction
             else _turnsPending = true;   // still stepping or answering at the Company: after that
         }
 
-        void StartTurns()
+        void StartTurns() => StartTurns(Company.Group);
+
+        void StartTurns(CompanionGroup group)
         {
             _turnsPending = false;
-            var group = Company.Group;
             var piece = Flow.Piece;
             group.LineFor = id => LineFor(id, piece);
             group.BeginTurns();
@@ -316,13 +328,50 @@ namespace MuseXR.Interaction
             CourtLight.range = CourtLightRange;
             CourtLight.shadows = LightShadows.None;
             CourtLight.intensity = 0f;
+
+            var glow = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            glow.name = "Court Glow";
+            DestroyImmediate(glow.GetComponent<Collider>());
+            glow.transform.SetParent(transform, false);
+            glow.transform.position = Court.Slots[0].position + Vector3.up * 0.004f;
+            glow.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+            glow.transform.localScale = Vector3.one * 0.7f;
+            var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            m.SetFloat("_Surface", 1f); m.SetFloat("_Blend", 2f);
+            m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            m.SetFloat("_ZWrite", 0f); m.SetFloat("_Cull", 0f);
+            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            m.SetTexture("_BaseMap", RadialTexture());
+            m.SetColor("_BaseColor", Color.black);
+            CourtGlow = glow.GetComponent<Renderer>();
+            CourtGlow.sharedMaterial = m;
+        }
+
+        static Texture2D RadialTexture()
+        {
+            const int n = 64;
+            var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = "court-glow" };
+            var px = new Color[n * n];
+            for (var y = 0; y < n; y++)
+            for (var x = 0; x < n; x++)
+            {
+                var d = new Vector2(x + 0.5f - n / 2f, y + 0.5f - n / 2f).magnitude / (n / 2f);
+                var a = Mathf.Clamp01(1f - d); a *= a;
+                px[y * n + x] = new Color(a, a, a, a);
+            }
+            t.SetPixels(px); t.Apply();
+            return t;
         }
 
         void Update()
         {
             var on = Flow.Current != PalaceFlow.Phase.Choosing && Flow.Kind == PalaceFlow.Mode.Miniature;
             _light = Mathf.MoveTowards(_light, on ? 1f : 0f, Time.deltaTime / 0.6f);
-            if (CourtLight != null) CourtLight.intensity = CourtLightIntensity * Mathf.SmoothStep(0f, 1f, _light);
+            var k = Mathf.SmoothStep(0f, 1f, _light);
+            if (CourtLight != null) CourtLight.intensity = CourtLightIntensity * k;
+            if (CourtGlow != null) CourtGlow.sharedMaterial.SetColor("_BaseColor", new Color(1f, 0.72f, 0.38f) * (0.85f * k));
             if (_turnsPending && Company != null && Company.Current == CompanyStage.Phase.Done) StartTurns();
         }
 
