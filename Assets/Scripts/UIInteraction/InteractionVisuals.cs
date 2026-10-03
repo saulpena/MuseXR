@@ -142,22 +142,22 @@ namespace MuseXR.UI
             }
             sv.Ring = ringAnchor;
 
-            // The card above it, her 4.3 words.
+            // Her 4.3 words, hung like a museum label: low on the plinth's front, toward the visitor.
+            // Never above the piece - from the eye that puts the card on the line to the piece (or to
+            // the cards beyond it), and a translucent card over a bronze makes it a ghost.
             var cardAnchor = new GameObject("Slot Card").transform;
             cardAnchor.SetParent(transform, false);
-            cardAnchor.position = Above(sv.Slot.position, 0.48f);   // clear of a seated piece (the crane stands ~0.3 m)
-            // Never higher than CardCeiling: a socket in front of the 1.55 m relief would otherwise
-            // float its card over the carving's border.
-            if (cardAnchor.position.y > CardCeiling)
-            {
-                // Lower it and step it aside, so it clears both the carving above and a seated piece below.
-                var aside = _eye != null ? Vector3.ProjectOnPlane(_eye.right, Vector3.up).normalized : Vector3.right;
-                cardAnchor.position = new Vector3(cardAnchor.position.x, CardCeiling, cardAnchor.position.z) + aside * 0.3f;
-            }
+            var eye = _eye != null ? _eye : (Camera.main != null ? Camera.main.transform : null);
+            var toEye = eye != null ? Vector3.ProjectOnPlane(eye.position - sv.Slot.position, Vector3.up) : Vector3.zero;
+            toEye = toEye.sqrMagnitude > 1e-4f ? toEye.normalized : Vector3.back;
+            cardAnchor.position = sv.Slot.position + toEye * LabelForward + Vector3.down * LabelDrop;
             var c = MuseUi.Canvas(cardAnchor, "Card", SlotReadDistance, 150f);   // read from where the visitor stands, not arm's length
             var card = MuseScreens.Slot(c, state == SlotState.Aligned ? SlotVisual.Aligned : state == SlotState.Placed ? SlotVisual.Placed : SlotVisual.Empty, 150f);
             // Her captions come from SlotLook (the placed one counts the undo down).
-            var hint = FindText(card, "Hint"); if (hint != null) hint.text = look.Caption;
+            var hint = FindText(card, "Hint"); if (hint != null) { hint.text = look.Caption; hint.color = MuseTheme.Ink2; }
+            // Opaque: a label in front of a plinth must not let the room swim through its words.
+            foreach (var img in card.GetComponentsInChildren<Image>(true))
+                if (img.color.a > 0.3f && img.color.a < 0.97f) { var col = img.color; col.a = 0.97f; img.color = col; }
             if (!string.IsNullOrEmpty(slotName))
             {
                 var title = FindText(card, "State");
@@ -283,7 +283,8 @@ namespace MuseXR.UI
         static Vector3 Above(Vector3 p, float h) => p + Vector3.up * h;
 
         const float StripGap = 0.04f;
-        const float CardCeiling = 1.15f;   // a slot card's anchor stays below the relief's carving
+        const float LabelForward = 0.32f;   // just proud of a 0.5 m plinth's front face
+        const float LabelDrop = 0.22f;      // below the surface the piece stands on
 
         /// <summary>The world top of a thing's renderers, centred over it - where a label clears it.</summary>
         static Vector3 TopOf(Component c)

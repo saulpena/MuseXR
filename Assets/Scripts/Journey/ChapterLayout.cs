@@ -46,6 +46,16 @@ namespace MusePico.Journey
             /// <summary>Stand the work on a wooden easel rather than a wall: her diagrams draw some
             /// works across the path, facing the visitor, where there is no wall.</summary>
             public bool stand;
+            /// <summary>Frame centre above the floor; 0 means her 1.5 m.</summary>
+            public float height;
+            /// <summary>Fit the canvas inside this box (metres) instead of the gallery's default size -
+            /// for hanging a work inside a frame the capture already has.</summary>
+            public Vector2 fit;
+            /// <summary>No gold frame of ours: the capture's own frame surrounds the work.</summary>
+            public bool noFrame;
+            /// <summary>Stand the canvas's lower edge this far above the floor (overrides height), so a work
+            /// of any aspect sits at the foot of a tall frame like a picture in a deep mount.</summary>
+            public float bottom;
         }
 
         public const float FrameCentreHeight = 1.5f;   // her rule
@@ -100,7 +110,8 @@ namespace MusePico.Journey
                 switch (item.Kind)
                 {
                     case DiagramKind.Work:
-                        Work(item, p, fixedDir ?? WallDir(wallSide, right, fwd), image, info, fixedDir.HasValue);
+                        Work(item, p, fixedDir ?? WallDir(wallSide, right, fwd), image, info, fixedDir.HasValue,
+                             fo.height > 0f ? fo.height : FrameCentreHeight, fo.fit, fo.noFrame, fo.bottom);
                         if (fixedDir.HasValue && fo.stand) Easel(item, p, fixedDir.Value);
                         break;
                     case DiagramKind.Mark: Mark(item, p, master); break;
@@ -152,10 +163,11 @@ namespace MusePico.Journey
             return Vector3.Dot(n, dir) < 0f ? -n : n;
         }
 
-        void Work(DiagramItem item, Vector3 p, Vector3 wallDir, Func<string, Texture2D> image, Func<string, ArtworkInfo> info, bool exact = false)
+        void Work(DiagramItem item, Vector3 p, Vector3 wallDir, Func<string, Texture2D> image, Func<string, ArtworkInfo> info, bool exact = false,
+                  float centreHeight = FrameCentreHeight, Vector2 fit = default, bool noFrame = false, float bottom = 0f)
         {
             var d = exact ? null : WallFrom(p, wallDir);
-            var onWall = (d.HasValue ? p + wallDir * (d.Value - 0.06f) : p) + Vector3.up * FrameCentreHeight;
+            var onWall = (d.HasValue ? p + wallDir * (d.Value - 0.06f) : p) + Vector3.up * centreHeight;
             // Square to the wall itself, not to the direction it was looked for in: a probe that
             // meets a wall at 40 degrees would otherwise hang the work edge-on to it.
             var into = exact ? wallDir : WallNormalInto(p, wallDir) ?? wallDir;
@@ -164,6 +176,8 @@ namespace MusePico.Journey
             var tex = image?.Invoke(item.Id);
             float aspect = tex != null ? tex.width / (float)tex.height : 1.25f;
             var size = WebGalleryLayout.CanvasSize(aspect);
+            if (fit.x > 0f && fit.y > 0f) size = aspect >= fit.x / fit.y ? new Vector2(fit.x, fit.x / aspect) : new Vector2(fit.y * aspect, fit.y);
+            if (bottom > 0f) onWall += Vector3.up * (bottom + size.y / 2f - centreHeight);
 
             var work = new GameObject("Work " + item.Label);
             work.transform.SetParent(transform, false);
@@ -176,7 +190,7 @@ namespace MusePico.Journey
             var m = new Material(shader != null ? shader : Shader.Find("Universal Render Pipeline/Unlit"));
             if (tex != null) m.SetTexture("_BaseMap", tex);
             canvas.GetComponent<Renderer>().sharedMaterial = m;
-            Frame(work.transform, size);
+            if (!noFrame) Frame(work.transform, size);
             var box = work.AddComponent<BoxCollider>(); box.size = new Vector3(size.x, size.y, 0.06f);   // pointable
             Placed[item.Id] = new Pose(onWall, faces);
 
