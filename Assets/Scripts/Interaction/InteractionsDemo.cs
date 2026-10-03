@@ -80,7 +80,7 @@ namespace MuseXR.Interaction
 
             BuildPalace(At(-50f, 1.45f), Facing(At(-50f, 1.45f)));   // -50, not -38: the turtle plinth met the lamp stand
             BuildGrotto(At(8f, 2.6f), Facing(At(8f, 2.6f)));   // 8, not 2: from the spawn the lamp lined up behind the turtle
-            BuildMonet(At(42f, 1.35f), Facing(At(42f, 1.35f)));
+            BuildMonet(At(52f, 1.35f), Facing(At(52f, 1.35f)));   // 52, not 42: its Mist label lay on the Grotto WHOLE card from the spawn
 
             // Turn round: the Company row stands behind the spawn.
             BuildCompany(o + (f * Vector3.back) * 3.2f, Facing(o + (f * Vector3.back) * 3.2f));
@@ -473,7 +473,7 @@ namespace MuseXR.Interaction
                 "Grip the lamp on its stand. Hold it beside the carving:\n" +
                 "only the carving lights. Set it on DETAIL (left post)\n" +
                 "or WHOLE (rail post, right): stone chime. A keeps · B undoes.");
-            Sign("Sign Monet", At(44f, signDistance) + Vector3.up * signHeight, o,
+            Sign("Sign Monet", At(54f, signDistance) + Vector3.up * signHeight, o,
                 "<b>MONET · the time ring</b>\n" +
                 "Grip the ring and roll your wrist.\n" +
                 "Three detents: Mist · Afternoon · Dusk,\n" +
