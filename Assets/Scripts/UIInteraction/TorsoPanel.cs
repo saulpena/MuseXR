@@ -54,6 +54,9 @@ namespace MuseXR.UI
 
         static TorsoPanel _instance;
 
+        /// <summary>The panel if one exists - for clearing it, which must never build one (say, at teardown).</summary>
+        public static TorsoPanel Existing => _instance;
+
         public static TorsoPanel Get()
         {
             if (_instance != null) return _instance;

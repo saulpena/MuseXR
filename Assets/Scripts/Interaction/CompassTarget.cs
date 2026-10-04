@@ -17,6 +17,10 @@ namespace MuseXR.Interaction
         public string detail;
         public bool Done { get; private set; }
 
+        /// <summary>Orders below this are the walk's own steps; at or above it, things worth a look
+        /// (hung works, heroes to replicate) that the compass offers only when no step is waiting.</summary>
+        public const int Optional = 30;
+
         static readonly List<CompassTarget> All = new List<CompassTarget>();
 
         public static CompassTarget Add(GameObject go, int order, string label, string detail = null)
@@ -27,13 +31,15 @@ namespace MuseXR.Interaction
             return t;
         }
 
-        /// <summary>Her "stop n / N": where <paramref name="target"/> falls among the active targets, done or not.</summary>
+        /// <summary>Her "stop n / N": where <paramref name="target"/> falls among the active targets, done or not -
+        /// counted among the walk's steps, or among the optional works when it is one.</summary>
         public static void Progress(CompassTarget target, out int stop, out int stops)
         {
             stop = 1; stops = 0;
+            var optional = target.order >= Optional;
             foreach (var t in All)
             {
-                if (t == null || !t.isActiveAndEnabled) continue;
+                if (t == null || !t.isActiveAndEnabled || (t.order >= Optional) != optional) continue;
                 stops++;
                 if (t != target && (t.order < target.order || (t.order == target.order && t.GetInstanceID() < target.GetInstanceID()))) stop++;
             }

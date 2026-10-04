@@ -100,6 +100,9 @@ namespace MuseXR.Interaction
         void Update()
         {
             UpdateReplies();
+            // The round table is running: no gazing at a painting beside it starts a reading, and none
+            // still in flight lands among the table's turns under their "Based on" lines.
+            if (ArtworkCard.Hushed) { if (_pending != null) { _pending = null; _asking++; } return; }
             if (Group() == null || _group.Busy) return;
             if (_pending != null) { var p = _pending; _pending = null; _group.SayInTurn(p); return; }
             var head = Camera.main != null ? Camera.main.transform : null;

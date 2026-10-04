@@ -56,7 +56,7 @@ namespace MuseXR.Journey
             var box = picture.gameObject.AddComponent<BoxCollider>();
             box.size = new Vector3(w + 2 * f, h + 2 * f, 0.1f);
             Replicable.Make(picture.gameObject, "Mona Lisa", "gate").replicaName = "Palm-sized framed Mona Lisa";
-            CompassTarget.Add(picture.gameObject, 6, "Mona Lisa", "Hold the trigger to replicate");
+            CompassTarget.Add(picture.gameObject, CompassTarget.Optional + 1, "Mona Lisa", "Hold the trigger to replicate");
 
             // Her label, on the wall below the frame.
             var label = new GameObject("Label").transform;

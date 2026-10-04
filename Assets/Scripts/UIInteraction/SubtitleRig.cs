@@ -41,7 +41,7 @@ namespace MuseXR.UI
 
         void HideAll()
         {
-            var panel = TorsoPanel.Get();
+            var panel = TorsoPanel.Existing;
             if (panel != null) panel.ClearLine();
         }
     }

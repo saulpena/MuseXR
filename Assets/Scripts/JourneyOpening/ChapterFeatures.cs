@@ -260,7 +260,7 @@ namespace MuseXR.Journey
             var box = _sky.gameObject.AddComponent<BoxCollider>(); box.size = new Vector3(1f, 1f, 0.02f);
             var r = Replicable.Make(_sky.gameObject, "The Starry Night", "vangogh", StarDisc(tex));
             r.replicaName = "A small disc of slowly turning stars";
-            CompassTarget.Add(_sky.gameObject, 26, "The Starry Night", "Look up · hold the trigger to replicate");
+            CompassTarget.Add(_sky.gameObject, CompassTarget.Optional + 1, "The Starry Night", "Look up · hold the trigger to replicate");
             ChapterFeatures.Label(transform, new Vector3(-1.9f, 1.55f, -2.2f), Quaternion.LookRotation(Vector3.left),
                 "<b>The Starry Night</b>  ·  Vincent van Gogh  ·  1889  ·  MoMA\n<size=70%>Across a 20 m ceiling  ·  motion is an interpretation, original 74 × 92 cm</size>", 2.2f, 0.7f);
         }
@@ -652,7 +652,7 @@ namespace MuseXR.Journey
             var box = canvas.gameObject.AddComponent<BoxCollider>(); box.size = new Vector3(1f, 1f, 0.05f);
             var r = Replicable.Make(canvas.gameObject, "The Great Wave", "monet", SmallWave(tex));
             r.replicaName = "A small wave";
-            CompassTarget.Add(canvas.gameObject, 22, "The Great Wave", "Hold the trigger to replicate");
+            CompassTarget.Add(canvas.gameObject, CompassTarget.Optional + 1, "The Great Wave", "Hold the trigger to replicate");
             ChapterFeatures.Label(transform, new Vector3(3.2f, 1.3f, -11f), Quaternion.LookRotation(Vector3.left),
                 "<b>The Great Wave off Kanagawa</b>  ·  Hokusai  ·  c. 1830–32  ·  The Met\n<size=70%>Rising from the pond, enlarged about 15×  ·  original 26 × 38 cm</size>", 2.4f, 0.65f);
         }
