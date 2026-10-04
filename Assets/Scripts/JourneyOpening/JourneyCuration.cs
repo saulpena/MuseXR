@@ -277,13 +277,14 @@ namespace MuseXR.Journey
         static readonly CompanionMarks.Mark[] Flanks =
             // Wide of the lanterns (within ~25 degrees of the walk) yet under CompanionGroup.BehindDegrees once
             // the visitor glances aside, so they are not re-marked every time the head turns.
-            { new CompanionMarks.Mark(-52f, 1.6f), new CompanionMarks.Mark(52f, 1.6f), new CompanionMarks.Mark(-72f, 1.9f) };
+            // Her rule: off the main path, 1.5-2.2 m, within +-60 degrees of forward, never behind.
+            { new CompanionMarks.Mark(-52f, 1.7f), new CompanionMarks.Mark(32f, 2.1f), new CompanionMarks.Mark(58f, 1.7f) };
 
         static IEnumerable<CompanionMarks.Mark> Flank(int order)
         {
             var m = Flanks[Mathf.Clamp(order, 0, Flanks.Length - 1)];
             yield return m;
-            yield return new CompanionMarks.Mark(m.Bearing, 1.1f);
+            yield return new CompanionMarks.Mark(m.Bearing, 1.5f);
             yield return new CompanionMarks.Mark(-m.Bearing, m.Distance);
         }
 

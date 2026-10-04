@@ -339,7 +339,9 @@ namespace MuseXR.Journey
             }
             source.clip = clip; source.Play();
             _speaking = source;
+            if (Company.Group.Turns == null) Company.Group.ActiveSpeaker = id;   // a lantern line: ring and heads too
             for (float t = 0f; t < clip.length + 0.3f && source != null && source.isPlaying; t += Time.deltaTime) yield return null;
+            if (Company != null && Company.Group.Turns == null && Company.Group.ActiveSpeaker == id) Company.Group.ActiveSpeaker = null;
         }
 
         System.Collections.IEnumerator SpeakTurn(string id, string line)

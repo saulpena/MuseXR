@@ -41,6 +41,17 @@ namespace MuseXR.Interaction
         /// that waits to be looked at left everyone silent until the visitor went looking for them.
         /// </summary>
         public bool FollowVisitor { get; set; } = true;
+        /// <summary>
+        /// Her rule: the speaker gets a floor ring and the others turn toward them. Set by the turns,
+        /// and by any stage that has a companion speak outside them (the lanterns); null for nobody.
+        /// </summary>
+        public string ActiveSpeaker
+        {
+            get => _active;
+            set { _active = value; RingUnder(value); }
+        }
+        string _active;
+        Transform _ring;
         /// <summary>The marks to try for each speaking position; her answer-time marks by default. A
         /// stage can stand the companions elsewhere (the walk puts them on the visitor's flanks).</summary>
         public Func<int, IEnumerable<CompanionMarks.Mark>> MarkCandidates { get; set; } = CompanionMarks.Candidates;
@@ -162,10 +173,11 @@ namespace MuseXR.Interaction
             {
                 var line = LineFor?.Invoke(id) ?? string.Empty;
                 _lineLeft = EstimateSeconds(line);
+                ActiveSpeaker = id;
                 LineStarted?.Invoke(id, line);
             };
-            Turns.Ended += id => LineEnded?.Invoke(id);
-            Turns.Finished += () => { TurnsFinished?.Invoke(); ConfirmInput.Drop(this); };
+            Turns.Ended += id => { if (ActiveSpeaker == id) ActiveSpeaker = null; LineEnded?.Invoke(id); };
+            Turns.Finished += () => { ActiveSpeaker = null; TurnsFinished?.Invoke(); ConfirmInput.Drop(this); };
             ConfirmInput.Take(this);
             Turns.Begin();
         }
@@ -234,8 +246,8 @@ namespace MuseXR.Interaction
                 _lastPos = Head.position; _lastYaw = Head.eulerAngles.y;
             }
 
+            Face(Time.deltaTime);
             if (Turns == null) return;
-            if (!FollowVisitor) FaceVisitor(Time.deltaTime);
             Turns.Tick(Time.deltaTime, FollowVisitor ? AngleFromGaze(Turns.Speaker) : 0f);
             if (TimeLinesByLength && Turns.Current == TurnTaking.Phase.Speaking)
             {
@@ -249,13 +261,51 @@ namespace MuseXR.Interaction
         /// <summary>Slow enough to read as a person turning, not a snap.</summary>
         public const float TurnDegreesPerSecond = 90f;
 
-        /// <summary>On their marks, each companion turns its body (yaw only) towards the visitor.</summary>
-        void FaceVisitor(float dt)
+        void RingUnder(string id)
         {
+            if (_ring == null)
+            {
+                _ring = new GameObject("Speaker Ring").transform;
+                _ring.gameObject.AddComponent<MeshFilter>().sharedMesh = Annulus(0.34f, 0.44f);
+                var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+                m.SetColor("_BaseColor", new Color(0.78f, 0.6f, 0.3f));   // her gold
+                m.SetFloat("_Cull", 0f);
+                _ring.gameObject.AddComponent<MeshRenderer>().sharedMaterial = m;
+            }
+            var on = id != null && _figures.TryGetValue(id, out var f) && f != null;
+            _ring.gameObject.SetActive(on);
+            if (!on) return;
+            _ring.SetParent(_figures[id], false);
+            _ring.localPosition = new Vector3(0f, 0.03f, 0f); _ring.localRotation = Quaternion.identity;
+            var s = _figures[id].lossyScale.y; _ring.localScale = Vector3.one / (s > 1e-4f ? s : 1f);
+        }
+
+        static Mesh Annulus(float inner, float outer)
+        {
+            const int n = 48;
+            var v = new Vector3[(n + 1) * 2]; var t = new int[n * 6];
+            for (int i = 0; i <= n; i++)
+            {
+                float a = i * Mathf.PI * 2f / n;
+                v[i * 2] = new Vector3(Mathf.Cos(a) * inner, 0f, Mathf.Sin(a) * inner);
+                v[i * 2 + 1] = new Vector3(Mathf.Cos(a) * outer, 0f, Mathf.Sin(a) * outer);
+                if (i < n) { int k = i * 2, j = i * 6; t[j] = k; t[j + 1] = k + 1; t[j + 2] = k + 2; t[j + 3] = k + 1; t[j + 4] = k + 3; t[j + 5] = k + 2; }
+            }
+            var m = new Mesh { vertices = v, triangles = t, name = "Speaker ring" }; m.RecalculateBounds(); return m;
+        }
+
+        /// <summary>On their marks, each companion turns its body (yaw only) towards the visitor.</summary>
+        /// <summary>The speaker (and everyone, when nobody speaks) faces the visitor; the others turn toward
+        /// the speaker. Turning in place only - nobody walks.</summary>
+        void Face(float dt)
+        {
+            _figures.TryGetValue(_active ?? string.Empty, out var speaker);
             foreach (var id in _ids)
             {
                 var f = _figures[id];
-                var to = Head.position - f.position; to.y = 0f;
+                if (f == null) continue;
+                var target = speaker != null && f != speaker ? speaker.position : Head.position;
+                var to = target - f.position; to.y = 0f;
                 if (to.sqrMagnitude < 1e-4f) continue;
                 f.rotation = Quaternion.RotateTowards(f.rotation, Quaternion.LookRotation(to.normalized, Vector3.up),
                                                       TurnDegreesPerSecond * dt);
