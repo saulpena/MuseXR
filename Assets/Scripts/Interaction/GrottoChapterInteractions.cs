@@ -48,6 +48,9 @@ namespace MuseXR.Interaction
         public SlotStation Sockets { get; private set; }
         public CompanionGroup Companions { get; private set; }
         public Holdable Lamp { get; private set; }
+        public ChoicePreview Preview { get; private set; }
+        /// <summary>The "hear each first" card: between the two posts, a little toward the visitor, at eye height.</summary>
+        public const float PreviewUp = 2.0f, PreviewBefore = 0.6f;
         public MusePico.Dialogue.JourneyRecord Record { get; } = new MusePico.Dialogue.JourneyRecord();
 
         /// <summary>Her brass stand: the lamp "at reachable height, seated too".</summary>
@@ -139,6 +142,21 @@ namespace MuseXR.Interaction
             // The rule: every painting and interactable object - click it or walk up to it, and a master speaks.
             InsightTarget.Add(Lamp.gameObject, "the brass lamp");
             InsightTarget.Add(relief.gameObject, "Buddhist Votive Stele", "a Western Wei carver (551)", "aic-29149");   // her design doc: the relief the lamp lights
+
+            // Saul, 4 Oct: hear the companions on BOTH ways of seeing before the lamp can be set in either.
+            // The lamp can still be taken and held to the relief (that is looking, not choosing); it only
+            // will not seat until both sockets have been heard, and floats home if set down early.
+            var detailTalk = InsightTarget.Add(Find("Detail Post").gameObject, "looking at the detail: the carved stele, close, under the lamp", "a way of seeing", "grotto-detail");
+            var wholeTalk = InsightTarget.Add(Find("Whole Post").gameObject, "looking at the whole: the cliff Buddha across the sea of clouds", "a way of seeing", "grotto-whole");
+            var mid = (detail.position + whole.position) * 0.5f;
+            var toPosts = Flat(mid - entry);
+            Preview = ChoicePreview.Make(transform, new Vector3(mid.x, entry.y + PreviewUp, mid.z) - toPosts * PreviewBefore, toPosts,
+                "Stop 2  ·  detail or the whole",
+                new[] { (detailTalk, "Look at detail  ·  the socket by the relief"), (wholeTalk, "Look at the whole  ·  the socket on the railing") },
+                "Take the lamp. Put it where you want to see clearly");
+            Sockets.SeatGate = () => Preview.Ready;
+            Sockets.Refused += _ => Preview.Nudge();
+            Sockets.Cue += (s, e) => { if (e.Cue == SlotCue.Placed && Preview != null) Preview.Close(); };
             foreach (var booth in new[] { ("Work Gandhara", "Buddha Worshipped by the Gods Indra and Brahma", "a Gandharan sculptor"),
                                            ("Work Tang / N. Wei", "Buddha", "a Tang dynasty sculptor") })
             {

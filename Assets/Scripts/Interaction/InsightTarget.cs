@@ -14,6 +14,8 @@ namespace MuseXR.Interaction
         public string id;
         public string title;
         public string artist;
+        [Tooltip("Offer her reply chips (\"What is this painting to you?\") after the insight. Off for a choice's options, whose reason comes later.")]
+        public bool askReply = true;
 
         public static readonly List<InsightTarget> All = new List<InsightTarget>();
 

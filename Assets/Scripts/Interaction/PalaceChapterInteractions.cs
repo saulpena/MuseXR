@@ -23,6 +23,9 @@ namespace MuseXR.Interaction
         public PalaceChapter Chapter { get; private set; }
         public SlotStation Court { get; private set; }
         public CompanionGroup Companions { get; private set; }
+        public ChoicePreview Preview { get; private set; }
+        /// <summary>The "hear each first" card: beside the court at eye height, clear of the throne axis.</summary>
+        public const float PreviewUp = 0.85f, PreviewAside = 2.1f;
         public MusePico.Dialogue.JourneyRecord Record { get; } = new MusePico.Dialogue.JourneyRecord();
 
         // The floor exists before the first physics frame: made after a yield, gravity had already
@@ -59,13 +62,30 @@ namespace MuseXR.Interaction
 
             // The compass (musexr-bb, 3c2b476): the pieces, then the court, then the gate - before the
             // paintings (30). Done when the piece is set in the court.
-            var targets = new[] { CompassTarget.Add(crane.gameObject, 21, "Crane: grip to lift it"),
-                                  CompassTarget.Add(turtle.gameObject, 21, "Turtle: grip to lift it"),
+            var targets = new[] { CompassTarget.Add(crane.gameObject, 21, "Crane: point at it to hear your companions"),
+                                  CompassTarget.Add(turtle.gameObject, 21, "Turtle: point at it to hear your companions"),
                                   CompassTarget.Add(courtT.gameObject, 22, "The miniature court: set it here") };
             Court.Cue += (s, e) => { if (e.Cue == SlotCue.Placed) foreach (var t in targets) t.MarkDone(); };
             // The rule: every interactable object - click it or walk up to it, and a master speaks.
-            InsightTarget.Add(crane.gameObject, "the bronze crane");
-            InsightTarget.Add(turtle.gameObject, "the bronze turtle");
+            // Her script's labels, so the companions talk about what the pieces are after.
+            var craneTalk = InsightTarget.Add(crane.gameObject, "the bronze crane",
+                "form after Foliate Dish with Crane and Deer (Yuan) and One Hundred Cranes by Shen Quan (Qing)", "palace-crane");
+            var turtleTalk = InsightTarget.Add(turtle.gameObject, "the bronze turtle",
+                "form after an inkstone shaped as a double-headed turtle (Han to Six Dynasties)", "palace-turtle");
+
+            // Saul, 4 Oct: hear the companions on BOTH before being told to lift one. Until then the pieces
+            // stay on their plinths and a reach for one only pulses the card.
+            // Beside the plinths, not over them: on the axis it stood across the throne and its goddess.
+            var side = Vector3.Cross(Vector3.up, toViewer).normalized;
+            var cardAt = courtT.position + side * PreviewAside + Vector3.up * PreviewUp;
+            var cardFacing = cardAt - spawn;
+            Preview = ChoicePreview.Make(transform, cardAt, cardFacing,
+                "Stop 1  ·  the crane or the turtle",
+                new[] { (craneTalk, "The crane"), (turtleTalk, "The turtle") },
+                "Hold Grip to pick one up. Only one goes into the courtyard");
+            Court.GrabGate = () => Preview.Ready;
+            Court.Refused += _ => Preview.Nudge();
+            Court.Cue += (s, e) => { if (e.Cue == SlotCue.Placed && Preview != null) Preview.Close(); };
 
             // The companions where her diagram stands them; they answer in turn, they do not walk.
             // Her diagram has three marks (named for the demo trio); the visitor's chosen companions stand

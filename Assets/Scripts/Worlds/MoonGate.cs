@@ -56,6 +56,10 @@ namespace MuseXR.Worlds
 
         /// <summary>How far past the threshold the next world's spawn lies (JourneyDoors' value).</summary>
         public const float ArrivalPastDoor = 1.2f;
+        /// <summary>How far risen the gate is before walking through it counts (0..1).</summary>
+        public const float PassableOpening = 0.35f;
+        /// <summary>The door shutting behind the visitor; the next chapter wakes when it has.</summary>
+        public const float CloseBehindSeconds = 0.4f;
 
         /// <summary>From this far the gate starts to reveal when looked at: ~7.5 m from her court.</summary>
         public const float TriggerDistance = 10f;
@@ -136,6 +140,12 @@ namespace MuseXR.Worlds
                 if (cam != null) cam.farClipPlane = Mathf.Max(cam.farClipPlane, NextDefinition.cameraFar);
             }
             Door.enabled = true;
+            // Saul, 4 Oct: through the moment it opens, and the next chapter ready at once. Walkable when
+            // a third risen (it was 60%); the door shuts behind in 0.4 s, not 2.5, since the next chapter
+            // wakes only once it has (ChapterLink) - and there is no way back to look at anyway.
+            // Set after enabling: SplatPortalDoor.OnEnable copies its own timings into the sequence.
+            Door.Sequence.PassableOpening = PassableOpening;
+            Door.Sequence.CloseSeconds = CloseBehindSeconds;
             BuildPads();
             if (frame != null) { frame.gameObject.SetActive(true); _rise = 0f; Rise(); }
             if (showNow)
@@ -249,6 +259,22 @@ namespace MuseXR.Worlds
             if (NextWorld.m_Cutouts != null) list.AddRange(NextWorld.m_Cutouts);
             list.Add(cut);
             NextWorld.m_Cutouts = list.ToArray();
+            // Put them back once the visitor has arrived: the cut is for the view THROUGH the gate. Left in,
+            // it was a hole in the world right behind anyone who turned round (Saul, 4 Oct 2026).
+            var world = NextWorld;
+            Arrived += () => RestoreCut(world, cut);
+        }
+
+        /// <summary>Take <paramref name="cut"/> out of <paramref name="world"/>'s cutouts and destroy it.</summary>
+        public static void RestoreCut(GaussianSplatRenderer world, GaussianCutout cut)
+        {
+            if (world != null && world.m_Cutouts != null)
+            {
+                var keep = new List<GaussianCutout>();
+                foreach (var c in world.m_Cutouts) if (c != null && c != cut) keep.Add(c);
+                world.m_Cutouts = keep.ToArray();
+            }
+            if (cut != null) Destroy(cut.gameObject);
         }
 
         /// <summary>A splat renderer for <paramref name="world"/> under <paramref name="parent"/>,

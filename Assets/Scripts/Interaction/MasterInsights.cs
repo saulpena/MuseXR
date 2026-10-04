@@ -92,7 +92,9 @@ namespace MuseXR.Interaction
         public void Clicked(InsightTarget t)
         {
             if (Group() == null || t == null) return;
-            if (_group.Busy) return;
+            // A tap while a companion is still speaking is kept and answered when they finish: ignored, it
+            // read as a broken pointer (the turtle tapped during the crane's reading, 4 Oct 2026).
+            if (_group.Busy) { _queued = t; return; }
             _rule.Clicked(t.id);
             Speak(t);
         }
@@ -105,6 +107,7 @@ namespace MuseXR.Interaction
             if (ArtworkCard.Hushed) { if (_pending != null) { _pending = null; _asking++; } return; }
             if (Group() == null || _group.Busy) return;
             if (_pending != null) { var p = _pending; _pending = null; _group.SayInTurn(p); return; }
+            if (_queued != null) { var q = _queued; _queued = null; _rule.Clicked(q.id); Speak(q); return; }
             var head = Camera.main != null ? Camera.main.transform : null;
             if (head == null) return;
             foreach (var t in InsightTarget.All)
@@ -155,6 +158,10 @@ namespace MuseXR.Interaction
             return g;
         }
 
+        /// <summary>A master has begun on this target (a tap or walking up to it): it has been heard about.</summary>
+        public static event System.Action<InsightTarget> Spoke;
+        InsightTarget _queued;
+
         void Speak(InsightTarget t)
         {
             var speaker = _rule.NextSpeaker();
@@ -162,7 +169,8 @@ namespace MuseXR.Interaction
             _group.Say(speaker, Insights.Opening(speaker, t.title, t.artist));
             _pending = null;
             AskLive(t);
-            ShowReplies(t, speaker);
+            if (t.askReply) ShowReplies(t, speaker);
+            Spoke?.Invoke(t);
             // Heard about counts as seen: the compass moves on (it kept pointing at a work a master had
             // just spoken about when the insight came from walking up rather than a click).
             var compass = t.GetComponent<CompassTarget>();

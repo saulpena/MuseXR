@@ -118,14 +118,32 @@ namespace MuseXR.Interaction
             return name + " · " + YawInSlot(_pieces[piece], slot) + "°";
         }
 
-        bool CanGrab(Holdable piece) => Board.Grab(Array.IndexOf(_pieces, piece));
+        /// <summary>Optional: while false, no piece can be lifted (the visitor has not heard every option yet).</summary>
+        public Func<bool> GrabGate { get; set; }
+        /// <summary>Optional: while false, a piece can be carried but not set in a slot (it floats home).</summary>
+        public Func<bool> SeatGate { get; set; }
+        /// <summary>A gate turned the visitor away: tell them why.</summary>
+        public event Action<SlotStation> Refused;
+
+        bool CanGrab(Holdable piece)
+        {
+            if (GrabGate != null && !GrabGate()) { Refused?.Invoke(this); return false; }
+            return Board.Grab(Array.IndexOf(_pieces, piece));
+        }
 
         void OnMoved(Holdable piece) => Board.Move(Distances(piece));
 
         void OnReleased(Holdable piece)
         {
             var i = Array.IndexOf(_pieces, piece);
-            Board.Release(Distances(piece), slot => Summary(i, slot));
+            var d = Distances(piece);
+            if (SeatGate != null && !SeatGate())
+            {
+                bool near = false; foreach (var x in d) if (x < 0.5f) near = true;
+                if (near) Refused?.Invoke(this);
+                for (var k = 0; k < _slots.Length; k++) _scratch[k] = float.MaxValue;   // nothing is close enough to seat
+            }
+            Board.Release(d, slot => Summary(i, slot));
         }
 
         IReadOnlyList<float> Distances(Holdable piece)
