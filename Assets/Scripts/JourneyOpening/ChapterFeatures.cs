@@ -177,6 +177,13 @@ namespace MuseXR.Journey
             if (lines.Count == 0) return;
             if (group == null) { Voice(host, lines[0].Key, lines[0].Value); return; }
             if (group.Busy) group.StopTurns();
+            SayVoiced(host, group, lines);
+        }
+
+        /// <summary>The group says these in turn, and each line is voiced as its own turn starts, never all at
+        /// once (the round table started three clips together and they talked over each other).</summary>
+        internal static bool SayVoiced(MonoBehaviour host, CompanionGroup group, List<KeyValuePair<string, string>> lines)
+        {
             var mine = new Dictionary<string, string>();
             foreach (var kv in lines) mine[kv.Key] = kv.Value;
             System.Action<string, string> speak = null;
@@ -186,7 +193,9 @@ namespace MuseXR.Journey
                 if (mine.Count == 0) group.LineStarted -= speak;
             };
             group.LineStarted += speak;
-            if (!group.SayInTurn(lines)) group.LineStarted -= speak;
+            if (group.SayInTurn(lines)) return true;
+            group.LineStarted -= speak;
+            return false;
         }
 
         /// <summary>A companion outside her scripted trio speaks from their lens.</summary>
@@ -1104,8 +1113,8 @@ namespace MuseXR.Journey
             // A line still running (the time ring's) would make the round refuse to start: wait it out.
             while (_group != null && _group.Busy) yield return null;
             AssignBasedOn(lines);
-            if (_group != null) _group.SayInTurn(lines);
-            foreach (var kv in lines) ChapterFeatures.Voice(this, kv.Key, kv.Value);
+            if (_group != null) ChapterFeatures.SayVoiced(this, _group, lines);
+            else if (lines.Count > 0) ChapterFeatures.Voice(this, lines[0].Key, lines[0].Value);
             while (_group != null && _group.Busy) yield return null;
             for (float t = 0f; answer != null && !answer.IsCompleted && t < 15f; t += Time.deltaTime) yield return null;
             if (answer != null && answer.IsCompleted && !answer.IsFaulted && !string.IsNullOrWhiteSpace(answer.Result)) _draft = answer.Result.Trim();
