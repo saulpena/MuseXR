@@ -8,8 +8,8 @@ namespace MuseXR.Interaction
     /// <summary>
     /// The companion-clearance harness (Saul, 4 Oct 2026: "that should never happen - peripheral view and
     /// sides at most; they follow you but do not get in your way"). Added to any object in Play, it moves
-    /// the visitor through the moves a visitor makes - walking, smooth and snap turns, glances, teleports,
-    /// a teleport then a turn, a step back - and judges every companion of every group in the scene each
+    /// the visitor through the moves a visitor makes with smooth locomotion - walking, smooth and snap turns,
+    /// glances, a brisk walk, a walk ending in a turn round, a step back - and judges every companion of every group in the scene each
     /// frame with <see cref="ClearanceLog"/>. Each confirmed fault is captured, as is the end of every move,
     /// to <see cref="Folder"/>. It prints its own VERDICT; it is a harness to run, not to edit to pass.
     /// </summary>
@@ -44,10 +44,12 @@ namespace MuseXR.Interaction
             yield return Phase("hold after snaps", Hold(2f));
             yield return Phase("glance left 55 (head only)", Glance(-55f, 2f));
             yield return Phase("glance right 55 (head only)", Glance(55f, 2f));
-            yield return Phase("teleport 3 m ahead", Teleport(3f, 0f));
-            yield return Phase("hold after teleport", Hold(2f));
-            yield return Phase("teleport 2.5 m then snap 180", Teleport(2.5f, 180f));
-            yield return Phase("hold after teleport+180", Hold(3f));
+            // Smooth locomotion only (Saul: "there is no teleport"): a brisk walk, then a walk that ends
+            // in a turn round, which is what a teleport-and-turn stood in for.
+            yield return Phase("brisk walk 3 m", Walk(Vector3.forward, 3f, 2.0f));
+            yield return Phase("hold after brisk walk", Hold(2f));
+            yield return Phase("walk 2.5 m then turn 180", WalkThenTurn(2.5f, 180f));
+            yield return Phase("hold after walk+180", Hold(3f));
             yield return Phase("step back 1.5 m", Walk(Vector3.back, 1.5f, 0.6f));
             yield return Phase("hold at end", Hold(1.5f));
             Report = Log.Verdict() + "\n" + string.Join("\n", Log.Faults) + (_captured.Count > 0 ? "\nCaptures:\n" + string.Join("\n", _captured) : "");
@@ -150,6 +152,12 @@ namespace MuseXR.Interaction
             for (float t = 0f; t < 0.4f; t += Time.deltaTime) { _head.localRotation = start * Quaternion.Euler(0f, degrees * t / 0.4f, 0f); yield return null; }
             for (float t = 0f; t < hold; t += Time.deltaTime) { _head.localRotation = start * Quaternion.Euler(0f, degrees, 0f); yield return null; }
             _head.localRotation = start;
+        }
+
+        IEnumerator WalkThenTurn(float metres, float degrees)
+        {
+            yield return Walk(Vector3.forward, metres, 1.2f);
+            yield return Turn(degrees, 120f);
         }
 
         IEnumerator Teleport(float metres, float thenTurn)
