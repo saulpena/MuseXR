@@ -33,6 +33,9 @@ namespace MuseXR.UI
             public Transform Ring, Card;
             public SlotState Shown = (SlotState)(-1);
             public float ShownUndo = -1f;
+            /// <summary>The stand the slot sits on, and the face of it the card hangs on.</summary>
+            public Bounds? Support;
+            public Vector3 Side;
         }
 
         sealed class StationView
@@ -86,7 +89,7 @@ namespace MuseXR.UI
                     RebuildSlot(sv, state, st.Board.Choice.UndoLeft, i < st.SlotNames.Count ? st.SlotNames[i] : null);
                     sv.Shown = state; sv.ShownUndo = undo;
                 }
-                Face(sv.Card);
+                HangCard(sv);
             }
 
             var phase = st.Board.Choice.Current;
@@ -164,6 +167,7 @@ namespace MuseXR.UI
             float width = LabelWidth;
             cardAnchor.position = sv.Slot.position + toEye * forward + Vector3.down * LabelDrop;
             if (cardAnchor.position.y < LabelFloor) cardAnchor.position = new Vector3(cardAnchor.position.x, LabelFloor, cardAnchor.position.z);
+            sv.Support = support; sv.Side = Vector3.zero;
             var c = MuseUi.Canvas(cardAnchor, "Card", SlotReadDistance, 150f);   // read from where the visitor stands, not arm's length
             var card = MuseScreens.Slot(c, state == SlotState.Aligned ? SlotVisual.Aligned : state == SlotState.Placed ? SlotVisual.Placed : SlotVisual.Empty, 150f);
             // Her captions come from SlotLook (the placed one counts the undo down).
@@ -183,6 +187,32 @@ namespace MuseXR.UI
             }
             FitWidth(cardAnchor, width);
             sv.Card = cardAnchor;
+            HangCard(sv);
+        }
+
+        /// <summary>
+        /// On a stand, the card hangs FLAT on the face of the stand toward the visitor and moves to
+        /// another face only when the visitor goes round - never turning in place. Turned to face the
+        /// eye, its 0.3 m width cut into a 0.16 m post seen from the side (Saul, headset test 3 Oct 2026:
+        /// "the little labels are clipping constantly inside the rectangles, not readable").
+        /// </summary>
+        void HangCard(SlotView sv)
+        {
+            if (sv.Card == null) return;
+            if (!sv.Support.HasValue) { Face(sv.Card); return; }
+            var eye = _eye != null ? _eye : (Camera.main != null ? Camera.main.transform : null);
+            if (eye == null) return;
+            var b = sv.Support.Value;
+            var to = eye.position - b.center; to.y = 0f;
+            // the face of the box toward the eye, scaled so a square post does not flip at 45 degrees
+            var side = Mathf.Abs(to.x) / Mathf.Max(b.extents.x, 1e-3f) > Mathf.Abs(to.z) / Mathf.Max(b.extents.z, 1e-3f)
+                ? new Vector3(Mathf.Sign(to.x), 0f, 0f) : new Vector3(0f, 0f, Mathf.Sign(to.z));
+            if (side == sv.Side) return;
+            sv.Side = side;
+            var depth = HalfDepthToward(b, side) + 0.015f;
+            var at = new Vector3(b.center.x, sv.Slot.position.y, b.center.z) + side * depth + Vector3.down * LabelDrop;
+            if (at.y < LabelFloor) at.y = LabelFloor;
+            sv.Card.SetPositionAndRotation(at, Quaternion.LookRotation(-side, Vector3.up));   // +Z into the stand reads
         }
 
         /// <summary>The bounds of the stand a slot sits on (the smallest renderer whose top is at the slot),

@@ -22,9 +22,8 @@ namespace MuseXR.Interaction
     ///
     /// Everything stands where her diagram B puts it (Saul, 3 Oct 2026: "exactly the diagram"), read
     /// from the layout's objects - "Prop lamp-stand", "Prop relief", "Interaction Socket · detail" /
-    /// "· whole", the marks, and the Arch Gate at "Exit Arch". The capture has its own niche, brass
-    /// stand and arch elsewhere (4-23 m off her plan, Docs/HerPlan/diagram-B-vs-scene.png); they stay
-    /// as scenery. The Buddha, which only the capture has, was found by triangulating two captures:
+    /// "· whole", the marks - EXCEPT the exit, which is the capture's own arch (see <see cref="arch"/>).
+    /// The booth works are stretched to fill the capture's own gold frames. The Buddha, which only the capture has, was found by triangulating two captures:
     /// the entry (bearing 183.4, 22.6 deg up) and the rail (bearing 185.1, 26 deg up).
     /// </summary>
     public sealed class GrottoChapterInteractions : MonoBehaviour
@@ -35,7 +34,15 @@ namespace MuseXR.Interaction
         [Tooltip("Assets/Worlds/Colliders/grotto-hall-of-time-collider.glb: the terrace rises ~2.7 m to the arch, so teleport needs the capture's own floor.")]
         public GameObject colliderModel;
 
-        [Tooltip("The Moon Gate standing in the capture's arch door, next world: Van Gogh's studio.")]
+        /// <summary>
+        /// The exit: a Moon Gate in the CAPTURE's own arch door (the grey door inside the cobalt-and-gold
+        /// arch), at (-20.85, 2.65, -29.95) facing yaw 218, keyhole r 1.45 / centre 3.2 / passage 2.9 -
+        /// measured 3 Oct 2026 from the collider (the recess 27.5 m deep along bearings 218.5 and 233.5
+        /// from two spots) and a capture against a 2.6 m marker. Nothing shows there until A keeps the
+        /// choice; then Van Gogh's studio appears inside the door. (A free-standing arch model at the
+        /// diagram's arch point read as "a random gate" in the headset - Saul: line it up with the mesh.)
+        /// </summary>
+        [Tooltip("The Moon Gate in the capture's arch door, next world: Van Gogh's studio.")]
         public MuseXR.Worlds.MoonGate arch;
 
         public GrottoChapter Chapter { get; private set; }
@@ -60,6 +67,7 @@ namespace MuseXR.Interaction
 
         void Update()
         {
+            UpdateGuide();
             if (_relief == null || _lampLight == null || _lampLight.Light == null) return;
             var d = Vector3.Distance(_lampLight.Light.transform.position, _relief.position);
             var k = Mathf.Clamp((d * d) / (TunedDistance * TunedDistance), 1f, MaxBoost);
@@ -142,6 +150,8 @@ namespace MuseXR.Interaction
             BoothLabel("Work Tang / N. Wei", "CHINA · NORTHERN WEI", "dated 495");
 
             Chapter = GrottoChapter.Make(gameObject, Sockets, Companions, Record, rim);
+            _standFloor = standAt.position; _detailFloor = detailAt.position; _wholeFloor = wholeAt.position;
+            BuildGuide();
             Chapter.Saved += _ =>
             {
                 Debug.Log("[Record] " + Record.SummaryJson());
@@ -209,6 +219,117 @@ namespace MuseXR.Interaction
                 Companions.PlaceAll();
                 Debug.Log("[Grotto] through the arch: in Van Gogh's studio");
             };
+        }
+
+        // ---- the guide: what to do now, and where -----------------------------------------
+        //
+        // Saul, headset test 3 Oct 2026: "Where is the lantern? There is nothing to do... what am I
+        // supposed to even do?" One instruction at a time, shown where the visitor is looking when the
+        // step changes (and then it stays put - moving text made him sick), and a pulsing gold ring
+        // on the floor at the place to go next.
+
+        enum Step { None, TakeLamp, SetLamp, Listen, Keep, GoThrough, Done }
+        Step _step = Step.None;
+        Vector3 _standFloor, _detailFloor, _wholeFloor;
+        TMPro.TextMeshPro _guideText;
+        Transform _guide;
+        readonly List<Renderer> _rings = new List<Renderer>();
+        Material _ringMat;
+
+        void BuildGuide()
+        {
+            _guide = new GameObject("Guide").transform;
+            _guide.SetParent(transform, false);
+            var plate = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            plate.name = "Guide Plate";
+            DestroyImmediate(plate.GetComponent<Collider>());
+            plate.transform.SetParent(_guide, false);
+            plate.transform.localPosition = new Vector3(0f, 0f, 0.005f);
+            plate.transform.localScale = new Vector3(1.0f, 0.3f, 1f);
+            plate.GetComponent<Renderer>().sharedMaterial = Unlit(new Color(0.13f, 0.1f, 0.08f));
+            _guideText = new GameObject("Guide Text").AddComponent<TMPro.TextMeshPro>();
+            _guideText.transform.SetParent(_guide, false);
+            _guideText.rectTransform.sizeDelta = new Vector2(0.92f, 0.25f);
+            _guideText.enableAutoSizing = true; _guideText.fontSizeMin = 0.25f; _guideText.fontSizeMax = 0.45f;
+            _guideText.alignment = TMPro.TextAlignmentOptions.Center;
+            _guideText.color = new Color(1f, 0.93f, 0.78f);
+
+            _ringMat = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            _ringMat.SetFloat("_Surface", 1f); _ringMat.SetFloat("_Blend", 2f);
+            _ringMat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            _ringMat.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            _ringMat.SetFloat("_ZWrite", 0f); _ringMat.SetFloat("_Cull", 0f);
+            _ringMat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            _ringMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            _ringMat.SetTexture("_BaseMap", RingTexture());
+        }
+
+        Step CurrentStep()
+        {
+            if (Chapter == null) return Step.None;
+            if (arch != null && arch.IsOpen) return arch.Door != null && arch.Door.HasCrossed ? Step.Done : Step.GoThrough;
+            if (Chapter.Flow.Current == GrottoFlow.Phase.Placed) return Chapter.Listening ? Step.Listen : Step.Keep;
+            return Lamp != null && Lamp.State == Holdable.Mode.Held ? Step.SetLamp : Step.TakeLamp;
+        }
+
+        void UpdateGuide()
+        {
+            if (_guide == null) return;
+            var step = CurrentStep();
+            if (step != _step) { _step = step; ShowStep(step); }
+            // the rings pulse in brightness only: nothing moves
+            var k = 0.55f + 0.45f * Mathf.Sin(Time.time * 3f);
+            _ringMat.SetColor("_BaseColor", new Color(1f, 0.74f, 0.3f) * k);
+        }
+
+        void ShowStep(Step step)
+        {
+            foreach (var r in _rings) if (r != null) Destroy(r.gameObject);
+            _rings.Clear();
+            string text = null;
+            switch (step)
+            {
+                case Step.TakeLamp:
+                    text = "<b>Take the lamp</b> from the brass stand on your left.\nPoint at it and hold GRIP.";
+                    Ring(_standFloor);
+                    break;
+                case Step.SetLamp:
+                    text = "Hold the lamp up to the <b>carved relief</b> on the left wall.\nThen set it on a stand: <b>DETAIL</b> by the relief, or <b>WHOLE</b> at the rail for the cliff Buddha.";
+                    Ring(_detailFloor); Ring(_wholeFloor);
+                    break;
+                case Step.Listen:
+                    text = "Your companions are speaking.\n<b>A</b>: next.";
+                    break;
+                case Step.Keep:
+                    text = "<b>A</b> keeps the lamp here.\nOr lift it out and set it on the other stand.";
+                    break;
+                case Step.GoThrough:
+                    text = "The <b>arch</b> is open, far ahead on your right.\nTeleport onto the step in front of it to go through.";
+                    if (arch != null) Ring(arch.transform.position - arch.transform.forward * (MuseXR.Worlds.MoonGate.StepDepth * 0.5f));
+                    break;
+            }
+            _guide.gameObject.SetActive(text != null);
+            if (text == null) return;
+            _guideText.text = text;
+            // Where the visitor is looking now, a little below eye level; then it stays put.
+            var head = Camera.main != null ? Camera.main.transform : null;
+            if (head == null) return;
+            var fwd = Flat(head.forward);
+            var at = head.position + fwd * 1.6f + Vector3.up * -0.3f;
+            _guide.SetPositionAndRotation(at, Quaternion.LookRotation(Flat(at - head.position), Vector3.up));
+        }
+
+        void Ring(Vector3 floorAt)
+        {
+            var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            q.name = "Go Here";
+            DestroyImmediate(q.GetComponent<Collider>());
+            q.transform.SetParent(transform, false);
+            q.transform.SetPositionAndRotation(new Vector3(floorAt.x, floorAt.y + 0.03f, floorAt.z), Quaternion.Euler(90f, 0f, 0f));
+            q.transform.localScale = Vector3.one * 1.0f;
+            var r = q.GetComponent<Renderer>();
+            r.sharedMaterial = _ringMat;
+            _rings.Add(r);
         }
 
         // ---- labels and icons --------------------------------------------------------------
