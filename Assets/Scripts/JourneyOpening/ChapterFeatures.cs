@@ -200,20 +200,6 @@ namespace MuseXR.Journey
         // Her 6 m does not fit under the 3.25 m ceiling: 3.6 m wide keeps the whole picture on the end wall.
         public const float BedroomWidth = 3.6f, ReliefDepth = 0.2f;
 
-        // Her three replies (the repo's artworkChoices: perception, emotion, invention) and who answers each.
-        static readonly string[] Replies =
-        {
-            "It changes how my eyes work. I will see differently when I leave.",
-            "It makes me feel something I don't have words for yet.",
-            "It shows me a world that never existed\u2014until someone made it.",
-        };
-        static readonly string[] ReplyLines =
-        {
-            "Then keep looking after you leave. The light will go on changing what you saw here.",
-            "Good. Do not tame it. A feeling with no name is the most honest visitor you will ever receive.",
-            "Then ask who made it, and what it cost them to make what had never been.",
-        };
-        static readonly string[] ReplyBy = { Masters.Monet, Masters.VanGogh, Masters.Socrates };
         static readonly Dictionary<string, string> WorkIds = new Dictionary<string, string>
         {
             { "Bedroom", "aic-28560" }, { "Self-Portrait", "aic-80607" }, { "Poet's Garden", "aic-14586" }, { "Peasant Woman", "aic-28862" },
@@ -234,11 +220,9 @@ namespace MuseXR.Journey
         readonly List<Vector3> _points = new List<Vector3>();
         bool _drawing, _awaitingKeep, _kept;
         // Her rule: the easel lights once a painting has been looked at and the companions heard.
-        bool _unlocked, _repliesShown, _groupHooked;
-        Transform _pendingWork;
-        float _quietFor;
+        bool _unlocked;
+        int _repliesAtArrival = -1;
         string _artworkId = "aic-28560";
-        GameObject _replies;
         Renderer _easelCanvas;
         TextMeshPro _prompt;
         CompanionGroup _group;
@@ -292,11 +276,18 @@ namespace MuseXR.Journey
                 _skyMat.SetTextureOffset("_BaseMap", o);
             }
             if (_group == null && _layout != null && Arrived) _group = ChapterFeatures.Crowd(_layout, transform);
-            if (_group != null && !_groupHooked) { _group.TurnsFinished += OnTurnsFinished; _groupHooked = true; }
-            if (_pendingWork != null && !_repliesShown)
+            // Her reply to a work ("What is this painting to you?") is asked by the shared insights
+            // (MasterInsights) after every master's opening; answering one here lights the easel.
+            if (!_unlocked && Arrived)
             {
-                _quietFor = _group != null && _group.Busy ? 0f : _quietFor + Time.deltaTime;
-                if (_quietFor > 1.5f) { var w = _pendingWork; _pendingWork = null; ShowReplies(w); }
+                var replies = JourneyMemory.Record.Replies;
+                if (_repliesAtArrival < 0) _repliesAtArrival = replies.Count;
+                else if (replies.Count > _repliesAtArrival)
+                {
+                    var last = replies[replies.Count - 1].artworkId;
+                    if (!string.IsNullOrEmpty(last)) _artworkId = last;
+                    Unlock();
+                }
             }
             if (_easel == null || _kept || !_unlocked) return;
             UpdatePots();
@@ -429,66 +420,6 @@ namespace MuseXR.Journey
             _strokeRoot.SetParent(transform, false);
         }
 
-        /// <summary>A round of the companions has finished: if it was about a painting the visitor stands at,
-        /// her question follows - "What is this painting to you?" with three replies.</summary>
-        void OnTurnsFinished()
-        {
-            if (_repliesShown || _kept) return;
-            var cam = Camera.main;
-            if (cam == null) return;
-            // The hung works: WorldPaintings names each by its record id ("aic-28560"); the layout's own
-            // "Work ..." quads are the older stand-ins, used if no WorldPaintings hang here.
-            Transform nearest = null; var best = 4.5f;
-            foreach (var t in transform.parent.GetComponentsInChildren<Transform>())
-            {
-                if (!t.name.StartsWith("aic-") && !t.name.StartsWith("Work ")) continue;
-                var d = Vector3.Distance(cam.transform.position, t.position);
-                if (d < best) { best = d; nearest = t; }
-            }
-            // Wait for the whole insight (opening line, then the live readings) before asking.
-            if (nearest != null) { _pendingWork = nearest; _quietFor = 0f; }
-        }
-
-        void ShowReplies(Transform work)
-        {
-            _repliesShown = true;
-            if (work.name.StartsWith("aic-")) _artworkId = work.name;
-            else { var title = work.name.Substring(5); foreach (var kv in WorkIds) if (title.Contains(kv.Key)) _artworkId = kv.Value; }
-            var cam = Camera.main.transform;
-            var toEye = cam.position - work.position; toEye.y = 0f; toEye.Normalize();
-            _replies = new GameObject("What is this painting to you").gameObject;
-            _replies.transform.SetParent(transform, true);
-            var at = work.position + toEye * 1.1f; at.y = transform.parent.position.y + 1.45f;
-            _replies.transform.SetPositionAndRotation(at, Quaternion.LookRotation(-toEye, Vector3.up));
-            var q = _replies.AddComponent<TextMeshPro>();
-            q.text = "What is this painting to you?"; q.fontSize = 0.75f; q.alignment = TextAlignmentOptions.Center;
-            q.color = new Color(0.98f, 0.95f, 0.88f); q.rectTransform.sizeDelta = new Vector2(2f, 0.25f);
-            for (var i = 0; i < Replies.Length; i++)
-            {
-                var chip = new GameObject("Reply " + (i + 1)).transform;
-                chip.SetParent(_replies.transform, false);
-                chip.localPosition = new Vector3(0f, -0.24f - i * 0.2f, 0f);
-                ChapterFeatures.Quad(chip, "Back", new Vector3(0f, 0f, 0.004f), Quaternion.identity, new Vector2(1.7f, 0.17f), ChapterFeatures.Unlit(new Color(0.08f, 0.07f, 0.09f)));
-                var textGo = new GameObject("Text"); textGo.transform.SetParent(chip, false);   // not on the chip: adding TMP swaps its Transform and kills `chip`
-                var t = textGo.AddComponent<TextMeshPro>();
-                t.text = "0" + (i + 1) + "   " + Replies[i]; t.fontSize = 0.42f; t.alignment = TextAlignmentOptions.MidlineLeft;
-                t.color = new Color(0.95f, 0.92f, 0.86f); t.rectTransform.sizeDelta = new Vector2(1.6f, 0.16f);
-                var box = chip.gameObject.AddComponent<BoxCollider>(); box.size = new Vector3(1.7f, 0.17f, 0.04f); box.isTrigger = true;
-                var index = i;
-                Pointable.Make(chip.gameObject, "reply " + i).Selected += (_, __) => Reply(index);
-            }
-        }
-
-        void Reply(int i)
-        {
-            if (_unlocked) return;
-            if (_replies != null) Destroy(_replies);
-            var who = System.Linq.Enumerable.Contains(Masters.Company, ReplyBy[i]) ? ReplyBy[i] : (Masters.Company.Count > 0 ? Masters.Company[0] : ReplyBy[i]);
-            if (_group != null) _group.Say(who, ReplyLines[i]);
-            ChapterFeatures.Voice(this, who, ReplyLines[i]);
-            Unlock();
-        }
-
         /// <summary>The easel lights: three pots of paint, and the compass now leads to it.</summary>
         void Unlock()
         {
@@ -587,7 +518,7 @@ namespace MuseXR.Journey
             var local = new List<float[]>();
             foreach (var p in _points) { var l = transform.parent.InverseTransformPoint(p); local.Add(new[] { l.x, l.y, l.z }); }
             JourneyMemory.Record.SetVanGogh("#" + ColorUtility.ToHtmlStringRGB(Pots[_colour].colour), _artworkId, local);
-            ChapterFeatures.Chime(ChapterSound.Wood, _easel.position + Vector3.up);
+            // Her wood chime comes from ChapterChimes when the stroke reaches the record.
             JourneyMemory.Record.MarkChapterDone(VrStage.VanGogh);
             _prompt.text = "Saved  ·  " + Pots[_colour].name + " stroke  ·  linked to " + ArtworkTitle(_artworkId);
             StartCoroutine(GrowToDoor());
@@ -848,7 +779,7 @@ namespace MuseXR.Journey
             _picked = true; _pickedWork = i;
             JourneyMemory.Record.SetMonet(new JourneyRecord.MonetChoice { Preset = _time.ToString().ToLowerInvariant(), ArtworkId = WorkIds[i], Reason = Works[i] });
             if (_chips != null) _chips.SetActive(false);
-            ChapterFeatures.Chime(ChapterSound.Water, _dial.transform.position);
+            // Her water chime comes from ChapterChimes when the choice reaches the record.
             // Her undo: 3 s to take it back with B; A keeps it at once.
             _undoUntil = Time.time + 3f;
             var panel = TorsoPanel.Get();
