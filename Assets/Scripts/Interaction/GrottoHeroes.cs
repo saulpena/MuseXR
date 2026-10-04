@@ -74,13 +74,15 @@ namespace MuseXR.Interaction
                 var at = transform.TransformPoint(fiveAt);
                 var five = Place(fiveBuddhas, "Hero · five golden Buddhas", at, entry, fiveHeight * 2f);
                 Label(five, "Five golden Buddhas", "AI original sculpture  ·  Tripo");
-                InsightTarget.AddGrabbable(five, "the five golden Buddhas on the lotus terrace", "an AI sculptor (an original, not an artefact)", "hero-five-buddhas");
+                PointableBounds(five);
+                InsightTarget.Add(five, "the five golden Buddhas on the lotus terrace", "an AI sculptor (an original, not an artefact)", "hero-five-buddhas");
             }
             if (guanyinGroup != null)
             {
                 var at = transform.TransformPoint(guanyinAt);
                 var g = Place(guanyinGroup, "Hero · Guanyin group", at, entry, guanyinHeight);
                 Label(g, "Guanyin group under plum branches", "AI original sculpture  ·  Tripo");
+                PointableBounds(g);
                 InsightTarget.Add(g, "the Guanyin group under the plum branches", "an AI sculptor (an original, not an artefact)", "hero-guanyin");
             }
         }
@@ -156,6 +158,22 @@ namespace MuseXR.Interaction
             b = Bounds(go);
             go.transform.position += new Vector3(floor.x - b.center.x, floor.y - b.min.y, floor.z - b.center.z);
             return go;
+        }
+
+        /// <summary>
+        /// A trigger box round what is drawn: the pointer reaches it (it collides with triggers), the
+        /// visitor's body walks round it. The first version made the five Buddhas grabbable, which needs a
+        /// solid collider - a 4 m wall across the walk to the arch (full-walk test, 4 Oct). A statue group
+        /// that size is not something to pick up anyway.
+        /// </summary>
+        static void PointableBounds(GameObject hero)
+        {
+            var b = Bounds(hero);
+            var box = hero.AddComponent<BoxCollider>();
+            box.center = hero.transform.InverseTransformPoint(b.center);
+            var s = hero.transform.lossyScale;
+            box.size = new Vector3(b.size.x / s.x, b.size.y / s.y, b.size.z / s.z);
+            box.isTrigger = true;
         }
 
         void Label(GameObject hero, string title, string sub)

@@ -36,7 +36,7 @@ namespace MuseXR.Interaction
                 var eye = Camera.main != null ? Camera.main.transform : null;
                 if (eye == null) return;
                 var d = eye.position - transform.root.position; d.y = 0f;
-                if (d.magnitude > 30f) return;
+                if (d.magnitude > 60f) return;   // Monet's spawn is 30.5 m from its origin: at 30 its question never showed
                 Show(eye);
                 return;
             }

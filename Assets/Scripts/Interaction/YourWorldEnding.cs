@@ -264,21 +264,23 @@ namespace MuseXR.Interaction
 
         void AnswerStone(Transform stone, JourneyRecord rec, bool sample)
         {
+            // No final answer (the round table was skipped): the question they carried in, never a blank stone.
             var answer = !string.IsNullOrWhiteSpace(rec.FinalAnswer.Final) ? rec.FinalAnswer.Final.Trim()
+                       : !string.IsNullOrWhiteSpace(rec.Question) ? rec.Question.Trim()
                        : sample ? "A life not wasted is one where I know why I keep walking" : null;
             if (answer == null) return;
             // Engraved on the stone's face toward the visitor (-Z: the stone faces the spawn).
             var face = new GameObject("Engraving").AddComponent<TextMeshPro>();
             face.transform.SetParent(stone, false);
-            face.transform.localPosition = new Vector3(0f, 0.05f, -0.51f);
+            face.transform.localPosition = new Vector3(0f, 0f, -0.51f);
             face.transform.localRotation = Quaternion.identity;
             // In metres: undo the stone's own scale. (TMP's world size is ~0.1 m of line per fontSize unit:
             // at a tenth of this scale the first engraving came out 3 cm tall.)
             face.transform.localScale = new Vector3(1f / stone.localScale.x, 1f / stone.localScale.y, 1f / stone.localScale.z);
-            face.rectTransform.sizeDelta = new Vector2(stone.lossyScale.x * 0.92f, stone.lossyScale.y * 0.82f);
+            face.rectTransform.sizeDelta = new Vector2(stone.lossyScale.x * 0.88f, stone.lossyScale.y * 0.6f);
             face.text = "“" + answer + "”";
-            face.fontSize = 0.5f; face.enableAutoSizing = true; face.fontSizeMin = 0.2f; face.fontSizeMax = 0.6f;
-            face.alignment = TextAlignmentOptions.Center; face.color = new Color32(0x3a, 0x33, 0x2b, 0xff);
+            face.fontSize = 0.9f; face.enableAutoSizing = true; face.fontSizeMin = 0.3f; face.fontSizeMax = 0.85f;   // read from 2 m: 0.6 came out ~2 cm and the review could not read it
+            face.alignment = TextAlignmentOptions.Center; face.color = new Color32(0x2a, 0x22, 0x1a, 0xff); face.fontStyle = FontStyles.Bold;
             var fonts = MuseFonts.Get(); if (fonts != null && fonts.display != null) face.font = fonts.display;
             _chimes.Add((stone.position, Chime(523f, 3.5f, 1.8f, 0.5f), false));
         }

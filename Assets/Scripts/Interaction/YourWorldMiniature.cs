@@ -17,7 +17,7 @@ namespace MuseXR.Interaction
     /// </summary>
     public sealed class YourWorldMiniature : MonoBehaviour, IConfirmable
     {
-        public const float RiseSeconds = 2.2f, FadeSeconds = 0.3f, Radius = 0.42f, Above = 0.95f;
+        public const float RiseSeconds = 2.2f, FadeSeconds = 0.3f, Radius = 0.42f, Above = 1.1f, Size = 1.2f, InFront = 1.1f;   // chest height and a little larger: at table height it vanished in the splat floaters around the rotunda
         const string YourWorldKey = "fantasy-realm-of-shimmering-spheres";
 
         public static YourWorldMiniature Current { get; private set; }
@@ -32,7 +32,12 @@ namespace MuseXR.Interaction
             var go = new GameObject("Your World Miniature");
             go.transform.SetParent(table, false);
             Current = go.AddComponent<YourWorldMiniature>();
-            Current._top = table.position + Vector3.up * Above;
+            // Between the visitor and the table, not over it: the companions stand at the table and the
+            // rotunda sits in splat floaters, and over the table both hid it (blind review, 4 Oct 2026).
+            var eye = Camera.main != null ? Camera.main.transform.position : table.position + Vector3.back * 2f;
+            var toTable = table.position - eye; toTable.y = 0f;
+            var near = toTable.magnitude > InFront + 0.6f ? eye + toTable.normalized * InFront : table.position;
+            Current._top = new Vector3(near.x, table.position.y + Above, near.z);
             return Current;
         }
 
@@ -82,7 +87,7 @@ namespace MuseXR.Interaction
             // Her words over it.
             var rec = JourneyMemory.Record;
             var anchor = new GameObject("Label").transform; anchor.SetParent(transform, false);
-            anchor.localPosition = new Vector3(0f, 0.55f, 0f);
+            anchor.localPosition = new Vector3(0f, 0.42f, 0f);   // x Size 1.4: just above eye height
             anchor.rotation = Quaternion.LookRotation(-toEye, Vector3.up);
             var c = MuseUi.Canvas(anchor, "Miniature", 1.8f, 300f);
             var card = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Gold, 1f, padX: 12f, padY: 9f, gap: 3f, name: "Card");
@@ -102,10 +107,10 @@ namespace MuseXR.Interaction
             {
                 var k = Mathf.SmoothStep(0f, 1f, t / RiseSeconds);
                 transform.position = Vector3.Lerp(start, _top, k);
-                transform.localScale = Vector3.one * Mathf.Lerp(0.2f, 1f, k);
+                transform.localScale = Vector3.one * Mathf.Lerp(0.2f, Size, k);
                 yield return null;
             }
-            transform.position = _top; transform.localScale = Vector3.one;
+            transform.position = _top; transform.localScale = Vector3.one * Size;
             if (ConfirmInput.Focus == null) ConfirmInput.Take(this);
         }
 
@@ -115,6 +120,9 @@ namespace MuseXR.Interaction
             if (_entering) return false;
             _entering = true;
             ConfirmInput.Drop(this);
+            // Off the table first: the table is in the Monet frame, which ChapterLink destroys on arrival, and
+            // with it this coroutine - leaving the fade black on the visitor's eye for good.
+            transform.SetParent(null, true);
             StartCoroutine(Enter());
             return true;
         }
@@ -127,8 +135,9 @@ namespace MuseXR.Interaction
             foreach (var e in FindObjectsByType<ChapterExit>(FindObjectsSortMode.None))
                 if (e.gate != null && e.gate.nextWorldKey != null && e.gate.nextWorldKey.StartsWith(YourWorldKey)) exit = e;
             if (exit == null) { Debug.LogWarning("[YourWorld] no exit to Your world in this scene"); _entering = false; yield break; }
-            var fade = Fade.Over(Camera.main != null ? Camera.main.transform : null);
+            var fade = Fade.Over(Camera.main != null ? Camera.main.transform : null, this);
             yield return fade.To(1f, FadeSeconds);
+            foreach (var r in GetComponentsInChildren<Renderer>()) r.enabled = false;   // it stays behind in the Monet frame
             exit.Complete();
             var gate = exit.gate;
             for (float t = 0f; t < 5f && (gate.Door == null || gate.Door.Phase != MuseXR.Worlds.PortalPhase.Open); t += Time.deltaTime) yield return null;
@@ -172,6 +181,8 @@ namespace MuseXR.Interaction
         {
             var m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
             m.SetColor("_BaseColor", c); m.SetFloat("_Smoothness", smooth);
+            // A faint glow of its own: the Monet garden is dim, and lit only by the scene it read as a dark clump.
+            m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", c * 0.12f);   // 0.45 blew the pink out to white
             return m;
         }
 
@@ -186,8 +197,9 @@ namespace MuseXR.Interaction
         sealed class Fade : MonoBehaviour
         {
             Material _m;
+            MonoBehaviour _owner;
 
-            public static Fade Over(Transform eye)
+            public static Fade Over(Transform eye, MonoBehaviour owner)
             {
                 var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
                 q.name = "Fade";
@@ -197,6 +209,7 @@ namespace MuseXR.Interaction
                 q.transform.localRotation = Quaternion.identity;
                 q.transform.localScale = new Vector3(1f, 1f, 1f);
                 var f = q.AddComponent<Fade>();
+                f._owner = owner;
                 f._m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
                 f._m.SetFloat("_Surface", 1f); f._m.SetFloat("_Blend", 0f);
                 f._m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
@@ -208,6 +221,9 @@ namespace MuseXR.Interaction
                 q.GetComponent<Renderer>().sharedMaterial = f._m;
                 return f;
             }
+
+            // Whoever raised it is gone mid-transition: never leave the visitor in the black.
+            void Update() { if (_owner == null) Destroy(gameObject); }
 
             public IEnumerator To(float alpha, float seconds)
             {

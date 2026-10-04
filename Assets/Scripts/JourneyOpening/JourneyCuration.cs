@@ -440,6 +440,11 @@ namespace MuseXR.Journey
 
         IEnumerator MakeGate(Vector3 toDoor)
         {
+            // The walk's record, for the roundtable and Your world, taken now: the Gate goes with the
+            // conservatory when the visitor is through, so read at arrival it was already gone and the
+            // question reached the roundtable empty ("you asked no question aloud" - full-walk test, 4 Oct).
+            if (gate != null) JourneyMemory.Record.SetQuestion(gate.Flow.Question);
+            if (opening != null && opening.Companions != null && opening.Companions.Count > 0) JourneyMemory.Record.SetCompanions(opening.Companions);
             var first = _lanterns[0];
             // On the walk's centre line beyond the lanterns, and always ahead of the visitor wherever they
             // now stand - never on top of them.
