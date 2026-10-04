@@ -282,7 +282,7 @@ namespace MuseXR.Journey
             // Wide of the lanterns (within ~25 degrees of the walk) yet under CompanionGroup.BehindDegrees once
             // the visitor glances aside, so they are not re-marked every time the head turns.
             // Her rule: off the main path, 1.5-2.2 m, within +-60 degrees of forward, never behind.
-            { new CompanionMarks.Mark(-52f, 1.7f), new CompanionMarks.Mark(32f, 2.1f), new CompanionMarks.Mark(58f, 1.7f) };
+            { new CompanionMarks.Mark(-52f, 1.7f), new CompanionMarks.Mark(42f, 1.6f), new CompanionMarks.Mark(58f, 2.2f) };
 
         static IEnumerable<CompanionMarks.Mark> Flank(int order)
         {
@@ -358,9 +358,17 @@ namespace MuseXR.Journey
             if (_card == null || _eye == null) return;
             var fwd = _eye.forward; fwd.y = 0f; fwd = fwd.sqrMagnitude > 1e-4f ? fwd.normalized : _toDoor;
             var right = Vector3.Cross(Vector3.up, fwd).normalized;
-            var at = _eye.position + fwd * 2.3f + right * 0.5f + Vector3.up * 0.15f;
+            // High and a little to the right: at eye height it sat across the companions' heads (headset test).
+            var at = _eye.position + fwd * 2.6f + right * 0.45f + Vector3.up * 0.6f;
             _card.transform.SetPositionAndRotation(at, Quaternion.LookRotation(at - new Vector3(_eye.position.x, at.y, _eye.position.z), Vector3.up));
             _lastEye = _eye.position;
+        }
+
+        /// <summary>Once the gate stands its card has said its piece; left up, it floated in the opening.</summary>
+        IEnumerator RetireCard()
+        {
+            yield return new WaitForSeconds(5f);
+            if (_card != null) _card.SetActive(false);
         }
 
         void LateUpdate()
@@ -397,6 +405,10 @@ namespace MuseXR.Journey
             // now stand - never on top of them.
             var along = Mathf.Max(firstLantern + lanternStep + 2.4f, Vector3.Dot(_eye.position - _from, toDoor) + 4f);
             var at = _from + toDoor * along; at.y = _from.y;
+            // Stand it on the floor that is actually there (measured 0.4 m above the spawn at this spot).
+            if (Physics.Raycast(at + Vector3.up * 3f, Vector3.down, out var floorHit, 6f, ~0, QueryTriggerInteraction.Ignore))
+                at.y = floorHit.point.y;
+            CutTunnel(at, Quaternion.LookRotation(toDoor, Vector3.up));
             if (_card != null)
             {
                 _cardKicker.text = "Palace  ·  Court of Keeping";
@@ -461,8 +473,30 @@ namespace MuseXR.Journey
             pivot.SetParent(palaceFrame, true);
 
             mg.Arrived += () => StartCoroutine(Arrive());
+            StartCoroutine(RetireCard());
             _gate = mg;
             Debug.Log("[Curation] the moon gate stands; the Palace is behind it");
+        }
+
+        /// <summary>
+        /// Take the conservatory's own splats out of the way through the gate: an inverted box cutout on
+        /// its renderer, the opening's width and height, 1.6 m either side of the gate, above the floor.
+        /// Left in, foliage and wall splats sat in the opening and hid half of the Palace (headset test).
+        /// </summary>
+        void CutTunnel(Vector3 floor, Quaternion facing)
+        {
+            if (conservatoryWorld == null) return;
+            var cut = new GameObject("Moon Gate Tunnel (splat cutout)").AddComponent<GaussianCutout>();
+            cut.transform.SetParent(transform, false);
+            var half = new Vector3(ModelOpeningRadius * GateScale + 0.25f, 1.85f, 1.6f);   // the box spans -1..1 locally
+            cut.transform.SetPositionAndRotation(floor + Vector3.up * (0.12f + half.y), facing);
+            cut.transform.localScale = half;
+            cut.m_Type = GaussianCutout.Type.Box;
+            cut.m_Invert = true;   // inside the box is removed, everything else stays
+            var list = new List<GaussianCutout>();
+            if (conservatoryWorld.m_Cutouts != null) list.AddRange(conservatoryWorld.m_Cutouts);
+            list.Add(cut);
+            conservatoryWorld.m_Cutouts = list.ToArray();
         }
 
         // ---- through ----------------------------------------------------------------------------------
