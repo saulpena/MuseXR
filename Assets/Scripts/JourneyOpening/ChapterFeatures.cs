@@ -195,7 +195,8 @@ namespace MuseXR.Journey
         // the hung works on the +x wall, a gold-draped ceiling about 3.5 m up, the side door at (3.1, -5.3).
         public static readonly Vector3 CeilingCentre = new Vector3(0.7f, 3.25f, -7.5f);
         public static readonly Vector2 CeilingSize = new Vector2(20f, 6.5f);   // along the corridor, across it
-        public static readonly Vector3 BedroomAt = new Vector3(0.6f, 0f, -17.5f);
+        // Right of the end wall's centre: the AI study "Emotional Sky" hangs at the corridor's end too (her works plan).
+        public static readonly Vector3 BedroomAt = new Vector3(2.0f, 0f, -17.3f);
         // Her 6 m does not fit under the 3.25 m ceiling: 3.6 m wide keeps the whole picture on the end wall.
         public const float BedroomWidth = 3.6f, ReliefDepth = 0.2f;
 
@@ -234,6 +235,8 @@ namespace MuseXR.Journey
         bool _drawing, _awaitingKeep, _kept;
         // Her rule: the easel lights once a painting has been looked at and the companions heard.
         bool _unlocked, _repliesShown, _groupHooked;
+        Transform _pendingWork;
+        float _quietFor;
         string _artworkId = "aic-28560";
         GameObject _replies;
         Renderer _easelCanvas;
@@ -290,6 +293,11 @@ namespace MuseXR.Journey
             }
             if (_group == null && _layout != null && Arrived) _group = ChapterFeatures.Crowd(_layout, transform);
             if (_group != null && !_groupHooked) { _group.TurnsFinished += OnTurnsFinished; _groupHooked = true; }
+            if (_pendingWork != null && !_repliesShown)
+            {
+                _quietFor = _group != null && _group.Busy ? 0f : _quietFor + Time.deltaTime;
+                if (_quietFor > 1.5f) { var w = _pendingWork; _pendingWork = null; ShowReplies(w); }
+            }
             if (_easel == null || _kept || !_unlocked) return;
             UpdatePots();
             UpdateDrawing();
@@ -428,21 +436,24 @@ namespace MuseXR.Journey
             if (_repliesShown || _kept) return;
             var cam = Camera.main;
             if (cam == null) return;
+            // The hung works: WorldPaintings names each by its record id ("aic-28560"); the layout's own
+            // "Work ..." quads are the older stand-ins, used if no WorldPaintings hang here.
             Transform nearest = null; var best = 4.5f;
             foreach (var t in transform.parent.GetComponentsInChildren<Transform>())
             {
-                if (!t.name.StartsWith("Work ")) continue;
+                if (!t.name.StartsWith("aic-") && !t.name.StartsWith("Work ")) continue;
                 var d = Vector3.Distance(cam.transform.position, t.position);
                 if (d < best) { best = d; nearest = t; }
             }
-            if (nearest != null) ShowReplies(nearest);
+            // Wait for the whole insight (opening line, then the live readings) before asking.
+            if (nearest != null) { _pendingWork = nearest; _quietFor = 0f; }
         }
 
         void ShowReplies(Transform work)
         {
             _repliesShown = true;
-            var title = work.name.Substring(5);
-            foreach (var kv in WorkIds) if (title.Contains(kv.Key)) _artworkId = kv.Value;
+            if (work.name.StartsWith("aic-")) _artworkId = work.name;
+            else { var title = work.name.Substring(5); foreach (var kv in WorkIds) if (title.Contains(kv.Key)) _artworkId = kv.Value; }
             var cam = Camera.main.transform;
             var toEye = cam.position - work.position; toEye.y = 0f; toEye.Normalize();
             _replies = new GameObject("What is this painting to you").gameObject;
@@ -458,7 +469,8 @@ namespace MuseXR.Journey
                 chip.SetParent(_replies.transform, false);
                 chip.localPosition = new Vector3(0f, -0.24f - i * 0.2f, 0f);
                 ChapterFeatures.Quad(chip, "Back", new Vector3(0f, 0f, 0.004f), Quaternion.identity, new Vector2(1.7f, 0.17f), ChapterFeatures.Unlit(new Color(0.08f, 0.07f, 0.09f)));
-                var t = chip.gameObject.AddComponent<TextMeshPro>();
+                var textGo = new GameObject("Text"); textGo.transform.SetParent(chip, false);   // not on the chip: adding TMP swaps its Transform and kills `chip`
+                var t = textGo.AddComponent<TextMeshPro>();
                 t.text = "0" + (i + 1) + "   " + Replies[i]; t.fontSize = 0.42f; t.alignment = TextAlignmentOptions.MidlineLeft;
                 t.color = new Color(0.95f, 0.92f, 0.86f); t.rectTransform.sizeDelta = new Vector2(1.6f, 0.16f);
                 var box = chip.gameObject.AddComponent<BoxCollider>(); box.size = new Vector3(1.7f, 0.17f, 0.04f); box.isTrigger = true;
@@ -820,7 +832,8 @@ namespace MuseXR.Journey
                 chip.SetParent(_chips.transform, false);
                 chip.localPosition = new Vector3((i - 1.5f) * 0.78f, -0.32f, 0f);
                 ChapterFeatures.Quad(chip, "Back", new Vector3(0f, 0f, 0.004f), Quaternion.identity, new Vector2(0.72f, 0.22f), ChapterFeatures.Unlit(new Color(0.08f, 0.07f, 0.09f, 1f)));
-                var t = chip.gameObject.AddComponent<TextMeshPro>();
+                var textGo = new GameObject("Text"); textGo.transform.SetParent(chip, false);   // not on the chip: adding TMP swaps its Transform and kills `chip`
+                var t = textGo.AddComponent<TextMeshPro>();
                 t.text = Works[i]; t.fontSize = 0.42f; t.alignment = TextAlignmentOptions.Center; t.color = new Color(0.95f, 0.92f, 0.86f);
                 t.rectTransform.sizeDelta = new Vector2(0.66f, 0.2f); t.enableWordWrapping = true;
                 var box = chip.gameObject.AddComponent<BoxCollider>(); box.size = new Vector3(0.72f, 0.22f, 0.04f); box.isTrigger = true;
