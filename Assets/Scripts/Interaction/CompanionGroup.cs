@@ -239,7 +239,9 @@ namespace MuseXR.Interaction
                 foreach (var id in _ids) if (AngleFromGaze(id) > BehindDegrees) behind = true;
                 _behindFor = behind ? _behindFor + Time.deltaTime : 0f;
                 var speaking = Turns != null && Turns.Current == TurnTaking.Phase.Speaking;
-                if (moved > JumpDistance || turned > JumpDegrees || (_behindFor > BehindSeconds && !speaking))
+                // Her rule: companions move only when the visitor teleports. Re-marking on a snap turn or when
+                // one fell behind the gaze had them jumping every time the visitor rotated (headset test, 3 Oct).
+                if (moved > JumpDistance)
                 {
                     PlaceAll(); _behindFor = 0f; Remarked?.Invoke();
                 }

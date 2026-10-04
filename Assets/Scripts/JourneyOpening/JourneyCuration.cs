@@ -60,10 +60,12 @@ namespace MuseXR.Journey
 
         // Inside the pointer's 8 m reach from the spawn, all four (at 6.5 + 2.6 m steps three were beyond it,
         // so pointing at them did nothing - headset test).
-        [System.NonSerialized] public float firstLantern = 3.6f, lanternStep = 1.3f;   // metres down the walk from the spawn
-        static readonly float[] LanternOffsets = { 0f, -1.7f, 1.7f, -1.7f };   // metres across the walk
+        [System.NonSerialized] public float firstLantern = 3.6f, lanternStep = 1.9f;   // metres down the walk from the spawn
+        const float LanternAside = 1.5f;   // metres either side of the walk's centre line
         const float ModelOpeningCentre = 2.02f;   // measured on the generated model (Docs/Doors/moon-gate.measure.txt)
         const float ModelOpeningRadius = 1.275f;
+        const float GateScale = 1.3f;                                    // a wider opening to see the Palace through
+        const float GateCentre = ModelOpeningRadius * GateScale + 0.05f;   // the opening's foot just above the floor
 
         readonly string[] _lines = new string[4];
         bool _fallback = true, _begun, _crossed;
@@ -76,7 +78,7 @@ namespace MuseXR.Journey
         // when they choose to walk on (A) - an 8 s timer opened it before anyone had pointed at anything.
         readonly HashSet<int> _heard = new HashSet<int>();
         bool _awaitingWalkOn;
-        Vector3 _toDoor;
+        Vector3 _toDoor, _from, _lastEye;
         Transform _eye;
 
         [System.Serializable] public class BakedLantern { public string question; public List<string> lines = new List<string>(); }
@@ -178,7 +180,8 @@ namespace MuseXR.Journey
             {
                 // The first stands on the walk (it becomes the gate); the rest step out to alternate sides, so
                 // from the spawn all four are seen at once instead of hiding behind one another.
-                var at = from + toDoor * (firstLantern + lanternStep * i) + side * LanternOffsets[i];
+                // Two pairs flanking the walk, mirror-symmetric: Palace | Grotto, then Van Gogh | Monet.
+                var at = from + toDoor * (firstLantern + lanternStep * (i / 2)) + side * (LanternAside * (i % 2 == 0 ? -1f : 1f));
                 var lantern = new GameObject("Lantern " + Chapters[i]).transform;
                 lantern.SetParent(transform, false);
                 lantern.SetPositionAndRotation(at, face);
@@ -219,8 +222,9 @@ namespace MuseXR.Journey
                 }
             }
             gate.HideLettering();
-            ShowCard(-1);
             _toDoor = toDoor;
+            _from = from;
+            ShowCard(-1);
             _awaitingWalkOn = true;
             ConfirmInput.Take(this);
         }
@@ -322,10 +326,6 @@ namespace MuseXR.Journey
                 var right = Vector3.Cross(Vector3.up, toDoor).normalized;
                 var anchor = new GameObject("Curation Card").transform;
                 anchor.SetParent(transform, false);
-                // Above the companions' heads (they stand at the visitor's flanks and hid a card at 1.45 m).
-                var at = from + toDoor * 3.2f + right * 2.2f + Vector3.up * 2.05f;
-                var toEye = from - at; toEye.y = 0f;
-                anchor.SetPositionAndRotation(at, Quaternion.LookRotation(-toEye.normalized, Vector3.up));
                 var c = MuseUi.Canvas(anchor, "Curation", 3f, 360f);
                 var glass = MuseUi.Glass(c, 360f, gap: 8f);
                 _cardKicker = MuseUi.Kicker(glass, "Your path", MuseTheme.Gold);
@@ -333,6 +333,7 @@ namespace MuseXR.Journey
                 _cardNote = MuseUi.Body(glass, "");
                 _card = anchor.gameObject;
             }
+            PlaceCard();
             if (index < 0)
             {
                 _cardKicker.text = "Your path";
@@ -341,10 +342,34 @@ namespace MuseXR.Journey
                 return;
             }
             _heard.Add(index);
-            _cardKicker.text = Chapters[index] + "  ·  " + Subtitles[index];
+            var who = SpeakerFor(index);
+            _cardKicker.text = (who != null ? Masters.Name(who) + "  ·  on the " : "") + Chapters[index] + "  ·  " + Subtitles[index];
             _cardLine.text = _lines[index];
             _cardNote.text = (_fallback ? "Local fallback - written ahead, not generated for your question.\n" : "")
                              + (_awaitingWalkOn ? "Point at another lantern, or press A to walk on: the first opens the way." : "");
+        }
+
+        /// <summary>
+        /// The card stands where the visitor can read it: 2.3 m ahead and a little right of where they look,
+        /// set once - when it changes, or after a teleport - and never following the head.
+        /// </summary>
+        void PlaceCard()
+        {
+            if (_card == null || _eye == null) return;
+            var fwd = _eye.forward; fwd.y = 0f; fwd = fwd.sqrMagnitude > 1e-4f ? fwd.normalized : _toDoor;
+            var right = Vector3.Cross(Vector3.up, fwd).normalized;
+            var at = _eye.position + fwd * 2.3f + right * 0.5f + Vector3.up * 0.15f;
+            _card.transform.SetPositionAndRotation(at, Quaternion.LookRotation(at - new Vector3(_eye.position.x, at.y, _eye.position.z), Vector3.up));
+            _lastEye = _eye.position;
+        }
+
+        void LateUpdate()
+        {
+            // A teleport moves the eye in one frame: bring the card to the new spot.
+            if (_card != null && _card.activeInHierarchy && _eye != null &&
+                Vector3.Distance(new Vector3(_eye.position.x, 0f, _eye.position.z), new Vector3(_lastEye.x, 0f, _lastEye.z)) > 0.5f)
+                PlaceCard();
+            if (_eye != null) _lastEye = _eye.position;
         }
 
         public bool Confirm()
@@ -357,7 +382,7 @@ namespace MuseXR.Journey
             }
             _awaitingWalkOn = false;
             ConfirmInput.Drop(this);
-            MakeGate(_toDoor);
+            StartCoroutine(MakeGate(_toDoor));
             return true;
         }
 
@@ -365,18 +390,19 @@ namespace MuseXR.Journey
 
         // ---- the moon gate --------------------------------------------------------------------------
 
-        void MakeGate(Vector3 toDoor)
+        IEnumerator MakeGate(Vector3 toDoor)
         {
             var first = _lanterns[0];
-            var at = first.position;
-            first.gameObject.SetActive(false);   // the first lantern becomes the gate
-            // The others have said their piece; left standing they showed through the gate's opening.
-            for (var i = 1; i < _lanterns.Count; i++) _lanterns[i].gameObject.SetActive(false);
+            // On the walk's centre line beyond the lanterns, and always ahead of the visitor wherever they
+            // now stand - never on top of them.
+            var along = Mathf.Max(firstLantern + lanternStep + 2.4f, Vector3.Dot(_eye.position - _from, toDoor) + 4f);
+            var at = _from + toDoor * along; at.y = _from.y;
             if (_card != null)
             {
                 _cardKicker.text = "Palace  ·  Court of Keeping";
-                _cardLine.text = "The first lantern has become a moon gate";
-                _cardNote.text = "Walk through it with your companions.";
+                _cardLine.text = "The Palace lantern becomes a moon gate";
+                _cardNote.text = "Walk or teleport through it with your companions.";
+                PlaceCard();
             }
 
             // The shared Moon Gate (the Palace -> Grotto transition, Docs/MOON-GATE.md): it loads the Palace
@@ -385,16 +411,45 @@ namespace MuseXR.Journey
             WorldDefinition def = null;
             foreach (var w in WorldCatalog.Small) if (w.key.StartsWith("palace-court-of-keeping")) def = w;
             var mg = Instantiate(moonGatePrefab, at, Quaternion.LookRotation(toDoor, Vector3.up), transform);
+            Transform frame = null;
+            if (moonGateModel != null)
+            {
+                // Her generated gate, 1.3x, sunk so its round opening meets the floor: walked or teleported
+                // through, not stepped over a sill 0.75 m up.
+                frame = Instantiate(moonGateModel, mg.transform).transform;
+                frame.name = "Moon Gate Frame";
+                frame.localPosition = new Vector3(0f, GateCentre - ModelOpeningCentre * GateScale, -0.05f);
+                frame.localRotation = Quaternion.identity;
+                frame.localScale = Vector3.zero;
+            }
+
+            // The morph: the Palace lantern drifts to the gate and rises into the opening, glowing brighter
+            // and shrinking, while the gate grows round it. Nothing pops.
+            var glow = first.GetComponentInChildren<Light>();
+            Vector3 p0 = first.position, p1 = at + Vector3.up * (GateCentre - 1.42f);
+            var s0 = first.localScale;
+            const float duration = 2.2f;
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                var k = Mathf.SmoothStep(0f, 1f, t / duration);
+                first.position = Vector3.Lerp(p0, p1, k);
+                first.localScale = s0 * Mathf.Lerp(1f, 0.25f, Mathf.SmoothStep(0f, 1f, (t / duration - 0.5f) * 2f));
+                if (glow != null) { glow.intensity = Mathf.Lerp(1.6f, 6f, k); glow.range = Mathf.Lerp(3.5f, 6f, k); }
+                if (frame != null) frame.localScale = Vector3.one * GateScale * Mathf.SmoothStep(0f, 1f, (t / duration - 0.3f) / 0.7f);
+                yield return null;
+            }
+            if (frame != null) frame.localScale = Vector3.one * GateScale;
+            first.gameObject.SetActive(false);
             mg.nextWorldAsset = palaceWorld.m_Asset;
             mg.nextWorldKey = def != null ? def.key : "palace-court-of-keeping-500k";
             // Her generated gate's own round opening, no passage: the keyhole is exactly the hole in the frame.
-            mg.radius = ModelOpeningRadius; mg.centreHeight = ModelOpeningCentre; mg.passageWidth = 0f;
+            mg.radius = ModelOpeningRadius * GateScale; mg.centreHeight = GateCentre; mg.passageWidth = 1.4f;
             var props = new List<GameObject>();
             foreach (var g in gateLeftovers) if (g != null) props.Add(g);
             foreach (var l in _lanterns) if (l != null) props.Add(l.gameObject);
             if (_card != null) props.Add(_card);
             if (opening != null && opening.Company != null) props.Add(opening.Company.gameObject);
-            if (!mg.Open(conservatoryWorld, props, _eye)) return;
+            if (!mg.Open(conservatoryWorld, props, _eye)) yield break;
 
             // Her Palace chapter (layout, props, interactions) stands on the gate's Palace: its frame takes
             // the pivot's pose, the gate's world becomes the one drawn, and our copy of the splat sleeps.
@@ -405,14 +460,6 @@ namespace MuseXR.Journey
             palaceFrame.gameObject.SetActive(true);
             pivot.SetParent(palaceFrame, true);
 
-            // The conservatory has no stone ring of its own, so her generated moon gate is the frame.
-            if (moonGateModel != null)
-            {
-                var frame = Instantiate(moonGateModel, mg.transform);
-                frame.name = "Moon Gate Frame";
-                frame.transform.localPosition = new Vector3(0f, 0f, -0.05f);   // on the visitor's side of the opening
-                frame.transform.localRotation = Quaternion.identity;
-            }
             mg.Arrived += () => StartCoroutine(Arrive());
             _gate = mg;
             Debug.Log("[Curation] the moon gate stands; the Palace is behind it");

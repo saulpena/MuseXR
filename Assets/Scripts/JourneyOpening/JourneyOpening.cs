@@ -27,7 +27,9 @@ namespace MuseXR.Journey
 
         [Tooltip("How far down the walk from the Gate spawn the row stands. A Marble capture is sharp only within ~15 m of its centre; the doors are ~50 m out, in its fog.")]
         [System.NonSerialized] public float rowFromSpawn = 4.5f;   // inside the pointer's 8 m reach for every master; not serialized (a scene copy beat the code default)
-        [System.NonSerialized] public float rowSpacing = 1.2f;   // room for each master's name card, read from the spawn
+        // A shallow arc around the spawn, 11 degrees apart (~0.85 m): six in a straight 6 m line stood in
+        // the walk's walls at both ends (headset test, 3 Oct). Each faces the spawn.
+        [System.NonSerialized] public float rowDegrees = 11f;
 
         public CompanyStage Company { get; private set; }
         public IReadOnlyList<string> Companions { get; private set; } = new string[0];
@@ -111,7 +113,9 @@ namespace MuseXR.Journey
                 var id = Masters.Row[i];
                 var slot = new GameObject("Standee " + id).transform;
                 slot.SetParent(root, false);
-                slot.SetPositionAndRotation(centre + right * ((i - 2.5f) * rowSpacing), facing);
+                var dir = Quaternion.Euler(0f, (i - 2.5f) * rowDegrees, 0f) * toDoor;
+                var at = from + dir * rowFromSpawn; at.y = from.y;
+                slot.SetPositionAndRotation(at, Quaternion.LookRotation(-dir, Vector3.up));
                 var prefab = i < masterPrefabs.Length ? masterPrefabs[i] : null;
                 if (prefab != null)
                 {
@@ -122,7 +126,7 @@ namespace MuseXR.Journey
                 var box = slot.gameObject.AddComponent<BoxCollider>();
                 box.center = new Vector3(0f, 0.9f, 0f); box.size = new Vector3(0.6f, 1.8f, 0.4f);
                 standees[id] = slot;
-                BuildMark(id, slot, toVisitor);
+                BuildMark(id, slot, -dir);
             }
 
             Company = CompanyStage.Make(root.gameObject, standees);
