@@ -992,14 +992,43 @@ namespace MuseXR.Journey
             _rotunda.localPosition = new Vector3(_rotundaLocal.x, 0f, _rotundaLocal.z);
             // A warm glow on the floor and a low round table: her "the rotunda glows warm".
             // Soft: a full-strength additive square washed the whole view brown (Editor capture, 4 Oct).
-            var glow = ChapterFeatures.Quad(_rotunda, "Warm glow", new Vector3(0f, 0.03f, 0f), Quaternion.Euler(90f, 0f, 0f), new Vector2(3.4f, 3.4f), ChapterFeatures.Glow(new Color(0.16f, 0.1f, 0.04f)));
-            ChapterFeatures.Part(_rotunda, PrimitiveType.Cylinder, "Table", new Vector3(0f, 0.38f, 0f), new Vector3(1.1f, 0.38f, 1.1f), ChapterFeatures.Lit(new Color(0.9f, 0.87f, 0.8f), 0f, 0.4f));
+            _glowMat = ChapterFeatures.Glow(GlowDim);
+            ChapterFeatures.Quad(_rotunda, "Warm glow", new Vector3(0f, 0.03f, 0f), Quaternion.Euler(90f, 0f, 0f), new Vector2(3.4f, 3.4f), _glowMat);
+            // A round stone table on one pedestal, a thin gilt band under its top: the garden's furniture, not a drum.
+            var stone = ChapterFeatures.Lit(new Color(0.9f, 0.87f, 0.8f), 0f, 0.45f);
+            var gilt = ChapterFeatures.Lit(new Color(0.83f, 0.66f, 0.3f), 0.85f, 0.6f);
+            ChapterFeatures.Part(_rotunda, PrimitiveType.Cylinder, "Table foot", new Vector3(0f, 0.03f, 0f), new Vector3(0.5f, 0.03f, 0.5f), stone);
+            ChapterFeatures.Part(_rotunda, PrimitiveType.Cylinder, "Table pedestal", new Vector3(0f, 0.37f, 0f), new Vector3(0.22f, 0.34f, 0.22f), stone);
+            ChapterFeatures.Part(_rotunda, PrimitiveType.Cylinder, "Table band", new Vector3(0f, 0.715f, 0f), new Vector3(1.32f, 0.012f, 1.32f), gilt);
+            ChapterFeatures.Part(_rotunda, PrimitiveType.Cylinder, "Table top", new Vector3(0f, 0.75f, 0f), new Vector3(1.3f, 0.025f, 1.3f), stone);
+            // Her "the rotunda glows warm, marked Form my answer": a warm light that comes up once the garden's
+            // choice is kept, dark until then so it never pulls the visitor past the time ring.
+            var lamp = new GameObject("Rotunda light").AddComponent<Light>();
+            lamp.transform.SetParent(_rotunda, false); lamp.transform.localPosition = new Vector3(0f, 2.2f, 0f);
+            lamp.type = LightType.Point; lamp.range = 4.5f; lamp.intensity = 0f; lamp.color = new Color(1f, 0.8f, 0.55f); lamp.shadows = LightShadows.None;
+            _rotundaLight = lamp;
             var sign = new GameObject("Sign").transform;
             sign.SetParent(_rotunda, false);
             sign.localPosition = new Vector3(0f, 2.4f, 0f);
             _tableSign = sign.gameObject.AddComponent<TextMeshPro>();
             _tableSign.text = "Form my answer"; _tableSign.fontSize = 1.6f; _tableSign.alignment = TextAlignmentOptions.Center;
             _tableSign.color = new Color(1f, 0.86f, 0.6f); _tableSign.rectTransform.sizeDelta = new Vector2(3f, 0.5f);
+            _tableSign.alpha = 0.25f;
+        }
+
+        static readonly Color GlowDim = new Color(0.05f, 0.03f, 0.01f), GlowWarm = new Color(0.22f, 0.14f, 0.05f);
+        Material _glowMat;
+        Light _rotundaLight;
+        float _warm;
+
+        /// <summary>The rotunda warms up once the garden's choice is kept, and breathes until the visitor arrives.</summary>
+        void UpdateRotundaGlow(bool ready)
+        {
+            _warm = Mathf.MoveTowards(_warm, ready ? 1f : 0f, Time.deltaTime * 0.6f);
+            var breathe = _tableStarted ? 1f : 0.85f + 0.15f * Mathf.Sin(Time.time * 2.2f);
+            if (_glowMat != null) _glowMat.SetColor("_BaseColor", Color.Lerp(GlowDim, GlowWarm, _warm * breathe));
+            if (_rotundaLight != null) _rotundaLight.intensity = 1.4f * _warm * breathe;
+            if (_tableSign != null && !_tableStarted) _tableSign.alpha = Mathf.Lerp(0.25f, 1f, _warm);
         }
 
         void Update()
@@ -1016,6 +1045,7 @@ namespace MuseXR.Journey
             var flat = new Vector3(cam.transform.position.x, _rotunda.position.y, cam.transform.position.z);
             // Only once the garden's choice is kept: walking past it on the way to the time ring starts nothing.
             var ready = _picked && _undoUntil <= 0f && JourneyMemory.Record.Monet != null;
+            UpdateRotundaGlow(ready);
             if (!_tableStarted && Arrived && ready && Vector3.Distance(flat, _rotunda.position) < 2.4f) StartCoroutine(Roundtable());
             if (_undoUntil > 0f && Time.time > _undoUntil) KeepWork();
             if (_answerStage == 1 && _x != null && _x.WasPressedThisFrame()) Rewrite();
@@ -1055,12 +1085,17 @@ namespace MuseXR.Journey
             else if (rt == null) Debug.LogWarning("[Roundtable] no result (no dialogue, roster or key)");
             else Debug.Log("[Roundtable] live " + rt.Live + " success " + rt.Success + " threads " + (rt.threads != null ? rt.threads.Count : 0) + " error " + rt.Error);
             var company = Masters.Company;
+            System.Threading.Tasks.Task<string> answer = null;
             if (rt != null && rt.Success)
             {
                 foreach (var th in rt.threads)
                     foreach (var id in company)
                         if (RosterId(id) == th.speakerId) lines.Add(new KeyValuePair<string, string>(id, th.text));
                 _draft = string.IsNullOrWhiteSpace(rt.synthesis) ? LocalDraft() : rt.synthesis;
+                // Her draft is the visitor's ANSWER in one sentence ("A life not wasted is a slow one where every
+                // stretch was stopped for and looked at"), not the round table's summary of the walk: asked for
+                // while the masters speak, so it costs no wait.
+                answer = DraftLive(JourneyMemory.Record, rt.synthesis);
                 if (!string.IsNullOrWhiteSpace(rt.worldTitle)) JourneyMemory.Record.WorldTitle = rt.worldTitle;   // the memento's title
             }
             if (lines.Count == 0) { lines = LocalThreads(); _draft = LocalDraft() + "   (local fallback)"; }
@@ -1070,6 +1105,9 @@ namespace MuseXR.Journey
             if (_group != null) _group.SayInTurn(lines);
             foreach (var kv in lines) ChapterFeatures.Voice(this, kv.Key, kv.Value);
             while (_group != null && _group.Busy) yield return null;
+            for (float t = 0f; answer != null && !answer.IsCompleted && t < 15f; t += Time.deltaTime) yield return null;
+            if (answer != null && answer.IsCompleted && !answer.IsFaulted && !string.IsNullOrWhiteSpace(answer.Result)) _draft = answer.Result.Trim();
+            else if (answer != null) Debug.LogWarning("[Roundtable] one-sentence draft failed; the summary stands: " + answer.Exception);
             TorsoPanel.BasedOn.Clear();
             ShowDraft();
         }
@@ -1181,6 +1219,39 @@ namespace MuseXR.Journey
         }
 
         [System.Serializable] class RewriteReply { public string answer; }
+
+        /// <summary>The visitor's answer to their question, one first-person sentence built from what they kept.</summary>
+        static async System.Threading.Tasks.Task<string> DraftLive(JourneyRecord rec, string synthesis)
+        {
+            var key = await MusePico.Generation.FallbackKeySource.ForOpenAi().GetKeyAsync();
+            if (string.IsNullOrEmpty(key)) return null;
+            var call = new ResponsesCall(new MusePico.Tripo.TripoWebRequestTransport(key, ResponsesCall.DefaultEndpoint));
+            var props = new JsonBuilder().Add("answer", new JsonBuilder().Add("type", "string"));
+            var schema = new JsonBuilder().Add("type", "object").Add("properties", props)
+                .AddStringArray("required", new[] { "answer" }).Add("additionalProperties", false);
+            var kept = new System.Text.StringBuilder();
+            if (rec.Palace != null) kept.Append("In the Palace they kept the " + rec.Palace.Object + ", because \"" + rec.Palace.Reason + "\". ");
+            if (rec.Grotto != null) kept.Append("In the Grotto they set the lamp to look at the " + rec.Grotto.LampSlot + ". ");
+            if (rec.VanGogh != null)
+            {
+                var c = rec.VanGogh.Color.ToUpperInvariant();
+                var paint = c == "#2F4F8F" ? "cobalt" : c == "#E3B33A" ? "chrome yellow" : c == "#3F5F2F" ? "cypress green" : "colour";
+                kept.Append("In the Van Gogh studio they painted one stroke in " + paint + ". ");
+            }
+            if (rec.Monet != null) kept.Append("In the Monet garden they stopped at " + rec.Monet.Reason + " at " + rec.Monet.Preset + ". ");
+            const string instructions =
+                "Write the visitor's own answer to the question they carried through a museum, as one sentence they could keep. " +
+                "First person or a plain statement, under 22 words, built from what they kept on the walk, answering the question directly. " +
+                "No quotation marks, no preamble, no summary of the walk.";
+            var text = await call.SendAsync(instructions,
+                "Question: " + rec.Question + "\nWhat they kept: " + kept + "\nThe masters' synthesis: " + synthesis,
+                ResponsesCall.TextFormat("draft", schema), raw =>
+                {
+                    try { var r = JsonUtility.FromJson<RewriteReply>(raw); return r != null && !string.IsNullOrWhiteSpace(r.answer) ? null : "empty"; }
+                    catch (System.Exception ex) { return ex.Message; }
+                });
+            return JsonUtility.FromJson<RewriteReply>(text).answer;
+        }
 
         static async System.Threading.Tasks.Task<string> RewriteLive(JourneyRecord rec, string draft)
         {
