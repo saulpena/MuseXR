@@ -316,6 +316,18 @@ namespace MusePico.Dialogue
 
         CancellationTokenSource _sayCancel;
 
+        /// <summary>True when lines can be voiced (a MiniMax key was found).</summary>
+        public bool HasVoice => _voiceService != null;
+
+        /// <summary>One line in one master's voice, as a clip, without playing it - so a caller can
+        /// fetch ahead and play it from where that master stands. Null without a voice key or on failure.</summary>
+        public async Task<AudioClip> VoiceAsync(string masterId, string text, CancellationToken ct = default)
+        {
+            if (_voiceService == null || string.IsNullOrWhiteSpace(text)) return null;
+            try { return await _voiceService.SpeakAsync(text, MasterRoster.Find(_roster, masterId), ct); }
+            catch (System.Exception ex) { Debug.LogWarning("[Dialogue] voice for " + masterId + " failed: " + ex.Message); return null; }
+        }
+
         /// <summary>
         /// Speak one line in one master's voice — the reply to the visitor's answer. Stops anything
         /// playing first, so exactly one voice is ever heard. Text-only (silently) without a voice key.

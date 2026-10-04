@@ -51,6 +51,12 @@ namespace MuseXR.Journey
         [System.Serializable] public class BakedAnswers { public List<BakedQuestion> items = new List<BakedQuestion>(); }
         bool _asking;
 
+        // Voices: each line is spoken in that master's MiniMax voice, from where the master stands.
+        // Fetched ahead (when the company is chosen) so a turn starts speaking at once.
+        readonly Dictionary<string, System.Threading.Tasks.Task<AudioClip>> _voices =
+            new Dictionary<string, System.Threading.Tasks.Task<AudioClip>>();
+        AudioSource _speaking;
+
         void Start()
         {
             if (gate == null) gate = FindAnyObjectByType<GateStage>();
@@ -130,6 +136,9 @@ namespace MuseXR.Journey
             // No preset: with Monet, Van Gogh and Socrates preselected a single A chose for the visitor
             // (headset test). Her demo preset is for the 3-minute demo route, not this walk.
             Company.Group.FollowVisitor = false;   // placed once beside the visitor, then they stand still
+            // With a voice the clip times each turn; without one, reading time does (EstimateSeconds).
+            Company.Group.TimeLinesByLength = dialogue == null || !dialogue.HasVoice;
+            Company.Group.LineStarted += (id, line) => StartCoroutine(SpeakTurn(id, line));
             AddFill(eye);
             if (!UseBaked(Company.Question)) _ = AskAll(Company.Question);
             gate.HidePrompt();   // the Gate is answered; its "hold X to speak" must not linger
@@ -278,6 +287,8 @@ namespace MuseXR.Journey
             // Asked when the doors opened (or baked): usually ready already. If a chosen master's line is
             // missing (the call failed), the stock line stands in rather than leaving the visitor waiting.
             if (!_asking) _answersReady = true;
+            foreach (var id in Company.Invitation.SpeakingOrder())
+                if (_lines.TryGetValue(id, out var l)) VoiceFor(id, l);   // fetch ahead while they step over
             await System.Threading.Tasks.Task.Yield();
             RefreshPrompt();
         }
@@ -290,6 +301,58 @@ namespace MuseXR.Journey
             var l = new GameObject("Companion Fill").AddComponent<Light>();
             l.transform.SetParent(eye, false);
             l.type = LightType.Point; l.intensity = 2.0f; l.range = 9f; l.color = Color.white; l.shadows = LightShadows.None;
+        }
+
+        /// <summary>The figure standing for a company member, or null.</summary>
+        public Transform FigureOf(string id) =>
+            Company != null && Company.Group.Figures.TryGetValue(id, out var f) ? f : null;
+
+        /// <summary>A line in <paramref name="id"/>'s voice, fetched once and cached.</summary>
+        public System.Threading.Tasks.Task<AudioClip> VoiceFor(string id, string text)
+        {
+            if (dialogue == null || !dialogue.HasVoice || string.IsNullOrWhiteSpace(text))
+                return System.Threading.Tasks.Task.FromResult<AudioClip>(null);
+            var key = id + "|" + text;
+            if (!_voices.TryGetValue(key, out var t)) _voices[key] = t = dialogue.VoiceAsync(RosterId(id), text);
+            return t;
+        }
+
+        /// <summary>
+        /// Speak <paramref name="text"/> in <paramref name="id"/>'s voice from their figure (a 3D source,
+        /// so the voice comes from the master). Stops whoever was speaking. Yields until the line is done;
+        /// returns at once when there is no voice.
+        /// </summary>
+        public System.Collections.IEnumerator Say(string id, string text)
+        {
+            var task = VoiceFor(id, text);
+            for (float t = 0f; !task.IsCompleted && t < 10f; t += Time.deltaTime) yield return null;
+            var clip = task.IsCompleted && !task.IsFaulted ? task.Result : null;
+            var figure = FigureOf(id);
+            if (clip == null || figure == null) yield break;
+            if (_speaking != null) _speaking.Stop();
+            var source = figure.GetComponent<AudioSource>();
+            if (source == null)
+            {
+                source = figure.gameObject.AddComponent<AudioSource>();
+                source.spatialBlend = 0.85f; source.minDistance = 2f; source.maxDistance = 25f;
+                source.rolloffMode = AudioRolloffMode.Linear; source.playOnAwake = false;
+            }
+            source.clip = clip; source.Play();
+            _speaking = source;
+            for (float t = 0f; t < clip.length + 0.3f && source != null && source.isPlaying; t += Time.deltaTime) yield return null;
+        }
+
+        System.Collections.IEnumerator SpeakTurn(string id, string line)
+        {
+            if (Company == null || Company.Group.TimeLinesByLength) yield break;
+            var started = Time.time;
+            yield return Say(id, line);
+            // No clip came back: hold the line for its reading time instead.
+            var voiced = VoiceFor(id, line);
+            if (!voiced.IsCompleted || voiced.IsFaulted || voiced.Result == null)
+                while (Time.time - started < CompanionGroup.EstimateSeconds(line)) yield return null;
+            var turns = Company != null ? Company.Group.Turns : null;
+            if (turns != null && turns.Speaker == id && turns.Current == TurnTaking.Phase.Speaking) Company.Group.LineFinished();
         }
 
         bool UseBaked(string question)

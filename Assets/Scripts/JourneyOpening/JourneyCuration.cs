@@ -32,6 +32,8 @@ namespace MuseXR.Journey
         public GateStage gate;
         [Tooltip("Assets/Prefabs/Moon Gate.prefab - the shared chapter transition (Docs/MOON-GATE.md)")]
         public MoonGate moonGatePrefab;
+        [Tooltip("The generated garden lantern (Assets/Art/Props/lantern.glb); primitives stand in without it.")]
+        public GameObject lanternModel;
         [Tooltip("Assets/Art/Doors/moon-gate.glb - her round moon gate")]
         public GameObject moonGateModel;
         [Tooltip("Everything of the Palace: its splat world, its chapter layout, its interactions. Inactive until the gate.")]
@@ -56,7 +58,9 @@ namespace MuseXR.Journey
             "Monet's garden changes by the hour - a room for asking what remains when the light moves on.",
         };
 
-        [System.NonSerialized] public float firstLantern = 6.5f, lanternStep = 2.6f;   // metres down the walk from the spawn
+        // Inside the pointer's 8 m reach from the spawn, all four (at 6.5 + 2.6 m steps three were beyond it,
+        // so pointing at them did nothing - headset test).
+        [System.NonSerialized] public float firstLantern = 3.6f, lanternStep = 1.3f;   // metres down the walk from the spawn
         static readonly float[] LanternOffsets = { 0f, -1.7f, 1.7f, -1.7f };   // metres across the walk
         const float ModelOpeningCentre = 2.02f;   // measured on the generated model (Docs/Doors/moon-gate.measure.txt)
         const float ModelOpeningRadius = 1.275f;
@@ -162,6 +166,8 @@ namespace MuseXR.Journey
             var from = gate.spawn.position;
             var toDoor = gate.Doorway - from; toDoor.y = 0f; toDoor.Normalize();
             var face = Quaternion.LookRotation(-toDoor, Vector3.up);   // a lantern's front toward the visitor
+            WalkAlongside();
+            for (var i = 0; i < 4; i++) { var sp = SpeakerFor(i); if (sp != null) opening.VoiceFor(sp, _lines[i]); }   // fetch ahead
             var side = Vector3.Cross(Vector3.up, toDoor).normalized;
             var warm = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
             warm.SetColor("_BaseColor", new Color(0.35f, 0.3f, 0.24f));
@@ -176,26 +182,38 @@ namespace MuseXR.Journey
                 var lantern = new GameObject("Lantern " + Chapters[i]).transform;
                 lantern.SetParent(transform, false);
                 lantern.SetPositionAndRotation(at, face);
-                Part(lantern, PrimitiveType.Cylinder, new Vector3(0f, 0.6f, 0f), new Vector3(0.06f, 0.6f, 0.06f), wood);       // post
-                var body = Part(lantern, PrimitiveType.Sphere, new Vector3(0f, 1.42f, 0f), new Vector3(0.42f, 0.52f, 0.42f), new Material(warm));   // a round paper lantern
-                Part(lantern, PrimitiveType.Cylinder, new Vector3(0f, 1.71f, 0f), new Vector3(0.2f, 0.03f, 0.2f), wood);       // cap
+                Transform body;
+                if (lanternModel != null)
+                {
+                    var model = Instantiate(lanternModel, lantern);
+                    model.transform.localPosition = Vector3.zero; model.transform.localRotation = Quaternion.identity;
+                    FitHeight(model.transform, LanternHeight);
+                    body = model.transform;
+                }
+                else
+                {
+                    Part(lantern, PrimitiveType.Cylinder, new Vector3(0f, 0.6f, 0f), new Vector3(0.06f, 0.6f, 0.06f), wood);       // post
+                    body = Part(lantern, PrimitiveType.Sphere, new Vector3(0f, 1.42f, 0f), new Vector3(0.42f, 0.52f, 0.42f), new Material(warm));
+                    Part(lantern, PrimitiveType.Cylinder, new Vector3(0f, 1.71f, 0f), new Vector3(0.2f, 0.03f, 0.2f), wood);       // cap
+                }
                 var light = new GameObject("Glow").AddComponent<Light>();
                 light.transform.SetParent(lantern, false); light.transform.localPosition = new Vector3(0f, 1.42f, 0f);
                 light.type = LightType.Point; light.range = 3.5f; light.intensity = 0f; light.color = new Color(1f, 0.78f, 0.45f);
                 var box = lantern.gameObject.AddComponent<BoxCollider>();
-                box.center = new Vector3(0f, 1.1f, 0f); box.size = new Vector3(0.6f, 2.2f, 0.6f);
+                box.center = new Vector3(0f, 1.1f, 0f); box.size = new Vector3(1.2f, 2.2f, 0.8f);   // the generated lantern hangs off its post
                 var index = i;
                 var p = Pointable.Make(lantern.gameObject, Keys[i]);
-                p.Selected += (_, __) => ShowCard(index);
-                p.Hovering += _ => body.GetComponent<Renderer>().material.SetColor("_BaseColor", new Color(1f, 0.86f, 0.62f));
-                p.Unhovered += _ => body.GetComponent<Renderer>().material.SetColor("_BaseColor", new Color(1f, 0.74f, 0.4f));
+                p.Selected += (_, __) => Hear(index);
+                p.Hovering += _ => light.intensity = 3.2f;     // brightens under the laser
+                p.Unhovered += _ => light.intensity = 1.6f;
                 Tag(lantern, Chapters[i], Subtitles[i]);
                 _lanterns.Add(lantern); _lights.Add(light);
                 // It lights: the paper warms and its glow comes up.
                 for (float t = 0f; t < 0.7f; t += Time.deltaTime)
                 {
                     var k = t / 0.7f;
-                    body.GetComponent<Renderer>().material.SetColor("_BaseColor", Color.Lerp(new Color(0.35f, 0.3f, 0.24f), new Color(1f, 0.74f, 0.4f), k));
+                    var bodyRenderer = lanternModel == null ? body.GetComponent<Renderer>() : null;
+                    if (bodyRenderer != null) bodyRenderer.material.SetColor("_BaseColor", Color.Lerp(new Color(0.35f, 0.3f, 0.24f), new Color(1f, 0.74f, 0.4f), k));
                     light.intensity = 1.6f * k;
                     yield return null;
                 }
@@ -205,6 +223,68 @@ namespace MuseXR.Journey
             _toDoor = toDoor;
             _awaitingWalkOn = true;
             ConfirmInput.Take(this);
+        }
+
+        const float LanternHeight = 1.9f;
+
+        static void FitHeight(Transform model, float metres)
+        {
+            var rs = model.GetComponentsInChildren<Renderer>();
+            if (rs.Length == 0) return;
+            var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds);
+            if (b.size.y > 1e-4f) model.localScale *= metres / b.size.y;
+            // Stand it on the ground whatever its origin: scale about the pivot moved the base.
+            b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds);
+            model.position += Vector3.up * (model.parent.position.y - b.min.y);
+        }
+
+        /// <summary>Which companion voices lantern <paramref name="i"/>: they take it in turn.</summary>
+        string SpeakerFor(int i)
+        {
+            var c = opening != null ? opening.Companions : null;
+            return c != null && c.Count > 0 ? c[i % c.Count] : null;
+        }
+
+        /// <summary>Pointing at a lantern: its line on the card, spoken by a companion beside the visitor.</summary>
+        void Hear(int index)
+        {
+            ShowCard(index);
+            var who = SpeakerFor(index);
+            if (who != null) StartCoroutine(opening.Say(who, _lines[index]));
+        }
+
+        /// <summary>
+        /// Her "companions take flank marks": once the answers are done the companions stand at the
+        /// visitor's sides, out of the view down the walk, and come along (re-marked at each teleport) so
+        /// the one who speaks a lantern's line is beside the visitor. Their invitation colliders go, so the
+        /// laser reaches the lanterns past them.
+        /// </summary>
+        void WalkAlongside()
+        {
+            var group = opening != null && opening.Company != null ? opening.Company.Group : null;
+            if (group == null) return;
+            foreach (var f in group.Figures.Values)
+            {
+                if (f == null) continue;
+                foreach (var c in f.GetComponentsInChildren<Collider>()) c.enabled = false;
+                foreach (var p in f.GetComponentsInChildren<Pointable>()) p.enabled = false;
+            }
+            group.MarkCandidates = Flank;
+            group.FollowVisitor = true;
+            group.PlaceAll();
+        }
+
+        static readonly CompanionMarks.Mark[] Flanks =
+            // Wide of the lanterns (within ~25 degrees of the walk) yet under CompanionGroup.BehindDegrees once
+            // the visitor glances aside, so they are not re-marked every time the head turns.
+            { new CompanionMarks.Mark(-52f, 1.6f), new CompanionMarks.Mark(52f, 1.6f), new CompanionMarks.Mark(-72f, 1.9f) };
+
+        static IEnumerable<CompanionMarks.Mark> Flank(int order)
+        {
+            var m = Flanks[Mathf.Clamp(order, 0, Flanks.Length - 1)];
+            yield return m;
+            yield return new CompanionMarks.Mark(m.Bearing, 1.1f);
+            yield return new CompanionMarks.Mark(-m.Bearing, m.Distance);
         }
 
         static Transform Part(Transform parent, PrimitiveType type, Vector3 pos, Vector3 scale, Material m)

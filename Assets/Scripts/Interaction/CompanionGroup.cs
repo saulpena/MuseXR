@@ -41,6 +41,9 @@ namespace MuseXR.Interaction
         /// that waits to be looked at left everyone silent until the visitor went looking for them.
         /// </summary>
         public bool FollowVisitor { get; set; } = true;
+        /// <summary>The marks to try for each speaking position; her answer-time marks by default. A
+        /// stage can stand the companions elsewhere (the walk puts them on the visitor's flanks).</summary>
+        public Func<int, IEnumerable<CompanionMarks.Mark>> MarkCandidates { get; set; } = CompanionMarks.Candidates;
         public IReadOnlyList<string> Ids => _ids;
         public IReadOnlyDictionary<string, Transform> Figures => _figures;
         public TurnTaking Turns { get; private set; }
@@ -99,7 +102,7 @@ namespace MuseXR.Interaction
             var eye = Head.position;
             var fwd = Flat(Head.forward);
             var floor = FloorBelow(eye);
-            foreach (var m in CompanionMarks.Candidates(order))
+            foreach (var m in MarkCandidates(order))
             {
                 var dir = Quaternion.Euler(0f, m.Bearing, 0f) * fwd;
                 var p = new Vector3(eye.x, floor, eye.z) + dir * m.Distance;
