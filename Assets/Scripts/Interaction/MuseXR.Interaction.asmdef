@@ -11,7 +11,9 @@
         "Unity.TextMeshPro",
         "Unity.XR.CoreUtils",
         "MusePico.Dialogue",
-        "GaussianSplatting"
+        "GaussianSplatting",
+        "MusePico.Tripo",
+        "MusePico.Generation"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

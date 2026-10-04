@@ -200,6 +200,25 @@ namespace MuseXR.Interaction
             return true;
         }
 
+        /// <summary>
+        /// Several masters, each with their own line, in the given order (the live readings that follow
+        /// an insight's opening), without touching the group's speaking order. False when busy.
+        /// </summary>
+        public bool SayInTurn(IReadOnlyList<KeyValuePair<string, string>> lines)
+        {
+            if (Busy || lines == null || lines.Count == 0) return false;
+            var ids = new List<string>(); var text = new Dictionary<string, string>();
+            foreach (var kv in lines) if (_figures.ContainsKey(kv.Key) && !text.ContainsKey(kv.Key)) { ids.Add(kv.Key); text[kv.Key] = kv.Value; }
+            if (ids.Count == 0) return false;
+            Turns = new TurnTaking(ids);
+            Turns.Started += sid => { var line = text[sid]; _lineLeft = EstimateSeconds(line); ActiveSpeaker = sid; LineStarted?.Invoke(sid, line); };
+            Turns.Ended += sid => { if (ActiveSpeaker == sid) ActiveSpeaker = null; LineEnded?.Invoke(sid); };
+            Turns.Finished += () => { ActiveSpeaker = null; TurnsFinished?.Invoke(); ConfirmInput.Drop(this); };
+            ConfirmInput.Take(this);
+            Turns.Begin();
+            return true;
+        }
+
         public void BeginTurns()
         {
             Turns = new TurnTaking(_ids);
