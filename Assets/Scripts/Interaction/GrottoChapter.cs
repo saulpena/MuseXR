@@ -39,7 +39,7 @@ namespace MuseXR.Interaction
         {
             var c = host.AddComponent<GrottoChapter>();
             c.Sockets = sockets; c.Group = group; c.Record = record ?? new JourneyRecord(); c.BuddhaRim = buddhaRim;
-            if (sockets != null) sockets.Cue += c.OnCue;
+            if (sockets != null) { sockets.Cue += c.OnCue; sockets.Confirmed += (_, piece, slot, yaw) => c.Keep(); }
             if (buddhaRim != null) buddhaRim.sharedMaterial.SetColor("_BaseColor", Color.black);
             return c;
         }
@@ -109,13 +109,25 @@ namespace MuseXR.Interaction
                 ChimePlayer.Play(ChimePlayer.RefuseClip(), transform.position, 0.5f);
                 return false;
             }
-            if (!Flow.CanSave || Sockets == null || !Sockets.Confirm()) return false;
+            if (!Flow.CanSave || Sockets == null) return false;
+            return Sockets.Confirm();   // the station's Confirmed event keeps it (Keep)
+        }
+
+        /// <summary>
+        /// The choice is kept, by whichever route confirmed it: A with this chapter in focus, A with the
+        /// station in focus, or the strip's Confirm pressed with the pointer. (Saul's headset run reached
+        /// "A keeps the lamp" and never saved - so the arch never rose - because only the first route
+        /// saved the chapter.)
+        /// </summary>
+        void Keep()
+        {
+            if (Flow.Current != GrottoFlow.Phase.Placed) return;
+            StopListening();
             Flow.Save();
             Record.SetGrotto(new JourneyRecord.GrottoChoice { LampSlot = Flow.LampSlot, ExhibitId = Flow.ExhibitId });
             ConfirmInput.Drop(this);
             Debug.Log("[Grotto] saved: grotto{lampSlot " + Flow.LampSlot + ", exhibitId " + Flow.ExhibitId + "}");
             Saved?.Invoke(Flow);
-            return true;
         }
 
         public bool Redo() => Sockets != null && Sockets.Redo();

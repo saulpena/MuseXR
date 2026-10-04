@@ -35,14 +35,13 @@ namespace MuseXR.Interaction
         public GameObject colliderModel;
 
         /// <summary>
-        /// The exit: a Moon Gate in the CAPTURE's own arch door (the grey door inside the cobalt-and-gold
-        /// arch), at (-20.85, 2.65, -29.95) facing yaw 218, keyhole r 1.45 / centre 3.2 / passage 2.9 -
-        /// measured 3 Oct 2026 from the collider (the recess 27.5 m deep along bearings 218.5 and 233.5
-        /// from two spots) and a capture against a 2.6 m marker. Nothing shows there until A keeps the
-        /// choice; then Van Gogh's studio appears inside the door. (A free-standing arch model at the
-        /// diagram's arch point read as "a random gate" in the headset - Saul: line it up with the mesh.)
+        /// The exit: a Moon Gate with its own carved arch (grotto-arch.glb, the gate's frame) on the
+        /// terrace's right, a few metres from the sockets. Nothing is there until A keeps the choice;
+        /// then the arch rises out of the floor with Van Gogh's studio already showing inside it.
+        /// (Saul, 3 Oct 2026: the capture's own arch door "looks too bad to use"; bring the gate back,
+        /// closer, and let me see the other world.)
         /// </summary>
-        [Tooltip("The Moon Gate in the capture's arch door, next world: Van Gogh's studio.")]
+        [Tooltip("The Moon Gate with the carved arch as its frame; next world: Van Gogh's studio.")]
         public MuseXR.Worlds.MoonGate arch;
 
         public GrottoChapter Chapter { get; private set; }
@@ -202,7 +201,7 @@ namespace MuseXR.Interaction
             var vis = GameObject.Find("Interaction Visuals"); if (vis != null) props.Add(vis);
             foreach (Transform c in transform) if (c != Companions.transform && c.gameObject != teleportFloor) props.Add(c.gameObject);
             if (_probe != null && _probe.Root != null) props.Add(_probe.Root.gameObject);
-            if (!arch.Open(here, props)) return;
+            if (!arch.Open(here, props, showNow: true)) return;
             Companions.StopTurns();
             Companions.FollowVisitor = true;
             arch.Crossed += () =>
@@ -304,7 +303,7 @@ namespace MuseXR.Interaction
                     text = "<b>A</b> keeps the lamp here.\nOr lift it out and set it on the other stand.";
                     break;
                 case Step.GoThrough:
-                    text = "The <b>arch</b> is open, far ahead on your right.\nTeleport onto the step in front of it to go through.";
+                    text = "An <b>arch</b> has risen on your right, with Van Gogh's studio inside it.\nTeleport onto the step in front of it to go through.";
                     if (arch != null) Ring(arch.transform.position - arch.transform.forward * (MuseXR.Worlds.MoonGate.StepDepth * 0.5f));
                     break;
             }
@@ -316,6 +315,10 @@ namespace MuseXR.Interaction
             if (head == null) return;
             var fwd = Flat(head.forward);
             var at = head.position + fwd * 1.6f + Vector3.up * -0.3f;
+            // When the arch rises, the visitor looks at it: the panel goes beside it, never across the
+            // opening (it covered Van Gogh's studio in the first capture).
+            if (step == Step.GoThrough && arch != null)
+                at = head.position + (Quaternion.Euler(0f, -35f, 0f) * fwd) * 1.6f + Vector3.up * -0.3f;   // close, off to the left
             _guide.SetPositionAndRotation(at, Quaternion.LookRotation(Flat(at - head.position), Vector3.up));
         }
 

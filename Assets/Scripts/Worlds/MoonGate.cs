@@ -37,6 +37,12 @@ namespace MuseXR.Worlds
         [Tooltip("Its key in WorldCatalog.Small, e.g. grotto-hall-of-time-500k: gives its scale, mirror and spawn.")]
         public string nextWorldKey;
 
+        [Tooltip("Optional: the gate's own frame (a model, kept inactive). It rises out of the floor when the gate opens. Leave empty when the capture's own ring is the frame.")]
+        public Transform frame;
+
+        /// <summary>How long the frame takes to rise, and the next world to open in it, when shown at once.</summary>
+        public const float RiseSeconds = 2.2f;
+
         /// <summary>The palace capture's gate: the defaults below.</summary>
         public const float Radius = 1.6f, CentreHeight = 2.3f, PassageWidth = 2.1f;
 
@@ -85,7 +91,7 @@ namespace MuseXR.Worlds
         /// it (move anything that should come along out of them first). Returns false, with a log
         /// saying what is missing, when the gate cannot open.
         /// </summary>
-        public bool Open(GaussianSplatRenderer currentWorld, IEnumerable<GameObject> currentWorldProps, Transform head = null)
+        public bool Open(GaussianSplatRenderer currentWorld, IEnumerable<GameObject> currentWorldProps, Transform head = null, bool showNow = false)
         {
             if (IsOpen) return true;
             NextDefinition = Find(nextWorldKey);
@@ -117,7 +123,8 @@ namespace MuseXR.Worlds
             float top = centreHeight + radius;
             Door.apertureSize = new Vector2(2f * radius, top);
             if (Door.aperture != null) Door.aperture.localPosition = new Vector3(0f, top * 0.5f, 0f);
-            Door.maskMesh = KeyholeMesh(radius, centreHeight, passageWidth);
+            _mask = KeyholeMesh(radius, centreHeight, passageWidth);
+            Door.maskMesh = _mask;
             if (Door.doorVisual != null) Door.doorVisual.gameObject.SetActive(false);
             Door.doorVisual = null; Door.leftLeaf = null; Door.rightLeaf = null;   // the capture's ring is the frame
             var eye = head != null ? head : (Camera.main != null ? Camera.main.transform : null);
@@ -130,6 +137,15 @@ namespace MuseXR.Worlds
             }
             Door.enabled = true;
             BuildPads();
+            if (frame != null) { frame.gameObject.SetActive(true); _rise = 0f; Rise(); }
+            if (showNow)
+            {
+                // Saul: a gate shows its next world at once - no look-to-trigger, no appear step. Set
+                // after enabling: SplatPortalDoor.OnEnable copies its own timings into the sequence.
+                Door.Sequence.AppearSeconds = 0.01f;
+                Door.Sequence.OpenSeconds = RiseSeconds;
+                Door.Sequence.RequestOpen();
+            }
             Debug.Log($"[MoonGate] open at {pose.position:F2} onto {NextDefinition.displayName}");
             return true;
         }
@@ -176,8 +192,31 @@ namespace MuseXR.Worlds
             if (had) body.enabled = true;
         }
 
+        float _rise = -1f;
+        Mesh _mask;
+
+        /// <summary>
+        /// The frame comes up out of the floor while the gate opens, and the opening the next world
+        /// shows through comes up WITH it: the keyhole is shifted down by the frame's depth below the
+        /// floor and cut off at floor level, so the world is only ever seen inside the part of the arch
+        /// already above ground. (A fixed opening showed the next world floating where the arch would
+        /// be, over a frame still rising - Saul, 3 Oct 2026.)
+        /// </summary>
+        void Rise()
+        {
+            if (frame == null || _rise < 0f) return;
+            _rise = Mathf.Min(1f, _rise + Time.deltaTime / RiseSeconds);
+            float e = 1f - (1f - _rise) * (1f - _rise);
+            float below = (centreHeight + radius + 0.3f) * (1f - e);
+            var p = frame.localPosition;
+            frame.localPosition = new Vector3(p.x, -below, p.z);
+            if (_mask != null) FillKeyhole(_mask, radius, centreHeight, passageWidth, below);
+            if (_rise >= 1f) _rise = -1f;
+        }
+
         void Update()
         {
+            Rise();
             StepThrough();
             if (Door == null) { if (_crossed && !_arrived) { _arrived = true; Arrived?.Invoke(); } return; }
             if (!_crossed && Door.HasCrossed) { _crossed = true; Crossed?.Invoke(); }
@@ -263,20 +302,53 @@ namespace MuseXR.Worlds
         /// </summary>
         public static Mesh KeyholeMesh(float r, float centre, float passage)
         {
-            float w = 2f * r, h = centre + r;
-            Vector3 U(float x, float y) => new Vector3(x / w, y / h - 0.5f, 0f);   // metres -> unit quad
-            var v = new List<Vector3>(); var tris = new List<int>();
-            const int n = 48;
-            v.Add(U(0f, centre));
-            for (var i = 0; i <= n; i++) { var a = 2f * Mathf.PI * i / n; v.Add(U(Mathf.Cos(a) * r, centre + Mathf.Sin(a) * r)); }
-            for (var i = 1; i <= n; i++) { tris.Add(0); tris.Add(i + 1); tris.Add(i); }
-            int q = v.Count;
-            float hw = Mathf.Min(passage, w) * 0.5f;
-            v.Add(U(-hw, 0f)); v.Add(U(hw, 0f)); v.Add(U(hw, centre)); v.Add(U(-hw, centre));
-            tris.AddRange(new[] { q, q + 2, q + 1, q, q + 3, q + 2 });
             var m = new Mesh { name = "Moon Gate Keyhole" };
-            m.SetVertices(v); m.SetTriangles(tris, 0); m.RecalculateBounds();
+            m.MarkDynamic();
+            FillKeyhole(m, r, centre, passage, 0f);
             return m;
+        }
+
+        /// <summary>
+        /// The keyhole shifted down by <paramref name="below"/> metres and cut off at the floor (y 0):
+        /// a disc and a passage, each a convex polygon clipped to y >= 0 and fanned.
+        /// </summary>
+        public static void FillKeyhole(Mesh m, float r, float centre, float passage, float below)
+        {
+            float w = 2f * r, h = centre + r;
+            Vector3 U(Vector2 p) => new Vector3(p.x / w, p.y / h - 0.5f, 0f);   // metres -> unit quad
+            var v = new List<Vector3>(); var tris = new List<int>();
+            void Add(List<Vector2> poly)
+            {
+                var c = ClipAboveFloor(poly);
+                if (c.Count < 3) return;
+                int b = v.Count;
+                foreach (var p in c) v.Add(U(p));
+                for (int i = 1; i < c.Count - 1; i++) { tris.Add(b); tris.Add(b + i + 1); tris.Add(b + i); }
+            }
+            const int n = 48;
+            var disc = new List<Vector2>();
+            for (int i = 0; i < n; i++) { var a = 2f * Mathf.PI * i / n; disc.Add(new Vector2(Mathf.Cos(a) * r, centre - below + Mathf.Sin(a) * r)); }
+            Add(disc);
+            float hw = Mathf.Min(passage, w) * 0.5f;
+            if (hw > 0f)
+                Add(new List<Vector2> { new Vector2(-hw, -below), new Vector2(hw, -below), new Vector2(hw, centre - below), new Vector2(-hw, centre - below) });
+            m.Clear();
+            m.SetVertices(v); m.SetTriangles(tris, 0);
+            m.bounds = new Bounds(Vector3.zero, new Vector3(1f, 1f, 0.01f));   // the unit quad, whatever is cut
+        }
+
+        /// <summary>A convex polygon clipped to y >= 0 (Sutherland-Hodgman, one edge).</summary>
+        static List<Vector2> ClipAboveFloor(List<Vector2> poly)
+        {
+            var o = new List<Vector2>();
+            for (int i = 0; i < poly.Count; i++)
+            {
+                var a = poly[i]; var b = poly[(i + 1) % poly.Count];
+                bool ain = a.y >= 0f, bin = b.y >= 0f;
+                if (ain) o.Add(a);
+                if (ain != bin) { float t = a.y / (a.y - b.y); o.Add(new Vector2(Mathf.Lerp(a.x, b.x, t), 0f)); }
+            }
+            return o;
         }
 
         /// <summary>True when a point (metres: x from the gate's axis, y up from the floor) is in the keyhole.</summary>
