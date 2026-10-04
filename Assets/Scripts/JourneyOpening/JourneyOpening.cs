@@ -248,17 +248,25 @@ namespace MuseXR.Journey
             var spawn = gate.spawn != null ? gate.spawn.position : centre + toVisitor * rowFromSpawn;
             var toRow = -toVisitor;
             var visitorRight = Vector3.Cross(Vector3.up, toRow).normalized;
-            // ~40 degrees right: outside the row's span (+/-27 degrees from the spawn), so it never covers a master.
-            var at = spawn + toRow * (PromptAhead - 0.8f) + visitorRight * 2.6f + Vector3.up * 1.4f;
+            // Centred over the row, above the name cards and above eye level: instructions stand above the
+            // view (Saul, 3 Oct). At 40 degrees right it hung half off the edge of the view (4 Oct).
+            var at = spawn + toRow * rowFromSpawn + Vector3.up * 2.85f;
             var toEye = spawn - at; toEye.y = 0f;
             anchor.SetPositionAndRotation(at, Quaternion.LookRotation(-toEye.normalized, Vector3.up));
-            var c = MuseUi.Canvas(anchor, "Prompt", PromptAhead, 380f);
-            var glass = MuseUi.Glass(c, 380f, gap: 8f);
-            MuseUi.Kicker(glass, "Invite companions", MuseTheme.Gold);
-            _promptTitle = MuseUi.Title(glass, "Choose up to three", 22f);
-            _promptHint = MuseUi.Body(glass, "");
-            var how = MuseUi.Row(glass, 10f);
-            MuseUi.Pill(how, "A", "Continue", true);
+            // Her web dark glass (as the Gate's question panel): cream ink, lavender eyebrow, Gilda title.
+            var cream = new Color32(238, 233, 223, 255); var cream2 = new Color32(238, 233, 223, 170);
+            var accent = new Color32(158, 135, 170, 255);
+            var c = MuseUi.Canvas(anchor, "Prompt", rowFromSpawn, 520f);
+            var glass = MuseUi.Card(c, new Color32(8, 6, 10, 196), 0f, new Color32(238, 233, 223, 46), 1f, padX: 26f, padY: 20f, gap: 8f, name: "Glass");
+            MuseUi.Text(glass, "02 / Invite companions", MuseUi.Face.Sans, 10f, accent, 0.28f, true, name: "Eyebrow");
+            _promptTitle = MuseUi.Text(glass, "Choose up to three", MuseUi.Face.Serif, 30f, cream, lineHeight: 1.1f, name: "Title");
+            var fonts = MuseFonts.Get();
+            if (fonts != null && fonts.display != null) _promptTitle.font = fonts.display;
+            _promptHint = MuseUi.Text(glass, "", MuseUi.Face.Sans, 13f, cream2, name: "Body");
+            var pill = MuseUi.Card(glass, new Color32(56, 48, 61, 160), 18f, new Color32(238, 233, 223, 107), 1f, padX: 16f, padY: 9f, name: "Continue");
+            pill.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 0f;
+            glass.GetComponent<UnityEngine.UI.VerticalLayoutGroup>().childForceExpandWidth = false;
+            MuseUi.Text(pill, "A  \u00b7  Continue", MuseUi.Face.Sans, 10f, cream, 0.2f, true, name: "Label").enableWordWrapping = false;
             _prompt = anchor.gameObject;
         }
 

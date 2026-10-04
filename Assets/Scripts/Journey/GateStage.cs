@@ -434,8 +434,8 @@ namespace MusePico.Journey
         static readonly Color WebLine = new Color32(238, 233, 223, 46);    // 0.18
         static readonly Color WebLineStrong = new Color32(238, 233, 223, 107);   // 0.42
         static readonly Color WebAccent = new Color32(158, 135, 170, 255);
-        static readonly Color WebGlass = new Color32(8, 6, 10, 122);       // 0.48
-        static readonly Color WebDim = new Color32(8, 6, 10, 84);          // her screen dim behind the copy
+        static readonly Color WebGlass = new Color32(8, 6, 10, 196);       // her 0.48, darkened for the headset (Saul, 4 Oct)
+        static readonly Color WebDim = new Color32(8, 6, 10, 160);         // her screen dim behind the copy, darker to read
         static readonly Color WebButton = new Color32(56, 48, 61, 131);
         static readonly Color LandingInk = new Color32(44, 36, 31, 255);
         static readonly Color LandingInk2 = new Color32(72, 62, 54, 255);
@@ -473,7 +473,7 @@ namespace MusePico.Journey
             lc.GetComponent<VerticalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;
             // A soft pale ground under her dark copy: in the headset the pavilion behind it is as busy as
             // her hero image, and the title went unread over it.
-            var col = MuseUi.Card(lc, new Color32(247, 242, 233, 150), 18f, null, 0f, padX: 40f, padY: 34f, gap: 10f, name: "Landing Copy");
+            var col = MuseUi.Card(lc, new Color32(247, 242, 233, 215), 18f, null, 0f, padX: 40f, padY: 34f, gap: 10f, name: "Landing Copy");
             col.GetComponent<VerticalLayoutGroup>().childAlignment = TextAnchor.UpperCenter;
             var e = WebText(col, "A living archive beyond time", false, 10f, LandingInk2, 0.28f, true, name: "Eyebrow");
             e.alignment = TextAlignmentOptions.Center;
@@ -486,17 +486,18 @@ namespace MusePico.Journey
             var row = MuseUi.Row(col, 22f, TextAnchor.MiddleCenter, "Enter Row");
             var rowLayout = row.GetComponent<HorizontalLayoutGroup>();
             rowLayout.childForceExpandWidth = false; rowLayout.childControlWidth = true;   // the ENTER disc keeps its round 88 px
-            var enter = MuseUi.Card(row, new Color32(238, 233, 223, 225), 44f, null, 0f, padX: 0f, padY: 0f, name: "Enter");
+            // Dark on the pale ground: her cream disc vanished once the panel behind it was made opaque.
+            var enter = MuseUi.Card(row, new Color32(44, 36, 31, 235), 44f, null, 0f, padX: 0f, padY: 0f, name: "Enter");
             var ele = enter.gameObject.AddComponent<LayoutElement>(); ele.preferredWidth = 88f; ele.preferredHeight = 88f;
             ele.minWidth = 88f; ele.minHeight = 88f; ele.flexibleWidth = 0f;
             enter.GetComponent<VerticalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;
             enter.GetComponent<VerticalLayoutGroup>().childControlHeight = false;
-            var et = WebText(enter, "Enter", false, 9f, LandingInk2, 0.2f, true, name: "Label");
+            var et = WebText(enter, "Enter", false, 9f, WebInk, 0.2f, true, name: "Label");
             et.alignment = TextAlignmentOptions.Center;
             var how = WebText(row, "Point and pull the trigger to cross", false, 9f, LandingInk2, 0.2f, true, name: "How");
             how.enableWordWrapping = false;
             var enterEdge = enter.GetComponent<Image>();
-            _clickables.Add((enter, EnterMuseum, enterEdge, enterEdge.color, Color.white));
+            _clickables.Add((enter, EnterMuseum, enterEdge, enterEdge.color, (Color)WebAccent));
 
             // The question screen: her copy on the left, her dark glass question panel on the right.
             var qa = new GameObject("Gate Prompt").transform;
@@ -628,6 +629,10 @@ namespace MusePico.Journey
             var index = -1;
             for (var k = 0; k < GateFlow.Samples.Count; k++) if (GateFlow.Samples[k] == q) index = k;
             if (index >= 0) Flow.ChooseSample(index); else Flow.SetSpoken(q);
+            // Her undo bar exists for a choice made by pointing at a card; this button is already a
+            // deliberate confirm. Waiting it out left the question screen up for 3 s with the arch's
+            // lettering showing through it (headset test, 4 Oct). The doors open now.
+            Flow.Tick(GateFlow.UndoSeconds + 0.01f);
             Buzz(0.3f, 0.06f);
         }
 
