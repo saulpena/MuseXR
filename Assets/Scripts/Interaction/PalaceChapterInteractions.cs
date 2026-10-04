@@ -63,6 +63,9 @@ namespace MuseXR.Interaction
                                   CompassTarget.Add(turtle.gameObject, 21, "Turtle: grip to lift it"),
                                   CompassTarget.Add(courtT.gameObject, 22, "The miniature court: set it here") };
             Court.Cue += (s, e) => { if (e.Cue == SlotCue.Placed) foreach (var t in targets) t.MarkDone(); };
+            // The rule: every interactable object - click it or walk up to it, and a master speaks.
+            InsightTarget.Add(crane.gameObject, "the bronze crane");
+            InsightTarget.Add(turtle.gameObject, "the bronze turtle");
 
             // The companions where her diagram stands them; they answer in turn, they do not walk.
             // Her diagram has three marks (named for the demo trio); the visitor's chosen companions stand

@@ -87,6 +87,7 @@ namespace MuseXR.Interaction
             var target = CompassTarget.Add(go, CompassOrder, record.title);
             var p = Pointable.Make(go, record.id);
             p.Selected += (_, __) => target.MarkDone();
+            InsightTarget.Add(go, record.title, record.artist, record.id);   // click or walk up: a master's insight
             Hung.Add(go.transform);
         }
 

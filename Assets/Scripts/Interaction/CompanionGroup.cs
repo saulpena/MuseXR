@@ -181,6 +181,25 @@ namespace MuseXR.Interaction
         // ---- turns ---------------------------------------------------------------------
 
         /// <summary>Each in turn answers. Lines start only when the gaze gate is open.</summary>
+        /// <summary>True while a round of turns (or a single line) is under way.</summary>
+        public bool Busy => Turns != null && Turns.Current != TurnTaking.Phase.Done;
+
+        /// <summary>
+        /// One master says one line (an insight about something the visitor clicked or walked up to),
+        /// without touching the group's speaking order. False when the group is already speaking.
+        /// </summary>
+        public bool Say(string id, string line)
+        {
+            if (Busy || id == null || !_figures.ContainsKey(id)) return false;
+            Turns = new TurnTaking(new[] { id });
+            Turns.Started += sid => { _lineLeft = EstimateSeconds(line); ActiveSpeaker = sid; LineStarted?.Invoke(sid, line); };
+            Turns.Ended += sid => { if (ActiveSpeaker == sid) ActiveSpeaker = null; LineEnded?.Invoke(sid); };
+            Turns.Finished += () => { ActiveSpeaker = null; TurnsFinished?.Invoke(); ConfirmInput.Drop(this); };
+            ConfirmInput.Take(this);
+            Turns.Begin();
+            return true;
+        }
+
         public void BeginTurns()
         {
             Turns = new TurnTaking(_ids);

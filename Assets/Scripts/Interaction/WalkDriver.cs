@@ -25,7 +25,8 @@ namespace MuseXR.Interaction
         {
             var origin = FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>();
             if (origin == null) { Debug.LogError("[Walk] no XR Origin"); return null; }
-            var w = origin.GetComponent<WalkDriver>() ?? origin.gameObject.AddComponent<WalkDriver>();
+            var w = origin.GetComponent<WalkDriver>();
+            if (w == null) w = origin.gameObject.AddComponent<WalkDriver>();   // not ??: Unity's fake null defeats it
             w._body = origin.GetComponent<CharacterController>();
             w._eye = origin.Camera != null ? origin.Camera.transform : null;
             // No headset driving the eye: hold it at standing height over the body.

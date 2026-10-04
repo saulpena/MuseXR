@@ -136,6 +136,15 @@ namespace MuseXR.Interaction
             var stands = new[] { CompassTarget.Add(Find("Detail Post").gameObject, 22, "DETAIL: set the lamp by the relief"),
                                  CompassTarget.Add(Find("Whole Post").gameObject, 22, "WHOLE: set the lamp at the rail") };
             Sockets.Cue += (s, e) => { if (e.Cue == SlotCue.Placed) foreach (var t in stands) t.MarkDone(); };
+            // The rule: every painting and interactable object - click it or walk up to it, and a master speaks.
+            InsightTarget.Add(Lamp.gameObject, "the brass lamp");
+            InsightTarget.Add(relief.gameObject, "the niche relief");
+            foreach (var booth in new[] { ("Work Gandhara", "Buddha Worshipped by the Gods Indra and Brahma", "a Gandharan sculptor"),
+                                           ("Work Tang / N. Wei", "Buddha Dipankara (Randengfo)", "a Northern Wei sculptor") })
+            {
+                var w = Find(booth.Item1);
+                if (w != null) InsightTarget.Add(w.gameObject, booth.Item2, booth.Item3);
+            }
 
             // The companions where her diagram stands them.
             var figures = new Dictionary<string, Transform>();
