@@ -30,7 +30,8 @@ namespace MusePico.Tests
             inv.Toggle(Masters.Monet);
             Assert.AreEqual(Invitation.Result.Removed, inv.Toggle(Masters.Monet));
             Assert.IsFalse(inv.CanProceed, "at least one is needed");
-            Assert.AreEqual(Invitation.Result.Unknown, inv.Toggle("picasso"), "Picasso is not in her six");
+            Assert.AreEqual(Invitation.Result.Unknown, inv.Toggle("rembrandt"), "only her seven can be invited");
+            Assert.AreEqual(Invitation.Result.Added, inv.Toggle(Masters.Picasso), "Picasso is her seventh (updated script, 2 Oct 2026)");
         }
 
         [Test]

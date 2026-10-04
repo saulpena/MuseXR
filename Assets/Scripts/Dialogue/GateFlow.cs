@@ -21,13 +21,15 @@ namespace MusePico.Dialogue
     {
         public enum Phase { Asking, Chosen, DoorsOpen, Entered }
 
-        /// <summary>Her demo route preselects "What is worth keeping?"; it leads, then her three.</summary>
+        /// <summary>
+        /// Her updated script's three samples (MUSE-VR-design, 2 Oct 2026: "Which question do you bring
+        /// in?"), the fourth choice being "hold X and say your own". The first is her sample question.
+        /// </summary>
         public static readonly IReadOnlyList<string> Samples = new List<string>
         {
-            "What is worth keeping?",
-            "What makes a life meaningful?",
-            "How do I live with uncertainty?",
-            "What should I keep, and what should I let go?",
+            "What makes a life not wasted?",
+            "Of what I inherited, what is worth keeping?",
+            "What should I give my attention to?",
         };
 
         /// <summary>Her question box's limit, kept for a spoken question too.</summary>

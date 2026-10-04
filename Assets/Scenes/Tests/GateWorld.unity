@@ -27713,7 +27713,7 @@ MonoBehaviour:
   colliderModel: {fileID: 0}
   placements:
   - id: aic-153799
-    centre: {x: 1.98, y: 1.68, z: -10.66}
+    centre: {x: 1.98, y: 1.68, z: -9.5}
     facing: {x: -0.5144958, y: 0, z: 0.8574929}
     canvas: {x: 1.5, y: 1.2}
     frame: 1
@@ -27727,7 +27727,7 @@ MonoBehaviour:
     fill: 0
     focus: {x: 0.5, y: 0.5}
   - id: aic-110541
-    centre: {x: -4.42, y: 1.68, z: -10.66}
+    centre: {x: -4.42, y: 1.68, z: -9.5}
     facing: {x: 0.5144958, y: 0, z: 0.8574929}
     canvas: {x: 1.5, y: 1.2}
     frame: 1
@@ -47200,6 +47200,7 @@ MonoBehaviour:
   - {fileID: 4664059452461548926, guid: 21c92ce5e614ed94da179c4d98a6efbf, type: 3}
   - {fileID: 6362938111295130812, guid: e8e8971525a6232449307099b8985836, type: 3}
   - {fileID: 877883006234443122, guid: aed9027bc57a41446bed8bc4404640fb, type: 3}
+  - {fileID: 952408336300097814, guid: d13722da93a02dc4fbbd9fe19466a6fe, type: 3}
   - {fileID: 6247701199534488515, guid: ba34f1486a6b64841ac982cbc8a0f390, type: 3}
   - {fileID: 2907023117038674840, guid: a7aeb4138e710e04c9e00f62dc37db54, type: 3}
 --- !u!4 &1561913102

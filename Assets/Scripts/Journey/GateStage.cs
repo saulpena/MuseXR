@@ -439,7 +439,7 @@ namespace MusePico.Journey
         static readonly Color WebButton = new Color32(56, 48, 61, 131);
         static readonly Color LandingInk = new Color32(44, 36, 31, 255);
         static readonly Color LandingInk2 = new Color32(72, 62, 54, 255);
-        const string Placeholder = "What makes a life meaningful?";
+        const string Placeholder = "What makes a life not wasted?";   // her updated script's sample question
         const float ScreenDistance = 2.6f;
 
         GameObject _landing;
@@ -513,7 +513,7 @@ namespace MusePico.Journey
             var left = MuseUi.Column(cols, 14f, "Copy");
             left.gameObject.AddComponent<LayoutElement>().preferredWidth = 400f;
             WebText(left, "01 / Begin with your life", false, 10f, WebAccent, 0.28f, true, name: "Eyebrow");
-            _promptTitle = WebText(left, "What question are you carrying?", true, 64f, WebInk, 0f, false, 1.05f, "Title");
+            _promptTitle = WebText(left, "Which question do you bring in?", true, 64f, WebInk, 0f, false, 1.05f, "Title");
             WebText(left, "There is no correct question. The museum will use it as the curatorial thread connecting every artwork, companion and space.",
                     false, 14f, WebInk2, 0f, false, 1.5f, "Lede");
 
@@ -522,7 +522,7 @@ namespace MusePico.Journey
             WebText(panel, "Your question", false, 8f, WebAccent, 0.22f, true, name: "Label");
             _draftText = WebText(panel, Placeholder, true, 40f, WebInkFaint, 0f, false, 1.15f, "Question");
             var chips = MuseUi.Row(panel, 8f, TextAnchor.MiddleLeft, "Chips");
-            for (var k = 1; k < GateFlow.Samples.Count; k++)   // her three web samples
+            for (var k = 0; k < GateFlow.Samples.Count; k++)   // her three samples (MUSE-VR-design, 2 Oct 2026)
             {
                 var q = GateFlow.Samples[k];
                 var chip = MuseUi.Card(chips, new Color(0f, 0f, 0f, 0f), 0f, WebLine, 1f, padX: 10f, padY: 8f, name: "Chip");
@@ -746,7 +746,7 @@ namespace MusePico.Journey
             {
                 GateFlow.Phase.DoorsOpen => "The doors are open",
                 GateFlow.Phase.Chosen => "Your question is above the doors",
-                _ => "What question are you carrying?",
+                _ => "Which question do you bring in?",
             };
             string hint = Flow.Current switch
             {

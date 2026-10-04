@@ -49,14 +49,20 @@ namespace MuseXR.Journey
         static readonly string[] Keys = { "palace", "grotto", "vangogh", "monet" };
         static readonly string[] Subtitles = { "Court of Keeping", "Hall of Time", "Studio of the Burning Sky", "Garden of Water and Light" };
 
-        /// <summary>Her local fallback: written lines that fit any question, always labelled as fallback.</summary>
-        static readonly string[] Fallback =
+        /// <summary>
+        /// Her updated script's lantern lines (MUSE-VR-design, 2 Oct 2026), fixed: the path the question
+        /// takes, the same for every question - so no model call, nothing to label as a fallback.
+        /// </summary>
+        public static readonly string[] HerLines =
         {
-            "The Palace keeps what an empire chose to hold on to - a room for asking what deserves keeping.",
-            "The Grotto carves its Buddhas to outlast their makers - a room for asking what lasts.",
-            "Van Gogh's studio burns with what he could not leave unsaid - a room for asking what presses on you.",
-            "Monet's garden changes by the hour - a room for asking what remains when the light moves on.",
+            "Stop 1 · The Palace · first, what you inherited from others",
+            "Stop 2 · The Grotto · then, yourself against a much longer time",
+            "Stop 3 · The Van Gogh studio · turning feeling into something you make",
+            "Stop 4 · The Monet garden · finally, deciding what is worth stopping for",
         };
+
+        /// <summary>A lantern's line as a master says it: her middots read as pauses.</summary>
+        static string Spoken(string line) => line.Replace(" · ", ", ") + ".";
 
         // Inside the pointer's 8 m reach from the spawn, all four (at 6.5 + 2.6 m steps three were beyond it,
         // so pointing at them did nothing - headset test).
@@ -90,9 +96,9 @@ namespace MuseXR.Journey
         {
             if (opening == null) opening = FindAnyObjectByType<JourneyOpening>();
             if (gate == null) gate = FindAnyObjectByType<GateStage>();
-            for (var i = 0; i < 4; i++) _lines[i] = Fallback[i];
+            for (var i = 0; i < 4; i++) _lines[i] = HerLines[i];
+            _fallback = false;   // her script, not a stand-in
             if (palaceFrame != null) palaceFrame.gameObject.SetActive(false);
-            if (gate != null) gate.Flow.PhaseChanged += p => { if (p == GateFlow.Phase.DoorsOpen) PrepareLines(gate.Flow.Question); };
         }
 
         void Update()
@@ -171,7 +177,7 @@ namespace MuseXR.Journey
             var toDoor = gate.Doorway - from; toDoor.y = 0f; toDoor.Normalize();
             var face = Quaternion.LookRotation(-toDoor, Vector3.up);   // a lantern's front toward the visitor
             WalkAlongside();
-            for (var i = 0; i < 4; i++) { var sp = SpeakerFor(i); if (sp != null) opening.VoiceFor(sp, _lines[i]); }   // fetch ahead
+            for (var i = 0; i < 4; i++) { var sp = SpeakerFor(i); if (sp != null) opening.VoiceFor(sp, Spoken(_lines[i])); }   // fetch ahead
             var side = Vector3.Cross(Vector3.up, toDoor).normalized;
             var warm = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
             warm.SetColor("_BaseColor", new Color(0.35f, 0.3f, 0.24f));
@@ -278,7 +284,7 @@ namespace MuseXR.Journey
         {
             ShowCard(index);
             var who = SpeakerFor(index);
-            if (who != null) StartCoroutine(opening.Say(who, _lines[index]));
+            if (who != null) StartCoroutine(opening.Say(who, Spoken(_lines[index])));
         }
 
         /// <summary>
@@ -447,7 +453,7 @@ namespace MuseXR.Journey
             {
                 _cardKicker.text = "Palace  ·  Court of Keeping";
                 _cardLine.text = "The Palace lantern becomes a moon gate";
-                _cardNote.text = "Walk or teleport through it with your companions.";
+                _cardNote.text = "Walk through the moon gate. The exhibition begins.";
                 PlaceCard();
             }
 

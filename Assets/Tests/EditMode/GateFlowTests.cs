@@ -6,10 +6,10 @@ namespace MusePico.Tests
     public class GateFlowTests
     {
         [Test]
-        public void HerDemoQuestionLeadsTheSamples()
+        public void HerSampleQuestionLeadsHerThree()
         {
-            Assert.AreEqual("What is worth keeping?", GateFlow.Samples[0]);
-            Assert.AreEqual(4, GateFlow.Samples.Count);
+            Assert.AreEqual("What makes a life not wasted?", GateFlow.Samples[0]);
+            Assert.AreEqual(3, GateFlow.Samples.Count);
         }
 
         [Test]
@@ -18,7 +18,7 @@ namespace MusePico.Tests
             var g = new GateFlow();
             g.ChooseSample(0);
             Assert.AreEqual(GateFlow.Phase.Chosen, g.Current);
-            Assert.AreEqual("“What is worth keeping?”", GateFlow.Lettering(g.Question));
+            Assert.AreEqual("“What makes a life not wasted?”", GateFlow.Lettering(g.Question));
             g.Tick(2.9f);
             Assert.AreEqual(GateFlow.Phase.Chosen, g.Current, "doors stay shut during the 3 s undo bar");
             g.Tick(0.2f);
@@ -77,7 +77,7 @@ namespace MusePico.Tests
             Assert.IsTrue(g.Enter());
             Assert.AreEqual(GateFlow.Phase.Entered, g.Current);
             g.ChooseSample(2);
-            Assert.AreEqual("What is worth keeping?", g.Question, "nothing changes once through the doors");
+            Assert.AreEqual("What makes a life not wasted?", g.Question, "nothing changes once through the doors");
         }
 
         [Test]

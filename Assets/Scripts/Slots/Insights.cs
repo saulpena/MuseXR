@@ -60,6 +60,7 @@ namespace MuseXR.Slots
             { Masters.Socrates, "Tell me—when you look at “{title}”, do you see what {artist} made, or only what you were already prepared to find?" },
             { Masters.Monet, "Stand closer. “{title}” is not an object—it is a record of light deciding, moment by moment, what to become." },
             { Masters.VanGogh, "I cannot look at “{title}” calmly. Every mark insists that being alive is an urgent thing." },
+            { Masters.Picasso, "Ask what “{title}” refused to show you. That refusal is where the painting actually lives." },
             { Masters.Frida, "“{title}” does not ask for your pity. It asks whether you have ever turned a wound into something that can speak." },
             { Masters.Hilma, "Look past the surface of “{title}”. Beneath every appearance there is a structure the painter felt before anyone could see it." },
             { Masters.Morisot, "Notice the quiet in “{title}”. The revolution is here—in attention paid to what everyone else walks past." },

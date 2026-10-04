@@ -3,13 +3,16 @@ using System.Collections.Generic;
 
 namespace MuseXR.Slots
 {
-    /// <summary>The six masters of her Company stage, in her row order.</summary>
+    /// <summary>
+    /// The seven masters of her Company stage, in the order her updated script (MUSE-VR-design, 2 Oct
+    /// 2026) lists them: Monet, Van Gogh, Socrates, Frida, Picasso, Hilma, Morisot.
+    /// </summary>
     public static class Masters
     {
         public const string Monet = "monet", VanGogh = "van_gogh", Socrates = "socrates",
-                            Frida = "frida_kahlo", Hilma = "hilma_af_klint", Morisot = "berthe_morisot";
+                            Frida = "frida_kahlo", Picasso = "picasso", Hilma = "hilma_af_klint", Morisot = "berthe_morisot";
 
-        public static readonly IReadOnlyList<string> Row = new[] { Monet, VanGogh, Socrates, Frida, Hilma, Morisot };
+        public static readonly IReadOnlyList<string> Row = new[] { Monet, VanGogh, Socrates, Frida, Picasso, Hilma, Morisot };
 
         /// <summary>Her demo preset: Monet, Van Gogh, Socrates.</summary>
         public static readonly IReadOnlyList<string> DefaultTrio = new[] { Monet, VanGogh, Socrates };
@@ -21,13 +24,38 @@ namespace MuseXR.Slots
         public static string Name(string id) => id switch
         {
             Monet => "Claude Monet", VanGogh => "Vincent van Gogh", Socrates => "Socrates",
-            Frida => "Frida Kahlo", Hilma => "Hilma af Klint", Morisot => "Berthe Morisot", _ => id,
+            Frida => "Frida Kahlo", Picasso => "Pablo Picasso", Hilma => "Hilma af Klint", Morisot => "Berthe Morisot", _ => id,
+        };
+
+        /// <summary>Her picker label for each master ("Who walks with you? Choose up to three").</summary>
+        public static string Tagline(string id) => id switch
+        {
+            Monet => "how light changes", VanGogh => "turning feeling into making", Socrates => "asking for reasons",
+            Frida => "body and memory", Picasso => "taking it apart", Hilma => "the unseen order",
+            Morisot => "intimacy at the threshold", _ => string.Empty,
+        };
+
+        /// <summary>
+        /// The one-line introduction a master gives when first pointed at at the Gate. Her script calls
+        /// for one but does not write them: these are ours, each built on her picker label and the
+        /// master's lens (museumAssets.js), and like every companion line they are AI interpretation.
+        /// </summary>
+        public static string Intro(string id) => id switch
+        {
+            Monet => "I watch one thing until the light changes it, and then I watch it again.",
+            VanGogh => "Whatever presses on your chest, I will help you make it into something you can see.",
+            Socrates => "I will not give you answers. I will ask you for your reasons.",
+            Frida => "I paint the body and what it remembers, the wound included.",
+            Picasso => "Take it apart. I will show you what survives.",
+            Hilma => "Behind everything you see there is an order. That is what I paint.",
+            Morisot => "I stand at the threshold of quiet rooms and look at what everyone walks past.",
+            _ => string.Empty,
         };
 
         /// <summary>Her speaker colours (§3.4). The three she did not colour have none yet (Q4).</summary>
         public static string Colour(string id) => id switch
         {
-            Monet => "#5f9c92", VanGogh => "#c4952f", Socrates => "#7b7266", _ => "#8a8580",
+            Monet => "#5f9c92", VanGogh => "#c4952f", Socrates => "#7b7266", Picasso => "#b76c66", _ => "#8a8580",
         };
 
         /// <summary>

@@ -22,13 +22,15 @@ namespace MuseXR.Journey
     {
         public GateStage gate;
         public MuseumDialogue dialogue;
-        [Tooltip("The six masters in her row order: Monet, Van Gogh, Socrates, Frida, Hilma, Morisot.")]
-        public GameObject[] masterPrefabs = new GameObject[6];
+        [Tooltip("The seven masters in her row order: Monet, Van Gogh, Socrates, Frida, Picasso, Hilma, Morisot.")]
+        public GameObject[] masterPrefabs = new GameObject[7];
 
         [Tooltip("How far down the walk from the Gate spawn the row stands. A Marble capture is sharp only within ~15 m of its centre; the doors are ~50 m out, in its fog.")]
         [System.NonSerialized] public float rowFromSpawn = 4.5f;   // inside the pointer's 8 m reach for every master; not serialized (a scene copy beat the code default)
         // A shallow arc around the spawn, 11 degrees apart (~0.85 m): six in a straight 6 m line stood in
         // the walk's walls at both ends (headset test, 3 Oct). Each faces the spawn.
+        // Seven at 11 degrees span 66: wider and the end masters stood behind the walk's Pissarros. Their
+        // name cards, wider with her labels, alternate in height instead so they never overlap (4 Oct).
         [System.NonSerialized] public float rowDegrees = 11f;
 
         public CompanyStage Company { get; private set; }
@@ -44,6 +46,7 @@ namespace MuseXR.Journey
             new Dictionary<string, (MeshRenderer, TextMeshProUGUI)>();
         Material _ringIdle, _ringChosen, _ringHover;
         readonly HashSet<string> _hovered = new HashSet<string>();
+        readonly HashSet<string> _introduced = new HashSet<string>();
 
         // Her four sample questions are answered ahead of time and shipped (Resources/OpeningAnswers.json),
         // so the masters speak at once; any other question is asked the moment the doors open, for all
@@ -124,7 +127,7 @@ namespace MuseXR.Journey
                 var id = Masters.Row[i];
                 var slot = new GameObject("Standee " + id).transform;
                 slot.SetParent(root, false);
-                var dir = Quaternion.Euler(0f, (i - 2.5f) * rowDegrees, 0f) * toDoor;
+                var dir = Quaternion.Euler(0f, (i - (Masters.Row.Count - 1) * 0.5f) * rowDegrees, 0f) * toDoor;
                 var at = from + dir * rowFromSpawn; at.y = from.y;
                 slot.SetPositionAndRotation(at, Quaternion.LookRotation(-dir, Vector3.up));
                 var prefab = i < masterPrefabs.Length ? masterPrefabs[i] : null;
@@ -166,7 +169,16 @@ namespace MuseXR.Journey
                 var pointable = kv.Value.GetComponent<Pointable>();
                 if (pointable == null) continue;
                 var id = kv.Key;
-                pointable.Hovering += _ => { _hovered.Add(id); RefreshMarks(); };
+                pointable.Hovering += _ =>
+                {
+                    _hovered.Add(id); RefreshMarks();
+                    // Her "point at one to hear a one-line introduction": once each, while choosing.
+                    if (Company.Current == CompanyStage.Phase.Choosing && _introduced.Add(id))
+                    {
+                        var intro = Masters.Intro(id);
+                        if (!string.IsNullOrEmpty(intro)) StartCoroutine(Say(id, intro, "Meet your companion  ·  " + Masters.Tagline(id)));
+                    }
+                };
                 pointable.Unhovered += _ => { _hovered.Remove(id); RefreshMarks(); };
             }
             Company.Toggled += (id, r) =>
@@ -197,13 +209,17 @@ namespace MuseXR.Journey
             // The name and the state, fixed in the world, set once toward where the visitor stands.
             var tag = new GameObject("Name").transform;
             tag.SetParent(slot, false);
-            tag.position = slot.position + Vector3.up * 2.05f;
+            var index = 0; for (var k = 0; k < Masters.Row.Count; k++) if (Masters.Row[k] == id) index = k;
+            tag.position = slot.position + Vector3.up * (index % 2 == 0 ? 2.05f : 2.4f);
             tag.rotation = Quaternion.LookRotation(-toVisitor, Vector3.up);   // +Z away from the viewer reads
-            var c = MuseUi.Canvas(tag, "Name", rowFromSpawn, 96f);
+            var c = MuseUi.Canvas(tag, "Name", rowFromSpawn, 128f);   // wide enough for her longest label
             var card = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 10f, padY: 6f, gap: 2f, name: "Name Card");
             card.GetComponent<UnityEngine.UI.VerticalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;
             var name = MuseUi.Text(card, Masters.Name(id), MuseUi.Face.SansSemi, 12.5f, MuseTheme.Ink, name: "Master");
             name.alignment = TextAlignmentOptions.Center; name.enableWordWrapping = false;
+            // Her picker label under the name: "Monet · how light changes".
+            var tagline = MuseUi.Text(card, Masters.Tagline(id), MuseUi.Face.Sans, 9.5f, MuseTheme.Ink2, name: "Tagline");
+            tagline.alignment = TextAlignmentOptions.Center; tagline.enableWordWrapping = false; tagline.fontStyle = FontStyles.Italic;
             var state = MuseUi.Text(card, "Point to invite", MuseUi.Face.Sans, 10f, MuseTheme.Ink3, name: "State");
             state.alignment = TextAlignmentOptions.Center; state.enableWordWrapping = false;
             _marks[id] = (ring, state);
@@ -350,7 +366,7 @@ namespace MuseXR.Journey
         /// so the voice comes from the master). Stops whoever was speaking. Yields until the line is done;
         /// returns at once when there is no voice.
         /// </summary>
-        public System.Collections.IEnumerator Say(string id, string text)
+        public System.Collections.IEnumerator Say(string id, string text, string kicker = "Why this room fits your question")
         {
             // Outside the answer turns (a lantern's line) the words go up at once: waiting for the voice
             // left the panel empty for the 2-3 s a clip takes to come back.
@@ -360,7 +376,7 @@ namespace MuseXR.Journey
             {
                 Company.Group.ActiveSpeaker = id;   // ring and heads too
                 var panel = TorsoPanel.Get();
-                if (panel != null) panel.ShowLine(id, Masters.Name(id), text, null, "Why this room fits your question");
+                if (panel != null) panel.ShowLine(id, Masters.Name(id), text, null, kicker);
             }
             var task = VoiceFor(id, text);
             for (float t = 0f; !task.IsCompleted && t < 10f; t += Time.deltaTime) yield return null;
@@ -415,6 +431,8 @@ namespace MuseXR.Journey
                 if (string.Equals(q.question.Trim(), question.Trim(), System.StringComparison.OrdinalIgnoreCase))
                 {
                     foreach (var l in q.lines) _lines[l.id] = l.line;
+                    // Her script writes lines for her trio only: the other masters are asked live.
+                    foreach (var id in Masters.Row) if (!_lines.ContainsKey(id)) { Debug.Log("[Opening] baked answers for her trio; asking the rest live: " + question); return false; }
                     _answersReady = true;
                     Debug.Log("[Opening] baked answers for: " + question);
                     return true;
@@ -432,8 +450,8 @@ namespace MuseXR.Journey
             foreach (var id in Masters.Row) dialogue.invitedMasterIds.Add(RosterId(id));
             dialogue.exactlyInvited = true;
             dialogue.speakReplies = false;   // the turns are paced by the Company; the subtitle carries each line
-            if (string.IsNullOrWhiteSpace(question)) question = "What is worth keeping?";
-            Debug.Log("[Opening] asking all six: " + question);
+            if (string.IsNullOrWhiteSpace(question)) question = GateFlow.Samples[0];
+            Debug.Log("[Opening] asking all " + Masters.Row.Count + ": " + question);
             // The perspective prompt grounds every reading in a named work; at the Gate there is no painting,
             // so the context is the place itself (otherwise its default, Water Lilies, coloured every answer).
             var (t, a, d) = (dialogue.artworkTitle, dialogue.artworkArtist, dialogue.artworkDate);
@@ -445,8 +463,8 @@ namespace MuseXR.Journey
             if (result != null)
                 foreach (var p in result.Perspectives)
                     foreach (var id in Masters.Row)
-                        if (RosterId(id) == p.speakerId) { _lines[id] = OneLine(p.text, question); found[id] = _lines[id]; }
-            Debug.Log("[Opening] answers ready (" + found.Count + " of 6, live " + (result != null && result.Live) + ")");
+                        if (RosterId(id) == p.speakerId && !_lines.ContainsKey(id)) { _lines[id] = OneLine(p.text, question); found[id] = _lines[id]; }   // her scripted lines stand
+            Debug.Log("[Opening] answers ready (" + found.Count + " of " + Masters.Row.Count + ", live " + (result != null && result.Live) + ")");
             _asking = false;
             _answersReady = true;
             RefreshPrompt();
