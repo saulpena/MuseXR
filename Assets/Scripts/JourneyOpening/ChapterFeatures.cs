@@ -157,6 +157,51 @@ namespace MuseXR.Journey
             AudioSource.PlayClipAtPoint(clip, at, 0.9f);
         }
 
+        /// <summary>
+        /// Saul's rule for every choice: before choosing, the visitor tries each option and hears the
+        /// companions on it. Their take on one option, in turn (A next), each line voiced as its turn starts;
+        /// the visitor's touch interrupts whatever they were saying. Up to three speakers.
+        /// </summary>
+        internal static void Take(MonoBehaviour host, CompanionGroup group, System.Func<string, string> lineFor)
+        {
+            var ids = new List<string>();
+            if (group != null) foreach (var id in group.Ids) ids.Add(id);
+            if (ids.Count == 0) ids.AddRange(Masters.DefaultTrio);
+            var lines = new List<KeyValuePair<string, string>>();
+            foreach (var id in ids)
+            {
+                var line = lineFor(id) ?? Lens(id);
+                if (!string.IsNullOrEmpty(line)) lines.Add(new KeyValuePair<string, string>(id, line));
+                if (lines.Count == 3) break;
+            }
+            if (lines.Count == 0) return;
+            if (group == null) { Voice(host, lines[0].Key, lines[0].Value); return; }
+            if (group.Busy) group.StopTurns();
+            var mine = new Dictionary<string, string>();
+            foreach (var kv in lines) mine[kv.Key] = kv.Value;
+            System.Action<string, string> speak = null;
+            speak = (id, line) =>
+            {
+                if (mine.TryGetValue(id, out var l) && l == line) { mine.Remove(id); if (host != null) Voice(host, id, line); }
+                if (mine.Count == 0) group.LineStarted -= speak;
+            };
+            group.LineStarted += speak;
+            if (!group.SayInTurn(lines)) group.LineStarted -= speak;
+        }
+
+        /// <summary>A companion outside her scripted trio speaks from their lens.</summary>
+        static string Lens(string id)
+        {
+            switch (id)
+            {
+                case Masters.Frida: return "Put your hand near it. What does your body say before your head does?";
+                case Masters.Picasso: return "Take it apart in your head. Which piece would you keep if you broke it?";
+                case Masters.Hilma: return "There is an order under this you cannot see yet. Stay with it a moment.";
+                case Masters.Morisot: return "Come closer, as you would to someone you love. The near view is the true one.";
+                default: return null;
+            }
+        }
+
         /// <summary>The voice of the scene's MuseumDialogue, if any: speaks a line in a master's voice.</summary>
         internal static void Voice(MonoBehaviour host, string masterId, string line)
         {
@@ -204,6 +249,26 @@ namespace MuseXR.Journey
         {
             { "Bedroom", "aic-28560" }, { "Self-Portrait", "aic-80607" }, { "Poet's Garden", "aic-14586" }, { "Peasant Woman", "aic-28862" },
         };
+
+        // Each pot, heard before any is chosen: what the companions see in that colour.
+        static readonly Dictionary<string, string>[] PotTakes =
+        {
+            new Dictionary<string, string> {
+                { Masters.VanGogh, "Cobalt is a night that is still warm. I put the sky over the Rhone down in it." },
+                { Masters.Monet, "Cobalt is what a shadow becomes when the sun is low. Shadows are never black." },
+                { Masters.Socrates, "Blue for calm, or blue for sorrow? Which of the two would you be painting?" } },
+            new Dictionary<string, string> {
+                { Masters.VanGogh, "Chrome yellow is the high note. I had to reach it for the sunflowers." },
+                { Masters.Monet, "Yellow is the hour the light is loudest, and it never lasts." },
+                { Masters.Socrates, "You would reach for the brightest. For yourself, or for whoever looks at it?" } },
+            new Dictionary<string, string> {
+                { Masters.VanGogh, "Cypress green is a flame gone dark that still burns upward." },
+                { Masters.Monet, "That green holds still while everything around it moves." },
+                { Masters.Socrates, "The green of a tree that outlives us. Why draw with that?" } },
+        };
+        readonly bool[] _potHeard = new bool[3];
+        int _potInside = -1;
+        bool AllPotsHeard => _potHeard[0] && _potHeard[1] && _potHeard[2];
 
         static readonly (string name, Color colour)[] Pots =
         {
@@ -425,22 +490,45 @@ namespace MuseXR.Journey
         {
             _unlocked = true;
             if (_easelCanvas != null) _easelCanvas.sharedMaterial = ChapterFeatures.Lit(new Color(0.93f, 0.9f, 0.84f));
-            _prompt.text = "The easel is lit. Touch a pot to pick a colour";
+            _prompt.text = "The easel is lit. Touch each pot and hear the companions on it  ·  0 / 3";
             _prompt.color = new Color(0.98f, 0.95f, 0.86f);
+            Note("The easel is lit\nTouch each pot and hear the companions on it");
             var light = new GameObject("Easel light").AddComponent<Light>();
             light.transform.SetParent(_easel, false); light.transform.localPosition = new Vector3(0f, 1.9f, -0.6f);
             light.type = LightType.Point; light.range = 2.5f; light.intensity = 1.6f; light.color = new Color(1f, 0.85f, 0.6f);
-            CompassTarget.Add(_easel.gameObject, 25, "The easel", "Pick a colour, paint one stroke");
+            CompassTarget.Add(_easel.gameObject, 25, "The easel", "Touch each pot, then paint");
         }
 
         void PickColour(int index)
         {
             if (_kept || _awaitingKeep || !_unlocked) return;
+            if (!AllPotsHeard || !_potHeard[index])
+            {
+                // First, each colour on its own: the companions' take, and nothing on the brush yet.
+                _potHeard[index] = true;
+                _potRenderers[index].transform.localScale = new Vector3(0.1f, 0.06f, 0.1f);
+                var at = index;
+                ChapterFeatures.Take(this, _group, id => PotTakes[at].TryGetValue(id, out var l) ? l : null);
+                var heard = (_potHeard[0] ? 1 : 0) + (_potHeard[1] ? 1 : 0) + (_potHeard[2] ? 1 : 0);
+                if (AllPotsHeard)
+                {
+                    _prompt.text = "Now choose: touch the colour you will paint with";
+                    Note("You have heard all three\nTouch the colour you will paint with");
+                }
+                else _prompt.text = Pots[index].name + "  ·  touch each pot and hear the companions  ·  " + heard + " / 3";
+                return;
+            }
             _colour = index;
             for (var i = 0; i < _potRenderers.Count; i++)
                 _potRenderers[i].transform.localScale = i == index ? new Vector3(0.11f, 0.07f, 0.11f) : new Vector3(0.09f, 0.05f, 0.09f);
             _prompt.text = Pots[index].name + ".  Hold the trigger and paint one stroke in the air";
             var ct = _easel.GetComponent<CompassTarget>(); if (ct != null) ct.MarkDone();
+        }
+
+        void Note(string text)
+        {
+            var panel = TorsoPanel.Get();
+            if (panel != null) panel.Note("Van Gogh studio", text, 5f);
         }
 
         Transform RightAim(out IHandSource source)
@@ -456,8 +544,12 @@ namespace MuseXR.Journey
             if (_awaitingKeep) return;
             var aim = RightAim(out _);
             if (aim == null) return;
+            // A touch is the hand arriving at a pot, not resting in it.
+            var inside = -1;
             for (var i = 0; i < _potRenderers.Count; i++)
-                if (Vector3.Distance(aim.position, _potRenderers[i].transform.position) < 0.08f && _colour != i) PickColour(i);
+                if (Vector3.Distance(aim.position, _potRenderers[i].transform.position) < 0.08f) inside = i;
+            if (inside >= 0 && inside != _potInside) PickColour(inside);
+            _potInside = inside;
         }
 
         /// <summary>The brush tip: on a headset the controller itself; at a desk, 1.2 m out along the mouse ray.</summary>
@@ -603,6 +695,47 @@ namespace MuseXR.Journey
         static readonly string[] Works = { "Water Lilies", "Arrival of the Normandy Train, Gare Saint-Lazare", "Stacks of Wheat (End of Summer)", "Cliff Walk at Pourville" };
         static readonly string[] WorkIds = { "aic-16568", "aic-16571", "aic-64818", "aic-14620" };
 
+        // Each moment on the ring, and each painting, heard before the visitor is asked to choose.
+        static readonly Dictionary<TimeOfDay, Dictionary<string, string>> MomentTakes = new Dictionary<TimeOfDay, Dictionary<string, string>>
+        {
+            { TimeOfDay.Mist, new Dictionary<string, string> {
+                { Masters.Monet, "In mist the lilies have no edges yet. Nothing is decided. That is why I got up before dawn for it." },
+                { Masters.VanGogh, "Mist is too gentle for me. I would want to know what is hiding in it." },
+                { Masters.Socrates, "When nothing is clear, do you see less, or only what you assume is there?" } } },
+            { TimeOfDay.Afternoon, new Dictionary<string, string> {
+                { Masters.Monet, "Afternoon is the honest light. It shows everything at once, and so it hides the most." },
+                { Masters.VanGogh, "Full light. The greens are shouting. I like it when they shout." },
+                { Masters.Socrates, "Everything is visible now. Does seeing everything mean you have understood anything?" } } },
+            { TimeOfDay.Dusk, new Dictionary<string, string> {
+                { Masters.Monet, "The pink on the water has only just come out. In a quarter of an hour it will sink to violet and the edges of the lilies will be gone" },
+                { Masters.VanGogh, "Dusk is when colour gets heavy. I would paint it before it goes." },
+                { Masters.Socrates, "You turned it to the end of the day. Is what is ending more worth stopping for?" } } },
+        };
+        static readonly Dictionary<string, string>[] WorkTakes =
+        {
+            new Dictionary<string, string> {
+                { Masters.Monet, "I painted this pond for twenty years, and it was never the same pond twice." },
+                { Masters.VanGogh, "No horizon, no sky, only water. You fall straight into it." },
+                { Masters.Socrates, "Without a horizon, how do you know where you are standing?" } },
+            new Dictionary<string, string> {
+                { Masters.Monet, "Steam and iron under glass. I asked them to hold the trains so the smoke would stay." },
+                { Masters.VanGogh, "Smoke, noise, people leaving. That painting is in a hurry." },
+                { Masters.Socrates, "Everyone in that station is going somewhere. Would you stop there, of all places?" } },
+            new Dictionary<string, string> {
+                { Masters.Monet, "The same stacks all season, every hour. The subject is the light, not the wheat." },
+                { Masters.VanGogh, "Harvest is labour. I can feel the backs that built those stacks." },
+                { Masters.Socrates, "He painted them again and again. Was he repeating himself, or never finished?" } },
+            new Dictionary<string, string> {
+                { Masters.Monet, "Two figures, the wind, the sea far below. A whole afternoon in a few strokes." },
+                { Masters.VanGogh, "Look how small they are against the sky. And still they climbed up there." },
+                { Masters.Socrates, "They stand at the edge, looking out. What would you be looking for?" } },
+        };
+        readonly HashSet<TimeOfDay> _seen = new HashSet<TimeOfDay>();
+        readonly bool[] _workHeard = new bool[4];
+        readonly List<Renderer> _chipBacks = new List<Renderer>();
+        TextMeshPro _chipQuestion;
+        bool AllWorksHeard => _workHeard[0] && _workHeard[1] && _workHeard[2] && _workHeard[3];
+
         Transform _layout, _rotunda;
         TimeRingDriver _driver;
         TimeRingDial _dial;
@@ -739,14 +872,17 @@ namespace MuseXR.Journey
             _driver.artworks = arts.ToArray();
             _driver.Choose(t);
             var target = _dial.GetComponent<CompassTarget>(); if (target != null) target.MarkDone();
-            if (!_turned)
+            if (_picked) return;
+            // Each moment heard the first time the ring reaches it; the paintings wait until all three have been.
+            if (_seen.Add(t)) ChapterFeatures.Take(this, _group, id => MomentTakes[t].TryGetValue(id, out var l) ? l : null);
+            if (!_turned && _seen.Count == 3)
             {
                 _turned = true;
-                var line = "The pink on the water has only just come out. In a quarter of an hour it will sink to violet and the edges of the lilies will be gone";
-                if (_group != null) _group.Say(Masters.Monet, line);
-                ChapterFeatures.Voice(this, Masters.Monet, line);
                 StartCoroutine(ShowChips());
             }
+            else if (!_turned)
+                Note(t + "  ·  " + _seen.Count + " / 3 moments\nTurn the ring to each moment and hear the companions");
+            if (_chipQuestion != null) _chipQuestion.text = Question();
         }
 
         /// <summary>"At this moment, which painting did you stop for?" - her four Monets as chips over the pedestal.</summary>
@@ -757,23 +893,49 @@ namespace MuseXR.Journey
             _chips = new GameObject("Which painting").gameObject;
             _chips.transform.SetParent(root, false);
             _chips.transform.localPosition = new Vector3(0f, 2.15f, 0.1f);
-            var q = _chips.AddComponent<TextMeshPro>();
-            q.text = "At this moment, which painting did you stop for?"; q.fontSize = 0.8f; q.alignment = TextAlignmentOptions.Center;
+            var q = _chips.AddComponent<TextMeshPro>(); _chipQuestion = q;
+            q.text = Question(); q.fontSize = 0.8f; q.alignment = TextAlignmentOptions.Center;
             q.color = new Color(0.98f, 0.95f, 0.88f); q.rectTransform.sizeDelta = new Vector2(2.4f, 0.3f);
             for (var i = 0; i < Works.Length; i++)
             {
                 var chip = new GameObject("Chip " + Works[i]).transform;
                 chip.SetParent(_chips.transform, false);
                 chip.localPosition = new Vector3((i - 1.5f) * 0.78f, -0.32f, 0f);
-                ChapterFeatures.Quad(chip, "Back", new Vector3(0f, 0f, 0.004f), Quaternion.identity, new Vector2(0.72f, 0.22f), ChapterFeatures.Unlit(new Color(0.08f, 0.07f, 0.09f, 1f)));
+                _chipBacks.Add(ChapterFeatures.Quad(chip, "Back", new Vector3(0f, 0f, 0.004f), Quaternion.identity, new Vector2(0.72f, 0.22f), ChapterFeatures.Unlit(new Color(0.08f, 0.07f, 0.09f, 1f))).GetComponent<Renderer>());
                 var textGo = new GameObject("Text"); textGo.transform.SetParent(chip, false);   // not on the chip: adding TMP swaps its Transform and kills `chip`
                 var t = textGo.AddComponent<TextMeshPro>();
                 t.text = Works[i]; t.fontSize = 0.42f; t.alignment = TextAlignmentOptions.Center; t.color = new Color(0.95f, 0.92f, 0.86f);
                 t.rectTransform.sizeDelta = new Vector2(0.66f, 0.2f); t.enableWordWrapping = true;
                 var box = chip.gameObject.AddComponent<BoxCollider>(); box.size = new Vector3(0.72f, 0.22f, 0.04f); box.isTrigger = true;
                 var index = i;
-                Pointable.Make(chip.gameObject, "monet work " + i).Selected += (_, __) => PickWork(index);
+                Pointable.Make(chip.gameObject, "monet work " + i).Selected += (_, __) => TapWork(index);
             }
+            Note("Turn back to the moment you stop at, if you like\nTap each painting and hear the companions on it");
+        }
+
+        string Question()
+        {
+            if (!_turned) return "";
+            var heard = 0; foreach (var h in _workHeard) if (h) heard++;
+            return AllWorksHeard ? "At " + _time.ToString().ToLowerInvariant() + ", which painting did you stop for?  Tap it"
+                                 : "Tap each painting and hear the companions  ·  " + heard + " / 4";
+        }
+
+        /// <summary>The first tap on each painting is for hearing it; once all four are heard, a tap chooses.</summary>
+        void TapWork(int i)
+        {
+            if (_picked) return;
+            if (!AllWorksHeard || !_workHeard[i])
+            {
+                _workHeard[i] = true;
+                if (i < _chipBacks.Count && _chipBacks[i] != null) _chipBacks[i].sharedMaterial = ChapterFeatures.Unlit(new Color(0.24f, 0.2f, 0.12f, 1f));   // heard: warmed
+                var at = i;
+                ChapterFeatures.Take(this, _group, id => WorkTakes[at].TryGetValue(id, out var l) ? l : null);
+                if (_chipQuestion != null) _chipQuestion.text = Question();
+                if (AllWorksHeard) Note("You have heard all four\nTap the painting you stopped for");
+                return;
+            }
+            PickWork(i);
         }
 
         void PickWork(int i)
