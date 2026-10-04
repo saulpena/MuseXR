@@ -15,7 +15,7 @@ namespace MuseXR.Interaction
     ///   grip-grabbable miniatures that idle-turn, follow the hand and turn only with the stick;
     ///   the court as her 12 cm slot, with snap, bronze bell, haptics, float-home and the 3 s undo;
     ///   the companions answering in turn from where her diagram stands them, with subtitles;
-    ///   three reason chips beside the court; A saves palace{object, yaw, reason, mode};
+    ///   three reason chips in a row behind the placed piece; A saves palace{object, yaw, reason, mode};
     ///   an event board so the tester sees every press and save.
     /// </summary>
     public sealed class PalaceChapterInteractions : MonoBehaviour
@@ -49,7 +49,9 @@ namespace MuseXR.Interaction
             var slot = new GameObject("Court Slot").transform;
             slot.SetParent(courtT, false);
             var toViewer = spawn - courtT.position; toViewer.y = 0f; toViewer.Normalize();
-            slot.SetPositionAndRotation(courtT.position, Quaternion.LookRotation(-toViewer, Vector3.up));
+            // The slot faces the visitor, so a piece set down facing them reads 0 degrees (facing away it
+            // read "Crane · 178°" for a crane nobody had turned).
+            slot.SetPositionAndRotation(courtT.position, Quaternion.LookRotation(toViewer, Vector3.up));
 
             var pieces = new[] { Holdable.Make(crane.gameObject, "Crane"), Holdable.Make(turtle.gameObject, "Turtle") };
             Court = SlotStation.Make(courtT.gameObject, global::MuseXR.Slots.Chapter.Palace, new[] { slot }, pieces);
@@ -71,23 +73,23 @@ namespace MuseXR.Interaction
             var subtitles = System.Type.GetType("MuseXR.UI.SubtitleRig, MuseXR.UI.Interaction");
             if (subtitles != null) groupGo.AddComponent(subtitles);
 
-            // Reason chips beside the court at hand height, on the side away from Socrates (blind review:
-            // on the other side they crossed his body), never between the eye and the court on the floor.
+            // Reason chips centred on the court: a row standing just behind the placed piece, so the
+            // choice sits on what was chosen (Saul, headset test: "not centred where I'm placing it").
+            // PalaceChapter turns them to face wherever the visitor stands when they appear.
             var right = Vector3.Cross(Vector3.up, -toViewer).normalized;
             var side = figures.TryGetValue(Masters.Socrates, out var soc) && Vector3.Dot(soc.position - courtT.position, right) > 0f ? -1f : 1f;
-            var chipsAt = courtT.position + right * (0.9f * side) + toViewer * 0.3f + Vector3.up * 0.15f;   // about 1.0 m: hand height, beside the court
+            var chipsAt = courtT.position - toViewer * ChipsBehind + Vector3.up * ChipsUp;
             Chapter = PalaceChapter.Make(courtT.gameObject, Court, null, null, Record, chipsAt,
-                                         Quaternion.LookRotation((chipsAt - spawn).WithY0().normalized, Vector3.up));
+                                         Quaternion.LookRotation(-toViewer, Vector3.up));
             Chapter.Group = Companions;
 
-            // The board to the visitor's left of the court, readable from the spawn.
-            // Beside the visitor's start, not among the masters (blind review: it hid Socrates).
-            var startFloor = new Vector3(spawn.x, 0f, spawn.z);
-            // Measured: at -47 deg it still hid Monet (-41 deg) from the start. At 80 deg to the side it
-            // clears every master, the court and the chips; the visitor turns to read it.
-            var boardDir = Quaternion.Euler(0f, 80f * side, 0f) * (-toViewer);
-            Board = EventBoard.Make(transform, startFloor + boardDir * 2.0f + Vector3.up * 1.5f, startFloor + Vector3.up * 1.6f,
-                                    "PALACE · what just happened");
+            // A small board standing beside the court, on the side away from Socrates: in view from the
+            // entry and from the court, below every master's head. (At 80 degrees off to the side it
+            // made the visitor look around for it.)
+            var boardAt = new Vector3(courtT.position.x, 0f, courtT.position.z) + right * (BoardAside * side)
+                          - toViewer * BoardBehind + Vector3.up * 1.05f;
+            Board = EventBoard.Make(transform, boardAt, spawn, "PALACE · what just happened");
+            Board.transform.localScale = Vector3.one * 0.4f;
             Chapter.Note += Board.Note;
             Chapter.Saved += _ => Board.Note("[Record] " + Record.SummaryJson());
             Court.Cue += (s, e) => { if (e.Cue == SlotCue.Aligned) Board.Note("[Court] aligned - let go to place"); };
@@ -122,6 +124,15 @@ namespace MuseXR.Interaction
             floor.SetActive(true);
         }
 
+        /// <summary>
+        /// The chip row's centre above the court's top: just over the confirm strip (which stands
+        /// 0.5 m up, ~0.16 m tall), so it reads top to bottom as her 4.3 prompt - options, then A/B,
+        /// then the piece. Measured: a row behind the court and lower was hidden behind the strip.
+        /// </summary>
+        public const float ChipsBehind = 0f, ChipsUp = 0.7f;
+        /// <summary>The event board's distance to the side of the court.</summary>
+        public const float BoardAside = 1.5f, BoardBehind = 0.6f;
+
         /// <summary>The interaction layer the rig's teleport interactors select on.</summary>
         public const int TeleportLayer = 1 << 31;
 
@@ -151,10 +162,5 @@ namespace MuseXR.Interaction
             foreach (var t in FindObjectsByType<Transform>(FindObjectsSortMode.None)) if (t.name == name) return t;
             return null;
         }
-    }
-
-    static class VecExt
-    {
-        public static Vector3 WithY0(this Vector3 v) { v.y = 0f; return v; }
     }
 }

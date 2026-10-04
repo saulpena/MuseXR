@@ -41,6 +41,7 @@ namespace MuseXR.UI
             public readonly List<SlotView> Slots = new List<SlotView>();
             public RectTransform Strip;
             public ChoiceConfirm.Phase ShownPhase = (ChoiceConfirm.Phase)(-1);
+            public string ShownSummary;
             public TextMeshProUGUI Undo;
         }
 
@@ -89,7 +90,9 @@ namespace MuseXR.UI
             }
 
             var phase = st.Board.Choice.Current;
-            if (phase != v.ShownPhase)
+            // Rebuilt when its words change too: a chapter retitles the pending choice (the Palace adds
+            // the chosen reason), and a strip built once kept showing the old line.
+            if (phase != v.ShownPhase || (phase == ChoiceConfirm.Phase.Pending && st.Board.Choice.Summary != v.ShownSummary))
             {
                 if (v.Strip != null) Destroy(v.Strip.gameObject);
                 v.Strip = null; v.Undo = null;
@@ -107,6 +110,7 @@ namespace MuseXR.UI
                     v.Undo = FindText(v.Strip, "Undo");
                 }
                 v.ShownPhase = phase;
+                v.ShownSummary = st.Board.Choice.Summary;
             }
             if (v.Strip != null)
             {
@@ -325,11 +329,27 @@ namespace MuseXR.UI
 
         // ---- helpers -----------------------------------------------------------------------------
 
+        /// <summary>Past this much off the visitor, a panel turns to face them again; below it, it holds still.</summary>
+        const float RefaceDegrees = 20f, TurnDegreesPerSecond = 120f;
+        readonly HashSet<Transform> _faced = new HashSet<Transform>(), _turning = new HashSet<Transform>();
+
+        /// <summary>
+        /// Turn a panel to face the visitor (+Z away reads) - at once when it is new, then only once the
+        /// visitor has moved more than RefaceDegrees round it, and then smoothly. Re-aiming every frame
+        /// made the strip and labels swim with every small head movement (Saul, headset test).
+        /// </summary>
         void Face(Transform t)
         {
             if (t == null || _eye == null) return;
             var away = t.position - _eye.position; away.y = 0f;
-            if (away.sqrMagnitude > 1e-6f) t.rotation = Quaternion.LookRotation(away, Vector3.up);   // +Z away reads
+            if (away.sqrMagnitude < 1e-6f) return;
+            var want = Quaternion.LookRotation(away, Vector3.up);
+            if (_faced.Add(t)) { t.rotation = want; if (_faced.Count > 128) _faced.RemoveWhere(x => x == null); return; }
+            var off = Quaternion.Angle(t.rotation, want);
+            if (off > RefaceDegrees) _turning.Add(t);
+            if (!_turning.Contains(t)) return;
+            t.rotation = Quaternion.RotateTowards(t.rotation, want, TurnDegreesPerSecond * Time.deltaTime);
+            if (off < 1f) _turning.Remove(t);
         }
 
         static Vector3 Above(Vector3 p, float h) => p + Vector3.up * h;

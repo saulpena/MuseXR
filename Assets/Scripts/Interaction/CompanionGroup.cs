@@ -36,7 +36,9 @@ namespace MuseXR.Interaction
         /// <summary>
         /// True: the companions stand on marks around the visitor and follow (her §3.4, between
         /// chapters). False: they stay where a chapter's diagram put them (her chapter diagrams mark
-        /// M/V/S), and only take turns.
+        /// M/V/S): they turn to face the visitor and take turns WITHOUT the gaze gate. Measured in the
+        /// Palace: standing at the court, her M and V marks are at the visitor's shoulders, so a gate
+        /// that waits to be looked at left everyone silent until the visitor went looking for them.
         /// </summary>
         public bool FollowVisitor { get; set; } = true;
         public IReadOnlyList<string> Ids => _ids;
@@ -209,7 +211,8 @@ namespace MuseXR.Interaction
             }
 
             if (Turns == null) return;
-            Turns.Tick(Time.deltaTime, AngleFromGaze(Turns.Speaker));
+            if (!FollowVisitor) FaceVisitor(Time.deltaTime);
+            Turns.Tick(Time.deltaTime, FollowVisitor ? AngleFromGaze(Turns.Speaker) : 0f);
             if (TimeLinesByLength && Turns.Current == TurnTaking.Phase.Speaking)
             {
                 _lineLeft -= Time.deltaTime;
@@ -218,5 +221,21 @@ namespace MuseXR.Interaction
         }
 
         static Vector3 Flat3(Vector3 v) { v.y = 0f; return v; }
+
+        /// <summary>Slow enough to read as a person turning, not a snap.</summary>
+        public const float TurnDegreesPerSecond = 90f;
+
+        /// <summary>On their marks, each companion turns its body (yaw only) towards the visitor.</summary>
+        void FaceVisitor(float dt)
+        {
+            foreach (var id in _ids)
+            {
+                var f = _figures[id];
+                var to = Head.position - f.position; to.y = 0f;
+                if (to.sqrMagnitude < 1e-4f) continue;
+                f.rotation = Quaternion.RotateTowards(f.rotation, Quaternion.LookRotation(to.normalized, Vector3.up),
+                                                      TurnDegreesPerSecond * dt);
+            }
+        }
     }
 }

@@ -63,7 +63,7 @@ namespace MuseXR.UI
             var glass = panel.childCount > 0 ? (RectTransform)panel.GetChild(0) : panel;
             float half = Fit(_panel, glass, MaxWidth);
             _follow.ExtraUp = Mathf.Max(0f, half + HeadClearance - SubtitleFollow.Up);
-            _follow.Reset(head, _eye.position);
+            _follow.Reset(head, _eye.position, _eye.forward);
             _panel.position = _follow.Current;
             Face();
             Debug.Log($"[SubtitleRig] {id}: card {Fit(_panel, glass, float.MaxValue) * 2f:F2} m tall, eye {Vector3.Distance(_eye.position, head):F2} m from the head");
@@ -79,7 +79,9 @@ namespace MuseXR.UI
         {
             if (!Follow || _panel == null || _speaker == null || _eye == null) return;
             _panel.position = _follow.Tick(SpeakerHead(), _eye.position, _eye.forward, Time.deltaTime);
-            Face();
+            // Turn to face the visitor only while it is moving: re-aiming every frame made it swim with
+            // each small head movement.
+            if (_follow.Following) Face();
         }
 
         Vector3 SpeakerHead() => _speaker.position + Vector3.up * HeadHeight;
