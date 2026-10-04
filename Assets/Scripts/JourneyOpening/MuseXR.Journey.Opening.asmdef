@@ -2,6 +2,7 @@
     "name": "MuseXR.Journey.Opening",
     "rootNamespace": "MuseXR.Journey",
     "references": [
+        "Unity.InputSystem",
         "MusePico.Journey",
         "MusePico.Dialogue",
         "MusePico.Generation",

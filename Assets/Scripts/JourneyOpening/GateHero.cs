@@ -65,7 +65,68 @@ namespace MuseXR.Journey
             t.fontSize = 1.1f; t.alignment = TextAlignmentOptions.Center; t.color = new Color(0.2f, 0.17f, 0.14f);
             t.rectTransform.sizeDelta = new Vector2(w + 1.4f, 0.5f);
             Debug.Log("[GateHero] Mona Lisa stands at " + root.position.ToString("F1"));
+            BuildVenus(from, toDoor, right);
+            if (FindAnyObjectByType<ChapterFeatures>() == null) gameObject.AddComponent<ChapterFeatures>();
         }
+
+        [Tooltip("Assets/Art/Heroes/venus-de-milo.glb - SMK's CC0 scan of a plaster cast.")]
+        public GameObject venusModel;
+
+        /// <summary>
+        /// Her second Gate hero: the Venus de Milo, life size (~2 m), on a white stone drum in the reflecting
+        /// pool on the left of the walk; replicable as a 30 cm white stone figurine.
+        /// </summary>
+        void BuildVenus(Vector3 from, Vector3 toDoor, Vector3 right)
+        {
+            var model = venusModel;
+#if UNITY_EDITOR
+            if (model == null) model = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Heroes/venus-de-milo.glb");
+#endif
+            if (model == null) { Debug.LogWarning("[GateHero] no Venus model"); return; }
+            var at = from + toDoor * VenusAlong - right * VenusAside;
+            var floor = at.y;
+            if (Physics.Raycast(at + Vector3.up * 3f, Vector3.down, out var hit, 6f, ~0, QueryTriggerInteraction.Ignore)) floor = hit.point.y;
+            var root = new GameObject("Hero · Venus de Milo").transform;
+            root.SetParent(transform, false);
+            root.position = new Vector3(at.x, floor, at.z);
+            var toWalk = (from + toDoor * VenusAlong) - root.position; toWalk.y = 0f;
+            root.rotation = Quaternion.LookRotation(toWalk.normalized, Vector3.up);
+            var drum = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            drum.name = "Drum"; Destroy(drum.GetComponent<Collider>());
+            drum.transform.SetParent(root, false);
+            drum.transform.localPosition = new Vector3(0f, 0.3f, 0f); drum.transform.localScale = new Vector3(0.9f, 0.3f, 0.9f);
+            var stone = new Material(Shader.Find("Universal Render Pipeline/Lit")); stone.SetColor("_BaseColor", new Color(0.93f, 0.92f, 0.89f));
+            drum.GetComponent<Renderer>().sharedMaterial = stone;
+            var figure = Instantiate(model, root);
+            figure.name = "Venus";
+            var rs = figure.GetComponentsInChildren<Renderer>();
+            if (rs.Length > 0)
+            {
+                var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds);
+                if (b.size.y > 1e-4f) figure.transform.localScale *= VenusHeight / b.size.y;
+                b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds);
+                figure.transform.position += Vector3.up * (root.position.y + 0.6f - b.min.y);
+                var c = b.center; figure.transform.position += new Vector3(root.position.x - c.x, 0f, root.position.z - c.z);
+            }
+            var box = figure.AddComponent<BoxCollider>();
+            var lb = new Bounds(figure.transform.InverseTransformPoint(rs.Length > 0 ? rs[0].bounds.center : figure.transform.position), Vector3.zero);
+            foreach (var r in rs) { lb.Encapsulate(figure.transform.InverseTransformPoint(r.bounds.min)); lb.Encapsulate(figure.transform.InverseTransformPoint(r.bounds.max)); }
+            box.center = lb.center; box.size = lb.size;
+            Replicable.Make(figure, "Venus de Milo", "gate-venus").replicaName = "A 30 cm white stone figurine";
+            var label = new GameObject("Label").transform;
+            label.SetParent(root, false);
+            label.localPosition = new Vector3(0f, 0.35f, 0.92f);
+            label.localRotation = Quaternion.LookRotation(-Vector3.forward);
+            label.localRotation = Quaternion.identity;
+            var t = label.gameObject.AddComponent<TextMeshPro>();
+            t.text = "<b>Venus de Milo</b>  ·  after the Greek original, c. 150–125 BCE\n<size=70%>3D scan of a plaster cast, SMK National Gallery of Denmark (CC0)</size>";
+            t.fontSize = 0.7f; t.alignment = TextAlignmentOptions.Center; t.color = new Color(0.2f, 0.17f, 0.14f);
+            t.rectTransform.sizeDelta = new Vector2(1.8f, 0.3f);
+            label.position = root.position + root.forward * 0.95f + Vector3.up * 0.35f;
+            label.rotation = Quaternion.LookRotation(-root.forward);
+        }
+
+        public const float VenusAlong = 8.5f, VenusAside = 3.6f, VenusHeight = 2.05f;
 
         static void Quad(Transform parent, string name, Vector3 local, Vector2 size, Color colour, Texture2D tex)
         {

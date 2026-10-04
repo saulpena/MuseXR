@@ -95,7 +95,7 @@ namespace MuseXR.Interaction
             Chapter = PalaceChapter.Make(courtT.gameObject, Court, null, null, Record, chipsAt,
                                          Quaternion.LookRotation(-toViewer, Vector3.up));
             Chapter.Group = Companions;
-            Chapter.Saved += _ => { Debug.Log("[Record] " + Record.SummaryJson()); OpenMoonGate(); };
+            Chapter.Saved += _ => { Debug.Log("[Record] " + Record.SummaryJson()); if (Record.Palace != null) JourneyMemory.Record.SetPalace(Record.Palace); OpenMoonGate(); };
             ConfirmInput.Pressed += OnPressed;
             _courtTop = courtT.position;
         }

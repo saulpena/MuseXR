@@ -176,6 +176,7 @@ namespace MuseXR.Interaction
             BuildGuide();
             Chapter.Saved += _ =>
             {
+                if (Record.Grotto != null) JourneyMemory.Record.SetGrotto(Record.Grotto);   // for the roundtable
                 Debug.Log("[Record] " + Record.SummaryJson());
                 OpenArch(teleportFloor, Camera.main != null ? Camera.main.transform.position : entry);
             };
