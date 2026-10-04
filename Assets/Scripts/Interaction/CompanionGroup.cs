@@ -52,10 +52,27 @@ namespace MuseXR.Interaction
         /// </summary>
         public bool Crowd { get; set; }
 
-        /// <summary>The crowd's places: bearing from the body's facing (never inside +-70) and distance.</summary>
+        /// <summary>
+        /// The crowd's places: bearing from the body's facing and distance. At +-50 degrees and 1.8 m a
+        /// companion is ~1.4 m to the side - clear of the path - and inside a headset's ~100-degree view,
+        /// so the visitor sees them at the edge like people walking alongside (Saul, 4 Oct). Measured: at
+        /// +-62 to +-80 no companion appeared in any walking frame. The third walks further out on the right.
+        /// </summary>
         public static readonly CompanionMarks.Mark[] CrowdPlaces =
-            { new CompanionMarks.Mark(-80f, 1.4f), new CompanionMarks.Mark(80f, 1.4f), new CompanionMarks.Mark(-125f, 1.8f) };
-        public const float CrowdWalkSpeed = 1.5f, CrowdCatchUpSpeed = 3f, CrowdArrive = 0.15f;
+            { new CompanionMarks.Mark(-50f, 1.8f), new CompanionMarks.Mark(50f, 1.8f), new CompanionMarks.Mark(64f, 2.6f) };
+        public const float CrowdCatchUpSpeed = 3.2f, CrowdCatchUpPerMetre = 1.1f, CrowdArrive = 0.12f;
+        /// <summary>Nobody's route passes closer than this to the visitor.</summary>
+        public const float PersonalSpace = 0.9f;
+        /// <summary>Inside this cone and range ahead of the body, a companion is in the way.</summary>
+        public const float InTheWayDegrees = 35f, InTheWayMetres = 2.2f;
+
+        static float DistanceToSegment(Vector3 p, Vector3 a, Vector3 b)
+        {
+            var ab = b - a; ab.y = 0f; var ap = p - a; ap.y = 0f;
+            var t = ab.sqrMagnitude > 1e-6f ? Mathf.Clamp01(Vector3.Dot(ap, ab) / ab.sqrMagnitude) : 0f;
+            var c = a + ab * t; c.y = p.y;
+            return Vector3.Distance(new Vector3(p.x, 0f, p.z), new Vector3(c.x, 0f, c.z));
+        }
 
         public string ActiveSpeaker
         {
@@ -334,15 +351,33 @@ namespace MuseXR.Interaction
                 var place = CrowdPlaces[Mathf.Min(i, CrowdPlaces.Length - 1)];
                 var target = body.Feet + body.Bearing(place.Bearing) * place.Distance;
                 var pos = f.position; var flat = new Vector3(pos.x, body.Feet.y, pos.z);
-                // Going round, not across: aim first for a point behind the visitor on the target's side.
+                // Going round, never across or through: a route that passes in front of the visitor, or
+                // within PersonalSpace of them, first heads for a point at their side on the target's side
+                // (measured: walking in from behind, one passed 0.2 m from the visitor - through them).
                 var rel = flat - body.Feet;
                 var ahead = Vector3.Dot(rel, body.Forward) > 0.2f;
-                var wrongSide = Mathf.Sign(Vector3.Dot(rel, body.Right)) != Mathf.Sign(place.Bearing) && rel.magnitude < 3f;
-                if (ahead && wrongSide) target = body.Feet - body.Forward * 1.3f + body.Right * (Mathf.Sign(place.Bearing) * 0.6f);
+                var side = Mathf.Sign(place.Bearing);
+                var wrongSide = Mathf.Sign(Vector3.Dot(rel, body.Right)) != side && rel.magnitude < 3f;
+                // First of all, out of the way: someone the visitor is walking or turning toward steps
+                // aside to whichever side they are already on (measured at a corner: 0.7 m ahead, 43 deg).
+                var bearingNow = Vector3.SignedAngle(body.Forward, rel, Vector3.up);
+                var inTheWay = Mathf.Abs(bearingNow) < InTheWayDegrees && rel.magnitude < InTheWayMetres;
+                if (inTheWay)
+                {
+                    var out_ = Mathf.Abs(bearingNow) < 3f ? side : Mathf.Sign(bearingNow);
+                    target = flat + body.Right * (out_ * 1.3f) - body.Forward * 0.4f;
+                }
+                else if (ahead && wrongSide) target = body.Feet - body.Forward * 1.3f + body.Right * (side * 0.6f);
+                else if (DistanceToSegment(body.Feet, flat, target) < PersonalSpace && (flat - body.Feet).magnitude > PersonalSpace)
+                    target = body.Feet + body.Right * (side * (PersonalSpace + 0.4f)) - body.Forward * 0.3f;
                 var to = target - flat;
                 var d = to.magnitude;
                 if (d < CrowdArrive) { f.position = new Vector3(pos.x, body.Feet.y, pos.z); continue; }
-                var speed = d > 3f ? CrowdCatchUpSpeed : Mathf.Max(CrowdWalkSpeed * Mathf.Clamp01(d / 1.2f), body.Velocity.magnitude);
+                // The visitor's own pace plus a catch-up for the gap: at walking pace alone, someone who
+                // starts behind stays behind (measured in the Palace: most of the walk at 150-180 degrees).
+                var speed = Mathf.Min(CrowdCatchUpSpeed, body.Velocity.magnitude + CrowdCatchUpPerMetre * d);
+                if (d < 0.6f) speed = Mathf.Max(speed, d * 2f);
+                if (inTheWay) speed = CrowdCatchUpSpeed;
                 var step = Mathf.Min(d, speed * dt);
                 var next = flat + to / d * step;
                 f.position = new Vector3(next.x, body.Feet.y, next.z);
