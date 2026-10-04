@@ -30,12 +30,36 @@ namespace MuseXR.Interaction
         public const float HangAboveFloor = 1.6f;
         public const int CompassOrder = 30;
 
+        /// <summary>
+        /// One work hung where her design doc puts it (MUSE-VR-design, 2 Oct 2026): usually inside one of
+        /// the capture's own empty frames, filling its canvas at the work's true proportions (the pale
+        /// capture canvas around it reads as a mat), or free-standing in her walnut frame.
+        /// </summary>
+        [System.Serializable]
+        public class Placement
+        {
+            [Tooltip("The work's id in artworks.json, e.g. aic-80607.")]
+            public string id;
+            [Tooltip("Centre of the canvas, world space (the world stands at the origin).")]
+            public Vector3 centre;
+            [Tooltip("The way the canvas faces: toward the visitor, out of the wall.")]
+            public Vector3 facing = Vector3.forward;
+            [Tooltip("The canvas it must fit inside, metres (width, height); the work keeps its proportions.")]
+            public Vector2 canvas = new Vector2(1.2f, 1.2f);
+            [Tooltip("Her walnut / mat / gold frame round it: off when it hangs in a frame the capture already has.")]
+            public bool frame;
+        }
+
+        [Tooltip("Her design doc's positions. Empty: the journey's automatic layout (WebGalleryLayout).")]
+        public Placement[] placements;
+
         public List<Transform> Hung { get; } = new List<Transform>();
 
         void Start() => Hang();
 
         public void Hang()
         {
+            if (placements != null && placements.Length > 0) { HangPlaced(); return; }
             MuseXR.Worlds.WorldDefinition world = null;
             foreach (var w in MuseXR.Worlds.WorldCatalog.Small) if (w.key == worldKey) world = w;
             if (world == null || artworksJson == null) { Debug.LogError("[Paintings] world '" + worldKey + "' or artworks.json missing"); return; }
@@ -71,7 +95,49 @@ namespace MuseXR.Interaction
             Debug.Log($"[Paintings] {worldKey}: {Hung.Count} works hung as the journey hangs them, {hangs.FindAll(h => h.onWall).Count} on a wall");
         }
 
-        void Build(ArtworkRecord record, Texture2D tex, Vector3 position, Quaternion quadRotation, Vector2 canvas)
+        void HangPlaced()
+        {
+            if (artworksJson == null) { Debug.LogError("[Paintings] artworks.json missing"); return; }
+            var works = new Dictionary<string, ArtworkRecord>();
+            foreach (var w in ArtworkCatalog.For(ArtworkCatalog.Parse(artworksJson.text), collectionId)) works[w.id] = w;
+            foreach (var p in placements)
+            {
+                if (!works.TryGetValue(p.id, out var record)) { Debug.LogError("[Paintings] '" + p.id + "' is not in collection '" + collectionId + "'"); continue; }
+                var tex = Image(p.id);
+                var size = Fit(tex, p.canvas);
+                // In this object's space, not the world's: chained into GateWorld a chapter can wake while
+                // its frame still stands behind a gate, and its works must hang in its world, wherever that is.
+                Build(record, tex, transform.TransformPoint(p.centre),
+                      transform.rotation * MuseXR.Worlds.WebGalleryLayout.QuadRotation(p.centre, p.centre + p.facing), size, p.frame);
+                // In a frame the capture already has: a mat over its whole canvas, so the capture's own
+                // painted canvas does not show round a work of other proportions.
+                if (!p.frame) Mat(Hung[Hung.Count - 1], size, p.canvas);
+            }
+            Debug.Log($"[Paintings] {worldKey}: {Hung.Count} works hung where her design doc puts them");
+        }
+
+        static void Mat(Transform canvas, Vector2 size, Vector2 box)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            go.name = "Mat (canvas)";
+            Destroy(go.GetComponent<Collider>());
+            go.transform.SetParent(canvas, false);
+            go.transform.localPosition = new Vector3(0f, 0f, 0.012f);
+            go.transform.localRotation = Quaternion.identity;
+            go.transform.localScale = new Vector3(box.x / size.x, box.y / size.y, 1f);
+            var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            m.SetColor("_BaseColor", new Color32(0xd6, 0xca, 0xb0, 0xff));
+            go.GetComponent<MeshRenderer>().sharedMaterial = m;
+        }
+
+        /// <summary>The largest size of the work's proportions inside <paramref name="box"/>.</summary>
+        public static Vector2 Fit(Texture2D tex, Vector2 box)
+        {
+            var aspect = tex != null && tex.height > 0 ? tex.width / (float)tex.height : 1.3f;
+            return aspect >= box.x / box.y ? new Vector2(box.x, box.x / aspect) : new Vector2(box.y * aspect, box.y);
+        }
+
+        void Build(ArtworkRecord record, Texture2D tex, Vector3 position, Quaternion quadRotation, Vector2 canvas, bool frame = true)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
             go.name = record.id;
@@ -81,9 +147,13 @@ namespace MuseXR.Interaction
             var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
             if (tex != null) m.SetTexture("_BaseMap", tex);
             go.GetComponent<MeshRenderer>().sharedMaterial = m;
-            Layer(go.transform, PrimitiveType.Cube, "Frame (walnut)", new Color32(0x5e, 0x40, 0x28, 0xff), canvas.x, canvas.y, 0.24f, 0.05f, 0.045f);
-            Layer(go.transform, PrimitiveType.Quad, "Mat", new Color32(0xf5, 0xf2, 0xea, 0xff), canvas.x, canvas.y, 0.16f, 1f, 0.016f);
-            Layer(go.transform, PrimitiveType.Cube, "Fillet (gold)", new Color32(0xc9, 0xaa, 0x72, 0xff), canvas.x, canvas.y, 0.04f, 0.012f, 0.008f);
+            if (frame)
+            {
+                Layer(go.transform, PrimitiveType.Cube, "Frame (walnut)", new Color32(0x5e, 0x40, 0x28, 0xff), canvas.x, canvas.y, 0.24f, 0.05f, 0.045f);
+                Layer(go.transform, PrimitiveType.Quad, "Mat", new Color32(0xf5, 0xf2, 0xea, 0xff), canvas.x, canvas.y, 0.16f, 1f, 0.016f);
+                Layer(go.transform, PrimitiveType.Cube, "Fillet (gold)", new Color32(0xc9, 0xaa, 0x72, 0xff), canvas.x, canvas.y, 0.04f, 0.012f, 0.008f);
+            }
+            else Layer(go.transform, PrimitiveType.Cube, "Fillet (gold)", new Color32(0xc9, 0xaa, 0x72, 0xff), canvas.x, canvas.y, 0.03f, 0.012f, 0.008f);   // a hairline against the capture's canvas
             var target = CompassTarget.Add(go, CompassOrder, record.title);
             var p = Pointable.Make(go, record.id);
             p.Selected += (_, __) => target.MarkDone();

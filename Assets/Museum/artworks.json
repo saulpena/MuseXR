@@ -428,6 +428,88 @@
           "prompt": "Which part of this world feels like an answer you authored?"
         }
       ]
+    },
+    {
+      "sceneId": "palace-keeping",
+      "works": [
+        {
+          "id": "aic-51825",
+          "title": "Inkstone in the Form of a Double-Headed Turtle",
+          "artist": "China",
+          "date": "Han to Six Dynasties",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/51825",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-12476",
+          "title": "Foliate Dish with Crane and Deer Amid Clouds",
+          "artist": "China, Longquan ware",
+          "date": "Yuan dynasty",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/12476",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-75091",
+          "title": "One Hundred Cranes",
+          "artist": "Shen Quan",
+          "date": "Qing dynasty",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/75091",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-75361",
+          "title": "The Peach Blossom Spring",
+          "artist": "Qiu Ying",
+          "date": "Late Ming or early Qing",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/75361",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        }
+      ]
+    },
+    {
+      "sceneId": "grotto-time",
+      "works": [
+        {
+          "id": "aic-142512",
+          "title": "Buddha Worshipped by the Gods Indra and Brahma",
+          "artist": "Gandhara",
+          "date": "Kushan, 1st/2nd century",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/142512",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-86380",
+          "title": "Buddha",
+          "artist": "China",
+          "date": "Tang dynasty, c. 725-750",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/86380",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-29149",
+          "title": "Buddhist Votive Stele",
+          "artist": "China",
+          "date": "Western Wei, 551",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/29149",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        },
+        {
+          "id": "aic-4453",
+          "title": "Bodhisattva",
+          "artist": "China",
+          "date": "Tang dynasty, c. 725-750",
+          "source": "Art Institute of Chicago",
+          "sourceUrl": "https://www.artic.edu/artworks/4453",
+          "rights": "Public-domain artwork image via Art Institute of Chicago Open Access / IIIF"
+        }
+      ]
     }
   ]
 }

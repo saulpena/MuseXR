@@ -19,16 +19,16 @@ namespace MusePico.Tests
         static ArtworkCatalogData Load() => ArtworkCatalog.Parse(File.ReadAllText(Path));
 
         [Test]
-        public void TheCatalogueIsNineChaptersOfFour()
+        public void TheCatalogueIsElevenChaptersOfFour()
         {
             var catalog = Load();
 
-            Assert.AreEqual(9, catalog.chapters.Length, "eight chapters plus the finale");
+            Assert.AreEqual(11, catalog.chapters.Length, "eight chapters plus the finale, and her Palace and Grotto (design doc, 2 Oct 2026)");
             foreach (var chapter in catalog.chapters)
                 Assert.AreEqual(ArtworkCatalog.PerChapter, chapter.works.Length,
                     chapter.sceneId + " should hang four works");
 
-            Assert.AreEqual(36, ArtworkCatalog.All(catalog).Count);
+            Assert.AreEqual(44, ArtworkCatalog.All(catalog).Count);
         }
 
         [Test]

@@ -1930,6 +1930,62 @@ Mesh:
       - serializedVersion: 1
         m_IndexStart: 0
         m_IndexCount: 0
+--- !u!1 &330343527
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 330343529}
+  - component: {fileID: 330343528}
+  m_Layer: 0
+  m_Name: World Paintings
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &330343528
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330343527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd0d247a525845341919eb395eba8ac3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MuseXR.Interaction::MuseXR.Interaction.WorldPaintings
+  worldKey: grotto-hall-of-time-500k
+  collectionId: grotto-time
+  artworksJson: {fileID: 4900000, guid: 005558b8ec3c4d143a4baba5f6d45dd0, type: 3}
+  artworkImages:
+  - {fileID: 2800000, guid: fafe91a237a32fb44a6e0093f84129eb, type: 3}
+  colliderModel: {fileID: 0}
+  placements:
+  - id: aic-4453
+    centre: {x: -2.3, y: 1.4, z: -11.4}
+    facing: {x: 0.19611615, y: 0, z: 0.9805807}
+    canvas: {x: 0.9, y: 1.4}
+    frame: 1
+--- !u!4 &330343529
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330343527}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &336652090
 GameObject:
   m_ObjectHideFlags: 0
@@ -7005,7 +7061,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BaseMap:
-        m_Texture: {fileID: 2800000, guid: 11912d088b5b15041b8d799429f91c45, type: 3}
+        m_Texture: {fileID: 2800000, guid: afa6223adbfe3e64cbc9b850ec14d822, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
@@ -8432,21 +8488,6 @@ Transform:
   - {fileID: 1934481913}
   m_Father: {fileID: 1241249562}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!115 &1290862445
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: MasterInsights
-  m_Namespace: MuseXR.Interaction
-  m_AssemblyName: MuseXR.Interaction
 --- !u!1 &1326107445
 GameObject:
   m_ObjectHideFlags: 0
@@ -12586,3 +12627,4 @@ SceneRoots:
   - {fileID: 758244815}
   - {fileID: 1921432907}
   - {fileID: 576818549}
+  - {fileID: 330343529}

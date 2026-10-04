@@ -5346,6 +5346,7 @@ Transform:
   - {fileID: 1370023421}
   - {fileID: 898120281}
   - {fileID: 1653128625}
+  - {fileID: 2075970549}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &214798482
@@ -6520,6 +6521,7 @@ Transform:
   - {fileID: 2067842579}
   - {fileID: 556850854}
   - {fileID: 1920383977}
+  - {fileID: 1779267619}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &251350789
@@ -21494,6 +21496,32 @@ MonoBehaviour:
   - {fileID: 2800000, guid: ce1a04e17790fce4f8221623280b98f6, type: 3}
   - {fileID: 2800000, guid: 0bf1f27486631b84d8bb274c953c4718, type: 3}
   colliderModel: {fileID: -212285753890768171, guid: a94c74fadf643ff4badf16405d327656, type: 3}
+  placements:
+  - id: aic-80607
+    centre: {x: -3.2, y: 2.47, z: -7.58}
+    facing: {x: 1, y: 0, z: 0}
+    canvas: {x: 1.86, y: 3.12}
+    frame: 0
+  - id: aic-28560
+    centre: {x: -3.38, y: 2.42, z: -12.05}
+    facing: {x: 1, y: 0, z: 0}
+    canvas: {x: 3.7, y: 2}
+    frame: 0
+  - id: aic-28862
+    centre: {x: 3.38, y: 2.72, z: -2.92}
+    facing: {x: -1, y: 0, z: 0}
+    canvas: {x: 1.11, y: 2.1}
+    frame: 0
+  - id: aic-14586
+    centre: {x: -4.936, y: 2.22, z: -22.727999}
+    facing: {x: 0.6, y: 0, z: 0.8}
+    canvas: {x: 1.95, y: 2.35}
+    frame: 0
+  - id: van-gogh-emotional-sky
+    centre: {x: 1, y: 1.6, z: -17.5}
+    facing: {x: -0.35, y: 0, z: 1}
+    canvas: {x: 2, y: 1.3}
+    frame: 1
 --- !u!4 &700542763
 Transform:
   m_ObjectHideFlags: 0
@@ -21502,7 +21530,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 700542761}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -30516,96 +30544,6 @@ Transform:
   - {fileID: 2132338220}
   m_Father: {fileID: 949667438}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &996956227
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 996956228}
-  - component: {fileID: 996956230}
-  - component: {fileID: 996956229}
-  m_Layer: 0
-  m_Name: Gate Frame
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!4 &996956228
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 996956227}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -0.36}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1592520968}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!23 &996956229
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 996956227}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: -4234473462164445276, guid: b2b82f47aac26804c9b91b0edbddf984, type: 3}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &996956230
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 996956227}
-  m_Mesh: {fileID: 6268412477412943847, guid: b2b82f47aac26804c9b91b0edbddf984, type: 3}
 --- !u!1 &999255975
 GameObject:
   m_ObjectHideFlags: 0
@@ -31463,7 +31401,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BaseMap:
-        m_Texture: {fileID: 2800000, guid: 11912d088b5b15041b8d799429f91c45, type: 3}
+        m_Texture: {fileID: 2800000, guid: afa6223adbfe3e64cbc9b850ec14d822, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
@@ -42721,6 +42659,27 @@ MonoBehaviour:
   - {fileID: 2800000, guid: 662f6e96aa0edcb428b63169db3ede23, type: 3}
   - {fileID: 2800000, guid: 4319622a8fd9a334f93e269ad53ddc07, type: 3}
   colliderModel: {fileID: -212285753890768171, guid: e53ba7e9c44f5484e84f34367681dfb0, type: 3}
+  placements:
+  - id: aic-76395
+    centre: {x: -2.3, y: 2.1, z: 4.5}
+    facing: {x: 0.9438583, y: 0, z: -0.3303504}
+    canvas: {x: 1.3, y: 1.3}
+    frame: 1
+  - id: aic-90316
+    centre: {x: -2.3, y: 2.1, z: 8.5}
+    facing: {x: 0.9438583, y: 0, z: -0.3303504}
+    canvas: {x: 1.3, y: 1.3}
+    frame: 1
+  - id: aic-110982
+    centre: {x: 2.3, y: 2.1, z: 4.5}
+    facing: {x: -0.9438583, y: 0, z: -0.3303504}
+    canvas: {x: 1.3, y: 1.3}
+    frame: 1
+  - id: aic-94240
+    centre: {x: 2.3, y: 2.1, z: 8.5}
+    facing: {x: -0.9438583, y: 0, z: -0.3303504}
+    canvas: {x: 1.3, y: 1.3}
+    frame: 1
 --- !u!4 &1393528016
 Transform:
   m_ObjectHideFlags: 0
@@ -42729,7 +42688,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1393528014}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -48439,7 +48398,7 @@ GameObject:
   - component: {fileID: 1592520968}
   - component: {fileID: 1592520969}
   m_Layer: 0
-  m_Name: Exit Gate
+  m_Name: Exit Gate (side door)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -48453,12 +48412,11 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1592520967}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 1.6, y: 0, z: -2.6}
+  m_LocalRotation: {x: 0, y: 0.8093878, z: 0, w: 0.58727455}
+  m_LocalPosition: {x: 3.2953327, y: 0.04, z: -5.3551083}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 996956228}
+  m_Children: []
   m_Father: {fileID: 2132751114}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1592520969
@@ -48476,10 +48434,10 @@ MonoBehaviour:
   doorPrefab: {fileID: 3022796259160638339, guid: f78ff52c13f1ddb498a93a51b268f760, type: 3}
   nextWorldAsset: {fileID: 11400000, guid: 36590c7a3232ff948b07e7d7c5aa019b, type: 2}
   nextWorldKey: enchanted-water-garden-sanctuary-500k
-  frame: {fileID: 996956228}
-  radius: 1.25
-  centreHeight: 2.45
-  passageWidth: 2.5
+  frame: {fileID: 0}
+  radius: 0
+  centreHeight: 3.9
+  passageWidth: 1.6
   stepCarriesThrough: 0
 --- !u!1 &1596639812
 GameObject:
@@ -54451,6 +54409,70 @@ Transform:
   - {fileID: 935765485}
   m_Father: {fileID: 1092732088}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1779267618
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1779267619}
+  - component: {fileID: 1779267620}
+  m_Layer: 0
+  m_Name: World Paintings
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1779267619
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1779267618}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 248439241}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1779267620
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1779267618}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd0d247a525845341919eb395eba8ac3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MuseXR.Interaction::MuseXR.Interaction.WorldPaintings
+  worldKey: palace-court-of-keeping-500k
+  collectionId: palace-keeping
+  artworksJson: {fileID: 4900000, guid: 005558b8ec3c4d143a4baba5f6d45dd0, type: 3}
+  artworkImages:
+  - {fileID: 2800000, guid: 606e69d79f57b7b49b0230ebc2cb987c, type: 3}
+  - {fileID: 2800000, guid: 425b65691981ba14e9ac7c008eebbb0a, type: 3}
+  - {fileID: 2800000, guid: 7b6b1217b789ccf4b8c40e6f38bb93e6, type: 3}
+  - {fileID: 2800000, guid: 12b16cc9553e26546af8d0c638026012, type: 3}
+  colliderModel: {fileID: 0}
+  placements:
+  - id: aic-75091
+    centre: {x: 4.2, y: 1.5, z: -0.6}
+    facing: {x: -0.98893636, y: 0, z: 0.14834046}
+    canvas: {x: 2.2, y: 1.4}
+    frame: 1
+  - id: aic-75361
+    centre: {x: 3.9, y: 1.75, z: -2.7}
+    facing: {x: -0.98893636, y: 0, z: 0.14834046}
+    canvas: {x: 2.6, y: 1.2}
+    frame: 1
 --- !u!1 &1779994736
 GameObject:
   m_ObjectHideFlags: 0
@@ -55770,7 +55792,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1832531147}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -55798,6 +55820,27 @@ MonoBehaviour:
   - {fileID: 2800000, guid: 4e9ee9cace557ce4fa46bbc67788cc85, type: 3}
   - {fileID: 2800000, guid: c9146ee571aefaa4abff82432c24811d, type: 3}
   colliderModel: {fileID: -212285753890768171, guid: 3af9f3a05389d494daf8accdae6171df, type: 3}
+  placements:
+  - id: aic-16568
+    centre: {x: 1.9, y: 1.6, z: -24.5}
+    facing: {x: 0.97014254, y: 0, z: 0.24253564}
+    canvas: {x: 1.5, y: 1.2}
+    frame: 1
+  - id: aic-16571
+    centre: {x: 5.7, y: 1.6, z: -21.5}
+    facing: {x: -0.99503714, y: 0, z: -0.09950372}
+    canvas: {x: 1.5, y: 1.2}
+    frame: 1
+  - id: aic-64818
+    centre: {x: 7.4, y: 1.75, z: -14.5}
+    facing: {x: -0.9805807, y: 0, z: -0.19611615}
+    canvas: {x: 1.5, y: 1.2}
+    frame: 1
+  - id: aic-14620
+    centre: {x: 1.3, y: 1.6, z: -11}
+    facing: {x: 0.9805807, y: 0, z: 0.19611615}
+    canvas: {x: 1.5, y: 1.2}
+    frame: 1
 --- !u!1 &1833175016
 GameObject:
   m_ObjectHideFlags: 0
@@ -63792,6 +63835,62 @@ Transform:
   m_Children: []
   m_Father: {fileID: 258227377}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2075970548
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2075970549}
+  - component: {fileID: 2075970550}
+  m_Layer: 0
+  m_Name: World Paintings
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2075970549
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2075970548}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 211078548}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2075970550
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2075970548}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd0d247a525845341919eb395eba8ac3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MuseXR.Interaction::MuseXR.Interaction.WorldPaintings
+  worldKey: grotto-hall-of-time-500k
+  collectionId: grotto-time
+  artworksJson: {fileID: 4900000, guid: 005558b8ec3c4d143a4baba5f6d45dd0, type: 3}
+  artworkImages:
+  - {fileID: 2800000, guid: fafe91a237a32fb44a6e0093f84129eb, type: 3}
+  colliderModel: {fileID: 0}
+  placements:
+  - id: aic-4453
+    centre: {x: -2.3, y: 1.4, z: -11.4}
+    facing: {x: 0.19611615, y: 0, z: 0.9805807}
+    canvas: {x: 0.9, y: 1.4}
+    frame: 1
 --- !u!21 &2078645097
 Material:
   serializedVersion: 8

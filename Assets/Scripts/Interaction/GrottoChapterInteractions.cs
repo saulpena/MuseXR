@@ -138,9 +138,9 @@ namespace MuseXR.Interaction
             Sockets.Cue += (s, e) => { if (e.Cue == SlotCue.Placed) foreach (var t in stands) t.MarkDone(); };
             // The rule: every painting and interactable object - click it or walk up to it, and a master speaks.
             InsightTarget.Add(Lamp.gameObject, "the brass lamp");
-            InsightTarget.Add(relief.gameObject, "the niche relief");
+            InsightTarget.Add(relief.gameObject, "Buddhist Votive Stele", "a Western Wei carver (551)", "aic-29149");   // her design doc: the relief the lamp lights
             foreach (var booth in new[] { ("Work Gandhara", "Buddha Worshipped by the Gods Indra and Brahma", "a Gandharan sculptor"),
-                                           ("Work Tang / N. Wei", "Buddha Dipankara (Randengfo)", "a Northern Wei sculptor") })
+                                           ("Work Tang / N. Wei", "Buddha", "a Tang dynasty sculptor") })
             {
                 var w = Find(booth.Item1);
                 if (w != null) InsightTarget.Add(w.gameObject, booth.Item2, booth.Item3);
@@ -164,7 +164,8 @@ namespace MuseXR.Interaction
             Label(whole.position + Vector3.up * 0.35f, entry, "Cliff Buddha: an AI rendition\nreferencing the Longmen Vairocana form", 0.22f);
 
             BoothLabel("Work Gandhara", "GANDHARA", "Kushan period · 1st-2nd century");
-            BoothLabel("Work Tang / N. Wei", "CHINA · NORTHERN WEI", "dated 495");
+            // Her design doc (2 Oct 2026) names AIC 86380, the Tang Buddha, for the right booth (it was Met 42719, Northern Wei).
+            BoothLabel("Work Tang / N. Wei", "CHINA · TANG DYNASTY", "c. 725-750");
 
             Chapter = GrottoChapter.Make(gameObject, Sockets, Companions, Record, rim);
             _standFloor = standAt.position; _detailFloor = detailAt.position; _wholeFloor = wholeAt.position;

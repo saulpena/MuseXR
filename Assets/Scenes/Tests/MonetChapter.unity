@@ -941,21 +941,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 60710867}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!115 &65541795
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: MasterInsights
-  m_Namespace: MuseXR.Interaction
-  m_AssemblyName: MuseXR.Interaction
 --- !u!1 &78569868
 GameObject:
   m_ObjectHideFlags: 0
@@ -13442,6 +13427,27 @@ MonoBehaviour:
   - {fileID: 2800000, guid: 4e9ee9cace557ce4fa46bbc67788cc85, type: 3}
   - {fileID: 2800000, guid: c9146ee571aefaa4abff82432c24811d, type: 3}
   colliderModel: {fileID: -212285753890768171, guid: 3af9f3a05389d494daf8accdae6171df, type: 3}
+  placements:
+  - id: aic-16568
+    centre: {x: 1.9, y: 1.6, z: -24.5}
+    facing: {x: 0.97014254, y: 0, z: 0.24253564}
+    canvas: {x: 1.5, y: 1.2}
+    frame: 1
+  - id: aic-16571
+    centre: {x: 5.7, y: 1.6, z: -21.5}
+    facing: {x: -0.99503714, y: 0, z: -0.09950372}
+    canvas: {x: 1.5, y: 1.2}
+    frame: 1
+  - id: aic-64818
+    centre: {x: 7.4, y: 1.75, z: -14.5}
+    facing: {x: -0.9805807, y: 0, z: -0.19611615}
+    canvas: {x: 1.5, y: 1.2}
+    frame: 1
+  - id: aic-14620
+    centre: {x: 1.3, y: 1.6, z: -11}
+    facing: {x: 0.9805807, y: 0, z: 0.19611615}
+    canvas: {x: 1.5, y: 1.2}
+    frame: 1
 --- !u!4 &1393528016
 Transform:
   m_ObjectHideFlags: 0
