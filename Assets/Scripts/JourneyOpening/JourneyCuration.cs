@@ -80,6 +80,7 @@ namespace MuseXR.Journey
         readonly List<Transform> _lanterns = new List<Transform>();
         readonly List<Light> _lights = new List<Light>();
         GameObject _card;
+        readonly List<Transform> _tags = new List<Transform>();
         TextMeshProUGUI _cardKicker, _cardLine, _cardNote;
         MoonGate _gate;
         // Her 2.3 has no timer: the visitor points at lanterns to hear them, and the first becomes the gate
@@ -333,6 +334,7 @@ namespace MuseXR.Journey
         void Tag(Transform lantern, string chapter, string subtitle, float height = 2.05f)
         {
             var anchor = new GameObject("Name").transform;
+            _tags.Add(anchor);
             anchor.SetParent(lantern, false);
             anchor.position = lantern.position + Vector3.up * height;
             var toEye = gate.spawn.position - anchor.position; toEye.y = 0f;
@@ -404,6 +406,21 @@ namespace MuseXR.Journey
 
         void LateUpdate()
         {
+            // A lantern's name tag that stands between the eye and the open card is stepped aside: the
+            // pointed lantern's "Palace · Court of Keeping" covered Monet's line (live run, 4 Oct). The card
+            // names the chapter in its kicker, so nothing is lost while it is up.
+            var cardUp = _card != null && _card.activeInHierarchy && _eye != null;
+            foreach (var tag in _tags)
+            {
+                if (tag == null) continue;
+                var hide = false;
+                if (cardUp)
+                {
+                    var toCard = _card.transform.position - _eye.position; var toTag = tag.position - _eye.position;
+                    hide = toTag.magnitude < toCard.magnitude + 0.5f && Vector3.Angle(toCard, toTag) < 24f;
+                }
+                if (tag.gameObject.activeSelf == hide) tag.gameObject.SetActive(!hide);
+            }
             // A teleport moves the eye in one frame: bring the card to the new spot. Walking (smooth
             // locomotion) never jumps, so also when the visitor has walked up to it or past it - at most
             // once per 1.5 s, so it does not jitter.
