@@ -17,7 +17,9 @@ namespace MuseXR.Journey
     public sealed class GateHero : MonoBehaviour
     {
         public GateStage gate;
-        public const float PictureHeight = 4f, Along = 11f, Aside = 3.4f;
+        // Her plan: "at the far end, facing the arch, a 9-metre white marble wall holds only this painting,
+        // enlarged to 6 m tall". The far end is behind where the visitor starts: they turn round to meet her.
+        public const float PictureHeight = 6f, Along = -7f, Aside = 0f, WallWidth = 9f;
 
         void Start()
         {
@@ -30,15 +32,15 @@ namespace MuseXR.Journey
             var at = from + toDoor * Along + right * Aside;
             var floor = at.y;
             if (Physics.Raycast(at + Vector3.up * 3f, Vector3.down, out var hit, 6f, ~0, QueryTriggerInteraction.Ignore)) floor = hit.point.y;
-            var toWalk = (from + toDoor * (Along - 3f)) - at; toWalk.y = 0f; toWalk.Normalize();
-            var faces = Quaternion.LookRotation(-toWalk, Vector3.up);   // +Z away from the viewer reads
+            // The visitor stands toward the arch from her and looks back at her: +Z (away from them) is -toDoor.
+            var faces = Quaternion.LookRotation(-toDoor, Vector3.up);
 
             var root = new GameObject("Hero · Mona Lisa").transform;
             root.SetParent(transform, false);
             root.SetPositionAndRotation(new Vector3(at.x, floor, at.z), faces);
 
             float w = PictureHeight * tex.width / tex.height, h = PictureHeight;
-            Quad(root, "Wall", new Vector3(0f, (h + 1.2f) / 2f, 0.03f), new Vector2(w + 1.6f, h + 1.2f), new Color(0.95f, 0.94f, 0.91f), null);
+            Quad(root, "Wall", new Vector3(0f, (h + 1.4f) / 2f, 0.03f), new Vector2(WallWidth, h + 1.4f), new Color(0.95f, 0.94f, 0.91f), null);
 
             // The picture and its frame are what is replicated: a palm-sized framed Mona Lisa.
             var picture = new GameObject("Picture").transform;
@@ -61,7 +63,7 @@ namespace MuseXR.Journey
             label.SetParent(root, false);
             label.localPosition = new Vector3(0f, 0.32f, -0.01f);
             var t = label.gameObject.AddComponent<TextMeshPro>();
-            t.text = "<b>Mona Lisa</b>  ·  Leonardo da Vinci  ·  c. 1503–1519  ·  Louvre\n<size=75%>Enlarged about 5×, original 77 × 53 cm  ·  Aim and hold the trigger to replicate</size>";
+            t.text = "<b>Mona Lisa</b>  ·  Leonardo da Vinci  ·  c. 1503–1519  ·  Louvre\n<size=75%>Enlarged about 8×, original 77 × 53 cm  ·  Aim and hold the trigger to replicate</size>";
             t.fontSize = 1.1f; t.alignment = TextAlignmentOptions.Center; t.color = new Color(0.2f, 0.17f, 0.14f);
             t.rectTransform.sizeDelta = new Vector2(w + 1.4f, 0.5f);
             Debug.Log("[GateHero] Mona Lisa stands at " + root.position.ToString("F1"));

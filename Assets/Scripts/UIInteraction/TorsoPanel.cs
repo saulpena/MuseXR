@@ -72,8 +72,16 @@ namespace MuseXR.UI
 
         /// <summary>Show a master's line: their portrait, name and what they say. <paramref name="hint"/>
         /// is the small "A next" note, or null.</summary>
+        /// <summary>
+        /// Her roundtable rule: under each turn, which of the visitor's records it cites. While set, a master's
+        /// line shows "Based on: ..." in place of the usual kicker. Cleared by whoever set it.
+        /// </summary>
+        public static readonly System.Collections.Generic.Dictionary<string, string> BasedOn =
+            new System.Collections.Generic.Dictionary<string, string>();
+
         public void ShowLine(string masterId, string speaker, string line, string hint = null, string kicker = "Your companion answers")
         {
+            if (masterId != null && kicker == "Your companion answers" && BasedOn.TryGetValue(masterId, out var basedOn)) kicker = basedOn;
             _kicker.text = kicker ?? string.Empty;
             _speaker.text = speaker ?? string.Empty;
             _line.text = line ?? string.Empty;

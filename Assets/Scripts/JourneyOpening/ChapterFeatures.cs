@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using GaussianSplatting.Runtime;
 using MusePico.Dialogue;
+using MusePico.Tripo;
 using MuseXR.Interaction;
 using MuseXR.Slots;
 using MuseXR.UI;
@@ -147,6 +148,15 @@ namespace MuseXR.Journey
             return g;
         }
 
+        /// <summary>Her per-chapter confirm sound (bronze bell, stone chime, wood, water), played where it happens.</summary>
+        internal static void Chime(ChapterSound sound, Vector3 at)
+        {
+            var data = ChimeSynth.Render(sound);
+            var clip = AudioClip.Create("chime-" + sound, data.Length, 1, ChimeSynth.SampleRate, false);
+            clip.SetData(data, 0);
+            AudioSource.PlayClipAtPoint(clip, at, 0.9f);
+        }
+
         /// <summary>The voice of the scene's MuseumDialogue, if any: speaks a line in a master's voice.</summary>
         internal static void Voice(MonoBehaviour host, string masterId, string line)
         {
@@ -186,7 +196,27 @@ namespace MuseXR.Journey
         public static readonly Vector3 CeilingCentre = new Vector3(0.7f, 3.25f, -7.5f);
         public static readonly Vector2 CeilingSize = new Vector2(20f, 6.5f);   // along the corridor, across it
         public static readonly Vector3 BedroomAt = new Vector3(0.6f, 0f, -17.5f);
-        public const float BedroomWidth = 4.2f;
+        // Her 6 m does not fit under the 3.25 m ceiling: 3.6 m wide keeps the whole picture on the end wall.
+        public const float BedroomWidth = 3.6f, ReliefDepth = 0.2f;
+
+        // Her three replies (the repo's artworkChoices: perception, emotion, invention) and who answers each.
+        static readonly string[] Replies =
+        {
+            "It changes how my eyes work. I will see differently when I leave.",
+            "It makes me feel something I don't have words for yet.",
+            "It shows me a world that never existed\u2014until someone made it.",
+        };
+        static readonly string[] ReplyLines =
+        {
+            "Then keep looking after you leave. The light will go on changing what you saw here.",
+            "Good. Do not tame it. A feeling with no name is the most honest visitor you will ever receive.",
+            "Then ask who made it, and what it cost them to make what had never been.",
+        };
+        static readonly string[] ReplyBy = { Masters.Monet, Masters.VanGogh, Masters.Socrates };
+        static readonly Dictionary<string, string> WorkIds = new Dictionary<string, string>
+        {
+            { "Bedroom", "aic-28560" }, { "Self-Portrait", "aic-80607" }, { "Poet's Garden", "aic-14586" }, { "Peasant Woman", "aic-28862" },
+        };
 
         static readonly (string name, Color colour)[] Pots =
         {
@@ -202,6 +232,11 @@ namespace MuseXR.Journey
         LineRenderer _stroke;
         readonly List<Vector3> _points = new List<Vector3>();
         bool _drawing, _awaitingKeep, _kept;
+        // Her rule: the easel lights once a painting has been looked at and the companions heard.
+        bool _unlocked, _repliesShown, _groupHooked;
+        string _artworkId = "aic-28560";
+        GameObject _replies;
+        Renderer _easelCanvas;
         TextMeshPro _prompt;
         CompanionGroup _group;
         Vector3 _exit = new Vector3(3.1f, 0f, -5.3f);
@@ -254,7 +289,8 @@ namespace MuseXR.Journey
                 _skyMat.SetTextureOffset("_BaseMap", o);
             }
             if (_group == null && _layout != null && Arrived) _group = ChapterFeatures.Crowd(_layout, transform);
-            if (_easel == null || _kept) return;
+            if (_group != null && !_groupHooked) { _group.TurnsFinished += OnTurnsFinished; _groupHooked = true; }
+            if (_easel == null || _kept || !_unlocked) return;
             UpdatePots();
             UpdateDrawing();
         }
@@ -272,6 +308,10 @@ namespace MuseXR.Journey
             return disc;
         }
 
+        /// <summary>
+        /// Her "The Bedroom · 6 m impasto relief": the end wall, the paint standing off it. The depth comes from
+        /// the picture's own light and dark (her doc says so, and so does the label), not from the original.
+        /// </summary>
         void BuildBedroom()
         {
             var tex = Resources.Load<Texture2D>("Heroes/bedroom");
@@ -281,15 +321,55 @@ namespace MuseXR.Journey
             root.SetParent(transform, false);
             root.localPosition = BedroomAt;
             root.localRotation = Quaternion.LookRotation(Vector3.back);   // faces the visitor walking down -Z: +Z away
-            ChapterFeatures.Quad(root, "Canvas", new Vector3(0f, 0.5f + h / 2f, 0f), Quaternion.identity, new Vector2(BedroomWidth, h), ChapterFeatures.Unlit(Color.white, tex));
-            var gold = ChapterFeatures.Lit(new Color(0.7f, 0.55f, 0.28f), 0.7f, 0.5f);
-            const float f = 0.12f;
-            ChapterFeatures.Part(root, PrimitiveType.Cube, "Frame", new Vector3(0f, 0.5f + h + f / 2f, -0.02f), new Vector3(BedroomWidth + 2 * f, f, 0.08f), gold);
-            ChapterFeatures.Part(root, PrimitiveType.Cube, "Frame", new Vector3(0f, 0.5f - f / 2f, -0.02f), new Vector3(BedroomWidth + 2 * f, f, 0.08f), gold);
-            ChapterFeatures.Part(root, PrimitiveType.Cube, "Frame", new Vector3(-BedroomWidth / 2f - f / 2f, 0.5f + h / 2f, -0.02f), new Vector3(f, h, 0.08f), gold);
-            ChapterFeatures.Part(root, PrimitiveType.Cube, "Frame", new Vector3(BedroomWidth / 2f + f / 2f, 0.5f + h / 2f, -0.02f), new Vector3(f, h, 0.08f), gold);
-            ChapterFeatures.Label(root, new Vector3(0f, 0.25f, -0.01f), Quaternion.identity,
-                "<b>The Bedroom</b>  ·  Vincent van Gogh  ·  1889  ·  Art Institute of Chicago\n<size=70%>Enlarged; the impasto relief in her plan is not reproduced</size>", BedroomWidth, 0.75f);
+            var relief = new GameObject("Relief").transform;
+            relief.SetParent(root, false);
+            relief.localPosition = new Vector3(0f, 0.15f + h / 2f, 0f);
+            relief.gameObject.AddComponent<MeshFilter>().sharedMesh = ReliefFrom(tex, BedroomWidth, h, ReliefDepth);
+            var m = ChapterFeatures.Lit(Color.white, 0f, 0.35f);
+            m.SetTexture("_BaseMap", tex);
+            relief.gameObject.AddComponent<MeshRenderer>().sharedMaterial = m;
+            var lamp = new GameObject("Raking light").AddComponent<Light>();   // a light from the side brings the ridges out
+            lamp.transform.SetParent(root, false); lamp.transform.localPosition = new Vector3(-BedroomWidth * 0.7f, h + 0.3f, -1.2f);
+            lamp.type = LightType.Point; lamp.range = 7f; lamp.intensity = 2.2f; lamp.color = new Color(1f, 0.92f, 0.8f);
+            ChapterFeatures.Label(root, new Vector3(0f, 0.08f, -0.25f), Quaternion.identity,
+                "<b>The Bedroom</b>  ·  Vincent van Gogh  ·  1889  ·  Art Institute of Chicago\n<size=70%>Relief derived from the picture's light and dark, not the original's paint</size>", BedroomWidth, 0.6f);
+        }
+
+        /// <summary>A grid the size of the picture whose vertices stand out toward the viewer by its brightness.</summary>
+        static Mesh ReliefFrom(Texture2D tex, float width, float height, float depth)
+        {
+            const int nx = 120;
+            var ny = Mathf.Max(8, Mathf.RoundToInt(nx * height / width));
+            // Read it small through a RenderTexture: no need for the image to be CPU-readable, and the blit blurs it.
+            var rt = RenderTexture.GetTemporary(nx + 1, ny + 1, 0, RenderTextureFormat.ARGB32);
+            Graphics.Blit(tex, rt);
+            var prev = RenderTexture.active; RenderTexture.active = rt;
+            var small = new Texture2D(nx + 1, ny + 1, TextureFormat.RGBA32, false);
+            small.ReadPixels(new Rect(0, 0, nx + 1, ny + 1), 0, 0); small.Apply();
+            RenderTexture.active = prev; RenderTexture.ReleaseTemporary(rt);
+            var px = small.GetPixels();
+            Destroy(small);
+            var verts = new Vector3[(nx + 1) * (ny + 1)]; var uvs = new Vector2[verts.Length];
+            for (var y = 0; y <= ny; y++)
+            for (var x = 0; x <= nx; x++)
+            {
+                var c = px[y * (nx + 1) + x];
+                var lum = 0.3f * c.r + 0.59f * c.g + 0.11f * c.b;
+                float u = x / (float)nx, v = y / (float)ny;
+                var edge = Mathf.Clamp01(Mathf.Min(Mathf.Min(u, 1f - u), Mathf.Min(v, 1f - v)) * 30f);   // flat at the rim
+                verts[y * (nx + 1) + x] = new Vector3((u - 0.5f) * width, (v - 0.5f) * height, -lum * depth * edge);   // toward the viewer: -Z
+                uvs[y * (nx + 1) + x] = new Vector2(u, v);
+            }
+            var tris = new int[nx * ny * 6]; var t = 0;
+            for (var y = 0; y < ny; y++)
+            for (var x = 0; x < nx; x++)
+            {
+                int a = y * (nx + 1) + x, b = a + 1, c = a + nx + 1, d = c + 1;
+                tris[t++] = a; tris[t++] = c; tris[t++] = b; tris[t++] = b; tris[t++] = c; tris[t++] = d;
+            }
+            var mesh = new Mesh { name = "Bedroom relief", vertices = verts, uv = uvs, triangles = tris };
+            mesh.RecalculateNormals(); mesh.RecalculateBounds();
+            return mesh;
         }
 
         // ---- the easel and the stroke ----------------------------------------------------------------------
@@ -308,7 +388,7 @@ namespace MuseXR.Journey
             ChapterFeatures.Part(_easel, PrimitiveType.Cube, "Leg", new Vector3(-0.3f, 0.85f, 0f), new Vector3(0.04f, 1.7f, 0.04f), wood, Quaternion.Euler(0f, 0f, -6f));
             ChapterFeatures.Part(_easel, PrimitiveType.Cube, "Leg", new Vector3(0.3f, 0.85f, 0f), new Vector3(0.04f, 1.7f, 0.04f), wood, Quaternion.Euler(0f, 0f, 6f));
             ChapterFeatures.Part(_easel, PrimitiveType.Cube, "Leg", new Vector3(0f, 0.8f, 0.3f), new Vector3(0.04f, 1.65f, 0.04f), wood, Quaternion.Euler(14f, 0f, 0f));
-            ChapterFeatures.Part(_easel, PrimitiveType.Cube, "Canvas", new Vector3(0f, 1.25f, -0.03f), new Vector3(0.7f, 0.55f, 0.02f), ChapterFeatures.Lit(new Color(0.93f, 0.9f, 0.84f)));
+            _easelCanvas = ChapterFeatures.Part(_easel, PrimitiveType.Cube, "Canvas", new Vector3(0f, 1.25f, -0.03f), new Vector3(0.7f, 0.55f, 0.02f), ChapterFeatures.Lit(new Color(0.42f, 0.4f, 0.37f))).GetComponent<Renderer>();
             ChapterFeatures.Part(_easel, PrimitiveType.Cube, "Shelf", new Vector3(0f, 0.95f, -0.2f), new Vector3(0.75f, 0.03f, 0.18f), wood);
 
             // Three pots on the shelf: touch one with the right hand, or point and pull the trigger.
@@ -333,16 +413,86 @@ namespace MuseXR.Journey
             _prompt = promptAt.gameObject.AddComponent<TextMeshPro>();
             _prompt.fontSize = 0.9f; _prompt.alignment = TextAlignmentOptions.Center; _prompt.color = new Color(0.98f, 0.95f, 0.86f);
             _prompt.rectTransform.sizeDelta = new Vector2(1.8f, 0.4f);
-            _prompt.text = "The easel is lit. Touch a pot to pick a colour";
-            CompassTarget.Add(_easel.gameObject, 25, "The easel", "Pick a colour, paint one stroke");
+            _prompt.text = "Look at a painting and hear the companions first";
+            _prompt.color = new Color(0.8f, 0.78f, 0.72f);
+            // Until then the compass leads to the paintings (each hung work is already a target).
 
             _strokeRoot = new GameObject("Stroke").transform;
             _strokeRoot.SetParent(transform, false);
         }
 
+        /// <summary>A round of the companions has finished: if it was about a painting the visitor stands at,
+        /// her question follows - "What is this painting to you?" with three replies.</summary>
+        void OnTurnsFinished()
+        {
+            if (_repliesShown || _kept) return;
+            var cam = Camera.main;
+            if (cam == null) return;
+            Transform nearest = null; var best = 4.5f;
+            foreach (var t in transform.parent.GetComponentsInChildren<Transform>())
+            {
+                if (!t.name.StartsWith("Work ")) continue;
+                var d = Vector3.Distance(cam.transform.position, t.position);
+                if (d < best) { best = d; nearest = t; }
+            }
+            if (nearest != null) ShowReplies(nearest);
+        }
+
+        void ShowReplies(Transform work)
+        {
+            _repliesShown = true;
+            var title = work.name.Substring(5);
+            foreach (var kv in WorkIds) if (title.Contains(kv.Key)) _artworkId = kv.Value;
+            var cam = Camera.main.transform;
+            var toEye = cam.position - work.position; toEye.y = 0f; toEye.Normalize();
+            _replies = new GameObject("What is this painting to you").gameObject;
+            _replies.transform.SetParent(transform, true);
+            var at = work.position + toEye * 1.1f; at.y = transform.parent.position.y + 1.45f;
+            _replies.transform.SetPositionAndRotation(at, Quaternion.LookRotation(-toEye, Vector3.up));
+            var q = _replies.AddComponent<TextMeshPro>();
+            q.text = "What is this painting to you?"; q.fontSize = 0.75f; q.alignment = TextAlignmentOptions.Center;
+            q.color = new Color(0.98f, 0.95f, 0.88f); q.rectTransform.sizeDelta = new Vector2(2f, 0.25f);
+            for (var i = 0; i < Replies.Length; i++)
+            {
+                var chip = new GameObject("Reply " + (i + 1)).transform;
+                chip.SetParent(_replies.transform, false);
+                chip.localPosition = new Vector3(0f, -0.24f - i * 0.2f, 0f);
+                ChapterFeatures.Quad(chip, "Back", new Vector3(0f, 0f, 0.004f), Quaternion.identity, new Vector2(1.7f, 0.17f), ChapterFeatures.Unlit(new Color(0.08f, 0.07f, 0.09f)));
+                var t = chip.gameObject.AddComponent<TextMeshPro>();
+                t.text = "0" + (i + 1) + "   " + Replies[i]; t.fontSize = 0.42f; t.alignment = TextAlignmentOptions.MidlineLeft;
+                t.color = new Color(0.95f, 0.92f, 0.86f); t.rectTransform.sizeDelta = new Vector2(1.6f, 0.16f);
+                var box = chip.gameObject.AddComponent<BoxCollider>(); box.size = new Vector3(1.7f, 0.17f, 0.04f); box.isTrigger = true;
+                var index = i;
+                Pointable.Make(chip.gameObject, "reply " + i).Selected += (_, __) => Reply(index);
+            }
+        }
+
+        void Reply(int i)
+        {
+            if (_unlocked) return;
+            if (_replies != null) Destroy(_replies);
+            var who = System.Linq.Enumerable.Contains(Masters.Company, ReplyBy[i]) ? ReplyBy[i] : (Masters.Company.Count > 0 ? Masters.Company[0] : ReplyBy[i]);
+            if (_group != null) _group.Say(who, ReplyLines[i]);
+            ChapterFeatures.Voice(this, who, ReplyLines[i]);
+            Unlock();
+        }
+
+        /// <summary>The easel lights: three pots of paint, and the compass now leads to it.</summary>
+        void Unlock()
+        {
+            _unlocked = true;
+            if (_easelCanvas != null) _easelCanvas.sharedMaterial = ChapterFeatures.Lit(new Color(0.93f, 0.9f, 0.84f));
+            _prompt.text = "The easel is lit. Touch a pot to pick a colour";
+            _prompt.color = new Color(0.98f, 0.95f, 0.86f);
+            var light = new GameObject("Easel light").AddComponent<Light>();
+            light.transform.SetParent(_easel, false); light.transform.localPosition = new Vector3(0f, 1.9f, -0.6f);
+            light.type = LightType.Point; light.range = 2.5f; light.intensity = 1.6f; light.color = new Color(1f, 0.85f, 0.6f);
+            CompassTarget.Add(_easel.gameObject, 25, "The easel", "Pick a colour, paint one stroke");
+        }
+
         void PickColour(int index)
         {
-            if (_kept || _awaitingKeep) return;
+            if (_kept || _awaitingKeep || !_unlocked) return;
             _colour = index;
             for (var i = 0; i < _potRenderers.Count; i++)
                 _potRenderers[i].transform.localScale = i == index ? new Vector3(0.11f, 0.07f, 0.11f) : new Vector3(0.09f, 0.05f, 0.09f);
@@ -424,9 +574,10 @@ namespace MuseXR.Journey
             ConfirmInput.Drop(this);
             var local = new List<float[]>();
             foreach (var p in _points) { var l = transform.parent.InverseTransformPoint(p); local.Add(new[] { l.x, l.y, l.z }); }
-            JourneyMemory.Record.SetVanGogh("#" + ColorUtility.ToHtmlStringRGB(Pots[_colour].colour), "aic-28560", local);
+            JourneyMemory.Record.SetVanGogh("#" + ColorUtility.ToHtmlStringRGB(Pots[_colour].colour), _artworkId, local);
+            ChapterFeatures.Chime(ChapterSound.Wood, _easel.position + Vector3.up);
             JourneyMemory.Record.MarkChapterDone(VrStage.VanGogh);
-            _prompt.text = "Saved  ·  " + Pots[_colour].name + " stroke  ·  linked to The Bedroom";
+            _prompt.text = "Saved  ·  " + Pots[_colour].name + " stroke  ·  linked to " + ArtworkTitle(_artworkId);
             StartCoroutine(GrowToDoor());
             var vg = Masters.VanGogh;
             var line = "You pressed hardest at the very start and lighter as you went. Whatever is on your mind was heaviest at the beginning";
@@ -444,6 +595,12 @@ namespace MuseXR.Journey
             _points.Clear();
             _prompt.text = Pots[_colour].name + ".  Hold the trigger and paint one stroke in the air";
             return true;
+        }
+
+        static string ArtworkTitle(string id)
+        {
+            foreach (var kv in WorkIds) if (kv.Value == id) return kv.Key == "Bedroom" ? "The Bedroom" : kv.Key == "Poet's Garden" ? "The Poet's Garden" : kv.Key;
+            return "The Bedroom";
         }
 
         /// <summary>Her answer: the stroke keeps growing up to the ceiling and curves to the side door, a ribbon of light.</summary>
@@ -514,6 +671,9 @@ namespace MuseXR.Journey
         Vector3 _rotundaLocal = new Vector3(6.8f, 0f, -3f);
         string _draft = "", _rewrite = "";
         int _answerStage;   // 0 none, 1 draft shown (A keep · X rewrite · Y say), 2 rewrite shown (A use · B back)
+        float _undoUntil;   // her 3 s undo after the painting is chosen
+        int _pickedWork = -1;
+        bool _rewriting;
         InputAction _x, _y;
 
         void Start()
@@ -672,13 +832,36 @@ namespace MuseXR.Journey
         void PickWork(int i)
         {
             if (_picked) return;
-            _picked = true;
+            _picked = true; _pickedWork = i;
             JourneyMemory.Record.SetMonet(new JourneyRecord.MonetChoice { Preset = _time.ToString().ToLowerInvariant(), ArtworkId = WorkIds[i], Reason = Works[i] });
+            if (_chips != null) _chips.SetActive(false);
+            ChapterFeatures.Chime(ChapterSound.Water, _dial.transform.position);
+            // Her undo: 3 s to take it back with B; A keeps it at once.
+            _undoUntil = Time.time + 3f;
+            var panel = TorsoPanel.Get();
+            if (panel != null) panel.ShowLine(null, "Saved", _time + "  ·  " + Works[i], "B undo  ·  3 s", "Monet garden");
+            ConfirmInput.Take(this);
+        }
+
+        /// <summary>The undo window has closed (or A kept it): the choice stands and the rotunda calls.</summary>
+        void KeepWork()
+        {
+            _undoUntil = 0f;
+            ConfirmInput.Drop(this);
             JourneyMemory.Record.MarkChapterDone(VrStage.Monet);
             if (_chips != null) Destroy(_chips);
-            Note("Saved  ·  " + _time + "  ·  " + Works[i] + "\nEnd of the garden  ·  Form my answer");
+            Note("Saved  ·  " + _time + "  ·  " + Works[_pickedWork] + "\nEnd of the garden  ·  Form my answer");
             if (_tableSign != null) _tableSign.text = "Form my answer";
             var ct = _rotunda.GetComponent<CompassTarget>(); if (ct == null) CompassTarget.Add(_rotunda.gameObject, 28, "Form my answer", "The rotunda · they are waiting");
+        }
+
+        void UndoWork()
+        {
+            _undoUntil = 0f; _picked = false; _pickedWork = -1;
+            ConfirmInput.Drop(this);
+            if (_chips != null) _chips.SetActive(true);
+            var panel = TorsoPanel.Get();
+            if (panel != null) panel.ClearLine();
         }
 
         void Note(string text)
@@ -718,7 +901,8 @@ namespace MuseXR.Journey
                 if (away.sqrMagnitude > 1e-4f) _tableSign.transform.rotation = Quaternion.LookRotation(away);
             }
             var flat = new Vector3(cam.transform.position.x, _rotunda.position.y, cam.transform.position.z);
-            if (!_tableStarted && Arrived && Vector3.Distance(flat, _rotunda.position) < 2.6f) StartCoroutine(Roundtable());
+            if (!_tableStarted && Arrived && _undoUntil <= 0f && Vector3.Distance(flat, _rotunda.position) < 2.6f) StartCoroutine(Roundtable());
+            if (_undoUntil > 0f && Time.time > _undoUntil) KeepWork();
             if (_answerStage == 1 && _x != null && _x.WasPressedThisFrame()) Rewrite();
             if (_answerStage == 1 && _y != null && _y.WasPressedThisFrame()) SayOwn();
         }
@@ -766,9 +950,11 @@ namespace MuseXR.Journey
             if (lines.Count == 0) { lines = LocalThreads(); _draft = LocalDraft() + "   (local fallback)"; }
             // A line still running (the time ring's) would make the round refuse to start: wait it out.
             while (_group != null && _group.Busy) yield return null;
+            AssignBasedOn(lines);
             if (_group != null) _group.SayInTurn(lines);
             foreach (var kv in lines) ChapterFeatures.Voice(this, kv.Key, kv.Value);
             while (_group != null && _group.Busy) yield return null;
+            TorsoPanel.BasedOn.Clear();
             ShowDraft();
         }
 
@@ -796,6 +982,34 @@ namespace MuseXR.Journey
             var client = new RoundtableClient(new MusePico.Tripo.TripoWebRequestTransport(key, ResponsesCall.DefaultEndpoint), roster);
             return await client.AskAsync(session, masters);
         }
+
+        /// <summary>
+        /// Her rule: each turn cites one real record, shown in a small "Based on" line. Each master is given the
+        /// record nearest their lens - Monet the garden, Van Gogh the stroke, Socrates the Palace reason - and
+        /// any other companion the next one left.
+        /// </summary>
+        static void AssignBasedOn(List<KeyValuePair<string, string>> lines)
+        {
+            var rec = JourneyMemory.Record;
+            var records = new List<(string key, string text)>();
+            if (rec.Monet != null) records.Add(("monet", "Based on: Monet garden  ·  " + Cap(rec.Monet.Preset) + "  ·  " + rec.Monet.Reason));
+            if (rec.VanGogh != null) records.Add(("van_gogh", "Based on: Van Gogh studio  ·  your stroke"));
+            if (rec.Palace != null) records.Add(("socrates", "Based on: Palace  ·  " + (rec.Palace.Reason.Length > 0 ? "your reason" : "the " + rec.Palace.Object)));
+            if (rec.Grotto != null) records.Add(("grotto", "Based on: Grotto  ·  lamp on the " + rec.Grotto.LampSlot));
+            TorsoPanel.BasedOn.Clear();
+            var used = new HashSet<int>();
+            foreach (var kv in lines)
+                for (var k = 0; k < records.Count; k++)
+                    if (!used.Contains(k) && records[k].key == kv.Key) { TorsoPanel.BasedOn[kv.Key] = records[k].text; used.Add(k); break; }
+            foreach (var kv in lines)
+            {
+                if (TorsoPanel.BasedOn.ContainsKey(kv.Key)) continue;
+                for (var k = 0; k < records.Count; k++)
+                    if (!used.Contains(k)) { TorsoPanel.BasedOn[kv.Key] = records[k].text; used.Add(k); break; }
+            }
+        }
+
+        static string Cap(string s) => string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s.Substring(1);
 
         static string RosterId(string id) => id == "frida_kahlo" ? "frida" : id == "hilma_af_klint" ? "hilma" : id == "berthe_morisot" ? "morisot" : id;
 
@@ -829,15 +1043,50 @@ namespace MuseXR.Journey
             ConfirmInput.Take(this);
         }
 
-        void Rewrite()
+        /// <summary>Her X: adopt Socrates' challenge - a rewrite of the draft, asked live, with a written fallback.</summary>
+        async void Rewrite()
         {
-            _answerStage = 2;
-            var rec = JourneyMemory.Record;
-            _rewrite = rec.Palace != null && rec.Palace.Reason.Length > 0
-                ? "What is worth keeping is what I would still choose if I had not inherited it"
-                : "What is worth keeping is what I know why I keep";
+            if (_rewriting) return;
+            _rewriting = true;
             var panel = TorsoPanel.Get();
-            if (panel != null) panel.ShowLine(Masters.Socrates, "Rewrite  ·  through Socrates' question", "\"" + _rewrite + "\"", "A use this one  ·  B back to the first", "Your answer");
+            if (panel != null) panel.ShowLine(Masters.Socrates, "Rewrite  ·  through Socrates' question", "Socrates is turning your answer over\u2026", null, "Your answer");
+            var rec = JourneyMemory.Record;
+            string live = null;
+            try { live = await RewriteLive(rec, _draft); }
+            catch (System.Exception ex) { Debug.LogWarning("[Roundtable] rewrite failed: " + ex.Message); }
+            _rewriting = false;
+            if (_tableDone) return;
+            _rewrite = !string.IsNullOrWhiteSpace(live) ? live.Trim().Trim('"')
+                : rec.Palace != null && rec.Palace.Reason.Length > 0
+                    ? "What is worth keeping is what I would still choose if I had not inherited it"
+                    : "What is worth keeping is what I know why I keep";
+            _answerStage = 2;
+            if (panel != null) panel.ShowLine(Masters.Socrates, "Rewrite  ·  through Socrates' question", "\"" + _rewrite + "\"" + (live == null ? "   (local fallback)" : ""), "A use this one  ·  B back to the first", "Your answer");
+        }
+
+        [System.Serializable] class RewriteReply { public string answer; }
+
+        static async System.Threading.Tasks.Task<string> RewriteLive(JourneyRecord rec, string draft)
+        {
+            var key = await MusePico.Generation.FallbackKeySource.ForOpenAi().GetKeyAsync();
+            if (string.IsNullOrEmpty(key)) return null;
+            var call = new ResponsesCall(new MusePico.Tripo.TripoWebRequestTransport(key, ResponsesCall.DefaultEndpoint));
+            var props = new JsonBuilder().Add("answer", new JsonBuilder().Add("type", "string"));
+            var schema = new JsonBuilder().Add("type", "object").Add("properties", props)
+                .AddStringArray("required", new[] { "answer" }).Add("additionalProperties", false);
+            var why = rec.Palace != null && rec.Palace.Reason.Length > 0 ? " In the Palace they kept the " + rec.Palace.Object + " \"" + rec.Palace.Reason + "\"." : "";
+            const string instructions =
+                "You are Socrates at the end of a museum walk. The visitor drafted one sentence answering their question. " +
+                "Ask yourself the one question that most tests it, then rewrite their sentence so it survives that question. " +
+                "Keep their voice, first person, one sentence under 22 words, no quotation marks, no preamble.";
+            var text = await call.SendAsync(instructions,
+                "Question: " + rec.Question + "\nDraft answer: " + draft + why,
+                ResponsesCall.TextFormat("rewrite", schema), raw =>
+                {
+                    try { var r = JsonUtility.FromJson<RewriteReply>(raw); return r != null && !string.IsNullOrWhiteSpace(r.answer) ? null : "empty"; }
+                    catch (System.Exception ex) { return ex.Message; }
+                });
+            return JsonUtility.FromJson<RewriteReply>(text).answer;
         }
 
         void SayOwn()
@@ -860,6 +1109,7 @@ namespace MuseXR.Journey
 
         public bool Confirm()
         {
+            if (_undoUntil > 0f) { KeepWork(); return true; }
             if (_answerStage == 0 || _tableDone) return false;
             var final = _answerStage == 2 ? _rewrite : _draft;
             var rec = JourneyMemory.Record;
@@ -875,6 +1125,7 @@ namespace MuseXR.Journey
 
         public bool Redo()
         {
+            if (_undoUntil > 0f) { UndoWork(); return true; }
             if (_answerStage != 2) return false;
             ShowDraft();
             return true;
