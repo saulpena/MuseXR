@@ -43,6 +43,14 @@ namespace MuseXR.Interaction
 
         public GameObject Cliff { get; private set; }
 
+        /// <summary>Her "when you light the nearby relief with the lamp, a small light also glows at the far Buddha's chest, as if answering".</summary>
+        public const float LampNearRelief = 1.6f;
+        Transform _chest, _relief;
+        Light _chestLight;
+        Material _chestGlow;
+        GrottoChapterInteractions _grotto;
+        float _glow;
+
         void Start()
         {
             var entry = transform.TransformPoint(Vector3.zero);
@@ -59,6 +67,7 @@ namespace MuseXR.Interaction
                 stand.GetComponent<Renderer>().sharedMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit")) { color = new Color32(0xec, 0xe6, 0xd8, 0xff) };
                 Replicable.Make(mini, "Golden seated Buddha", "grotto").replicaName = "A 20 cm gold Buddha";
                 Label(mini, "Golden seated Buddha  ·  30 m on the cliff", "AI original sculpture, not a real site  ·  hold the trigger to replicate");
+                ChestGlow(entry);
             }
             if (fiveBuddhas != null)
             {
@@ -74,6 +83,64 @@ namespace MuseXR.Interaction
                 Label(g, "Guanyin group under plum branches", "AI original sculpture  ·  Tripo");
                 InsightTarget.Add(g, "the Guanyin group under the plum branches", "an AI sculptor (an original, not an artefact)", "hero-guanyin");
             }
+        }
+
+        void ChestGlow(Vector3 entry)
+        {
+            // The figure is the model's upper third: its chest about a fifth down from the top, in front.
+            var b = Bounds(Cliff);
+            var toEntry = entry - b.center; toEntry.y = 0f; toEntry.Normalize();
+            _chest = new GameObject("Chest glow").transform;
+            _chest.SetParent(Cliff.transform, true);
+            _chest.position = new Vector3(b.center.x, b.max.y - b.size.y * 0.2f, b.center.z) + toEntry * (b.extents.z * 0.35f);
+            _chest.rotation = Quaternion.LookRotation(-toEntry, Vector3.up);
+            var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            q.name = "Glow"; Destroy(q.GetComponent<Collider>());
+            q.transform.SetParent(_chest, false);
+            q.transform.localScale = Vector3.one * (b.size.y * 0.09f);
+            _chestGlow = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            _chestGlow.SetFloat("_Surface", 1f); _chestGlow.SetFloat("_Blend", 2f);   // additive
+            _chestGlow.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            _chestGlow.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            _chestGlow.SetFloat("_ZWrite", 0f);
+            _chestGlow.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            _chestGlow.renderQueue = 3100;
+            _chestGlow.SetTexture("_BaseMap", SoftDot());
+            _chestGlow.SetColor("_BaseColor", new Color(1f, 0.82f, 0.45f, 0f));
+            q.GetComponent<Renderer>().sharedMaterial = _chestGlow;
+            _chestLight = _chest.gameObject.AddComponent<Light>();
+            _chestLight.type = LightType.Point; _chestLight.color = new Color(1f, 0.8f, 0.45f);
+            _chestLight.range = b.size.y * 0.25f; _chestLight.intensity = 0f;
+        }
+
+        static Texture2D SoftDot()
+        {
+            const int n = 64;
+            var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            for (var y = 0; y < n; y++)
+                for (var x = 0; x < n; x++)
+                {
+                    var d = new Vector2(x - n * 0.5f + 0.5f, y - n * 0.5f + 0.5f).magnitude / (n * 0.5f);
+                    var a = Mathf.Clamp01(1f - d); a *= a;
+                    tex.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+                }
+            tex.Apply();
+            return tex;
+        }
+
+        void Update()
+        {
+            if (_chest == null) return;
+            if (_grotto == null) _grotto = FindAnyObjectByType<GrottoChapterInteractions>();
+            if (_relief == null && _grotto != null)
+                foreach (var t in _grotto.transform.root.GetComponentsInChildren<Transform>(true)) if (t.name == "Prop relief") { _relief = t; break; }
+            if (_relief == null && transform.parent == null)
+                foreach (var r in gameObject.scene.GetRootGameObjects()) foreach (var t in r.GetComponentsInChildren<Transform>(true)) if (t.name == "Prop relief") _relief = t;
+            var lamp = _grotto != null && _grotto.Lamp != null ? _grotto.Lamp.transform : null;
+            bool lit = lamp != null && _relief != null && Vector3.Distance(lamp.position, _relief.position) < LampNearRelief;
+            _glow = Mathf.MoveTowards(_glow, lit ? 1f : 0f, Time.deltaTime / 1.2f);
+            _chestGlow.SetColor("_BaseColor", new Color(1f, 0.82f, 0.45f, 0.85f * _glow));
+            _chestLight.intensity = 6f * _glow;
         }
 
         /// <summary>The model at <paramref name="height"/> metres, its base on <paramref name="floor"/>, facing the visitor's entry.</summary>

@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using MuseXR.Slots;
+using MuseXR.UI;
+using TMPro;
 using UnityEngine;
 
 namespace MuseXR.Interaction
@@ -25,6 +27,7 @@ namespace MuseXR.Interaction
 
         async void Start()
         {
+            if (GetComponent<ChapterChimes>() == null) gameObject.AddComponent<ChapterChimes>();   // every scene with insights has the chapter chimes
             if (mastersJson == null) return;
             try { _roster = MusePico.Dialogue.MasterRoster.Parse(mastersJson.text); }
             catch (System.Exception ex) { Debug.LogWarning("[Insight] masters.json: " + ex.Message); return; }
@@ -94,6 +97,7 @@ namespace MuseXR.Interaction
 
         void Update()
         {
+            UpdateReplies();
             if (Group() == null || _group.Busy) return;
             if (_pending != null) { var p = _pending; _pending = null; _group.SayInTurn(p); return; }
             var head = Camera.main != null ? Camera.main.transform : null;
@@ -153,11 +157,100 @@ namespace MuseXR.Interaction
             _group.Say(speaker, Insights.Opening(speaker, t.title, t.artist));
             _pending = null;
             AskLive(t);
+            ShowReplies(t, speaker);
             // Heard about counts as seen: the compass moves on (it kept pointing at a work a master had
             // just spoken about when the insight came from walking up rather than a click).
             var compass = t.GetComponent<CompassTarget>();
             if (compass != null) compass.MarkDone();
             Debug.Log("[Insight] " + Masters.Name(speaker) + " on " + t.title);
+        }
+
+        // ---- the visitor's reply (her artworkChoices) -------------------------------------------------
+
+        public const string ReplyPrompt = "What is this painting to you?";
+        public const string Disclaimer = "AI INTERPRETATION GROUNDED IN DOCUMENTED THEMES — NOT AN AUTHENTIC QUOTATION";
+        const float ReplyLeave = 4.5f, ReplySeconds = 30f;
+
+        GameObject _replies;
+        InsightTarget _replyTo;
+        string _opener;
+        float _replyAge;
+
+        /// <summary>
+        /// Her popup's three replies (app.js artDialogueMarkup), in front of the visitor below eye level,
+        /// with her disclaimer. Choosing one: the companion who champions that axis answers with her
+        /// scripted reaction, and the reply goes to the journey record (her philosophy axes).
+        /// </summary>
+        void ShowReplies(InsightTarget t, string opener)
+        {
+            CloseReplies();
+            var eye = Camera.main != null ? Camera.main.transform : null;
+            if (eye == null) return;
+            _replyTo = t; _opener = opener; _replyAge = 0f;
+            var fwd = eye.forward; fwd.y = 0f; fwd = fwd.sqrMagnitude > 1e-4f ? fwd.normalized : Vector3.forward;
+            var right = Vector3.Cross(Vector3.up, fwd).normalized;
+            var anchor = new GameObject("Replies · " + t.title).transform;
+            anchor.SetParent(transform, false);
+            // Right of the waist panel, below eye level: read at a glance, never across the work.
+            anchor.SetPositionAndRotation(eye.position + fwd * 1.45f + right * 0.55f - Vector3.up * 0.3f, Quaternion.LookRotation(fwd, Vector3.up));
+            var c = MuseUi.Canvas(anchor, "Replies", 1.5f, 300f);
+            var glass = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 12f, padY: 10f, gap: 6f, name: "Replies");
+            MuseUi.Text(glass, ReplyPrompt, MuseUi.Face.Serif, 13f, MuseTheme.Ink, name: "Prompt");
+            for (var i = 0; i < Insights.Replies.Count; i++)
+            {
+                var (axis, label) = Insights.Replies[i];
+                var chip = MuseUi.Card(glass, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Gold, 1f, padX: 9f, padY: 6f, gap: 6f, name: "Reply " + axis);
+                var row = MuseUi.Row(chip, 7f, TextAnchor.MiddleLeft, "Row");
+                var n = MuseUi.Text(row, "0" + (i + 1), MuseUi.Face.Mono, 9f, MuseTheme.Ink3, name: "Number"); n.enableWordWrapping = false;
+                n.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 0f;
+                var l = MuseUi.Text(row, label, MuseUi.Face.Sans, 10f, MuseTheme.Ink, name: "Label");
+                l.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
+                Canvas.ForceUpdateCanvases();
+                var corners = new Vector3[4]; chip.GetWorldCorners(corners);
+                var hit = new GameObject("Hit " + axis).transform;
+                hit.SetParent(anchor, false);
+                var lo = anchor.InverseTransformPoint(corners[0]); var hi = anchor.InverseTransformPoint(corners[2]);
+                var box = hit.gameObject.AddComponent<BoxCollider>();
+                box.center = (lo + hi) * 0.5f; box.size = new Vector3(Mathf.Abs(hi.x - lo.x), Mathf.Abs(hi.y - lo.y), 0.02f);
+                var p = Pointable.Make(hit.gameObject, "reply " + axis);
+                var chosen = axis;
+                p.Selected += (_, __) => Reply(chosen);
+            }
+            MuseUi.Text(glass, Disclaimer, MuseUi.Face.Sans, 6.5f, MuseTheme.Ink3, 0.12f, true, name: "Disclaimer");
+            _replies = anchor.gameObject;
+        }
+
+        /// <summary>The visitor's reply: her champion answers, the record keeps it.</summary>
+        public bool Reply(string axis)
+        {
+            if (_replyTo == null || Group() == null) return false;
+            var speaker = Insights.ReactionSpeaker(axis, _group.Ids, _opener);
+            var line = Insights.Reaction(speaker, axis);
+            JourneyMemory.Record.AddReply(_replyTo.id, axis);
+            // Next, before any live readings still waiting: her popup swaps in the reaction at once.
+            var reaction = new List<KeyValuePair<string, string>> { new KeyValuePair<string, string>(speaker, line) };
+            if (_pending != null) reaction.AddRange(_pending);
+            if (_group.Busy) _group.StopTurns();
+            _pending = null;
+            _group.SayInTurn(reaction);
+            Debug.Log("[Insight] reply '" + axis + "' to " + _replyTo.title + ": " + Masters.Name(speaker) + " answers");
+            CloseReplies();
+            return true;
+        }
+
+        void UpdateReplies()
+        {
+            if (_replies == null) return;
+            _replyAge += Time.deltaTime;
+            var eye = Camera.main != null ? Camera.main.transform.position : Vector3.zero;
+            var far = _replyTo == null || Vector3.Distance(new Vector3(eye.x, 0f, eye.z), new Vector3(_replyTo.transform.position.x, 0f, _replyTo.transform.position.z)) > ReplyLeave;
+            if (far || _replyAge > ReplySeconds) CloseReplies();
+        }
+
+        void CloseReplies()
+        {
+            if (_replies != null) Destroy(_replies);
+            _replies = null; _replyTo = null;
         }
     }
 }

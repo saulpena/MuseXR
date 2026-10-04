@@ -160,7 +160,7 @@ namespace MuseXR.Interaction
             {
                 Plate(plinth.position + Vector3.up * 1.25f, Cap(rec.Palace.Object) + "  ·  the Palace",
                       string.IsNullOrWhiteSpace(rec.Palace.Reason) ? "facing " + Direction(rec.Palace.YawDeg) : "“" + rec.Palace.Reason.Trim() + "”");
-                _chimes.Add((plinth.position, Chime(392f, 4.0f, 2.4f, 0.55f), false));   // a bronze bell
+                _chimes.Add((plinth.position, ChapterChimes.Clip("palace"), false));   // a bronze bell
             }
         }
 
@@ -181,7 +181,7 @@ namespace MuseXR.Interaction
             if (plinth != null)
             {
                 Plate(plinth.position + Vector3.up * 1.25f, "The lamp  ·  the Grotto", "set on the " + (rec.Grotto.LampSlot == "detail" ? "detail" : "whole"));
-                _chimes.Add((plinth.position, Chime(1046f, 2.5f, 1.2f, 0.4f), false));   // a stone chime
+                _chimes.Add((plinth.position, ChapterChimes.Clip("grotto"), false));   // a stone chime
             }
         }
 
@@ -208,7 +208,7 @@ namespace MuseXR.Interaction
                 line.SetPosition(i, at + (new Vector3(pts[i][0], pts[i][1], pts[i][2]) - centre) * 1.5f);
             if (ColorUtility.TryParseHtmlString(rec.VanGogh.Color, out var c)) { line.startColor = c; line.endColor = c; if (line.sharedMaterial != null) line.material.color = c; }
             line.enabled = true;
-            _chimes.Add((strokeT.TransformPoint(at), Chime(196f, 7f, 0.5f, 0.6f), false));   // wood
+            _chimes.Add((strokeT.TransformPoint(at), ChapterChimes.Clip("vangogh"), false));   // wood
         }
 
         void WorksPieces(JourneyRecord rec, bool sample, System.Func<string, string> titleOf)
@@ -233,7 +233,7 @@ namespace MuseXR.Interaction
                     var h = canvas.localScale.y; canvas.localScale = new Vector3(h * tex.width / (float)tex.height, h, 1f);
                 }
                 f.name = "Work " + titleOf(ids[i]);
-                _chimes.Add((f.position, Chime(660f, 1.6f, 3f, 0.35f), false));   // water
+                _chimes.Add((f.position, ChapterChimes.Clip("monet"), false));   // water
             }
         }
 
@@ -361,7 +361,7 @@ namespace MuseXR.Interaction
         }
 
         /// <summary>Her chapter chimes, synthesised: a decaying tone with one overtone.</summary>
-        static AudioClip Chime(float hz, float decay, float seconds, float overtone)
+        public static AudioClip Chime(float hz, float decay, float seconds, float overtone)
         {
             const int rate = 44100;
             var n = (int)(rate * seconds);

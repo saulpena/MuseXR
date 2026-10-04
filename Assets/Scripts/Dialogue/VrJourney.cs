@@ -198,6 +198,19 @@ namespace MusePico.Dialogue
             return seen;
         }
 
+        /// <summary>The visitor's replies to works (her artworkChoices): the axis chosen, per work, in order.</summary>
+        public IReadOnlyList<(string artworkId, string axis)> Replies => _replies;
+        readonly List<(string, string)> _replies = new List<(string, string)>();
+
+        /// <summary>Her philosophy axes, tallied from the replies (perception, emotion, invention).</summary>
+        public int Axis(string axis) { var n = 0; foreach (var r in _replies) if (r.Item2 == axis) n++; return n; }
+
+        public void AddReply(string artworkId, string axis)
+        {
+            if (string.IsNullOrWhiteSpace(axis)) return;
+            _replies.Add((artworkId ?? string.Empty, axis));
+        }
+
         public void MarkChapterDone(VrStage chapter)
         {
             if (!_done.Contains(chapter)) _done.Add(chapter);
@@ -206,7 +219,7 @@ namespace MusePico.Dialogue
         public void Reset()
         {
             Question = string.Empty;
-            _companions.Clear(); _done.Clear(); _dwell.Clear();
+            _companions.Clear(); _done.Clear(); _dwell.Clear(); _replies.Clear();
             Palace = null; Grotto = null; VanGogh = null; Monet = null; WorldTitle = string.Empty;
             FinalAnswer.Draft = FinalAnswer.Final = FinalAnswer.RewrittenBy = string.Empty;
         }
