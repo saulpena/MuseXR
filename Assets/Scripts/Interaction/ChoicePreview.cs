@@ -78,7 +78,8 @@ namespace MuseXR.Interaction
             foreach (var (t, label) in options)
             {
                 if (t == null) continue;
-                t.askReply = false;   // the reason is asked once the choice is made, not per option
+                t.askReply = false;
+                t.onApproach = true;   // a choice piece: walking up to it is enough to hear the companions   // the reason is asked once the choice is made, not per option
                 p._targets[t] = label;   // a target's id may be empty (the crane, the turtle): the label is the key
                 list.Add((label, label));
             }

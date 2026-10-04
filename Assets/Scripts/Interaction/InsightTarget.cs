@@ -16,6 +16,10 @@ namespace MuseXR.Interaction
         public string artist;
         /// <summary>Metres added to the approach distance: walking up counts from its edge, not its pivot.</summary>
         public float reach;
+        /// <summary>The masters speak when the visitor walks up to it, not only when it is clicked. Only for a
+        /// chapter's choice pieces (the crane and turtle, the lamp's sockets): Saul, 4 Oct - they need not
+        /// talk about absolutely everything.</summary>
+        public bool onApproach;
         [Tooltip("Offer her reply chips (\"What is this painting to you?\") after the insight. Off for a choice's options, whose reason comes later.")]
         public bool askReply = true;
 

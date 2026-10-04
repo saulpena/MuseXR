@@ -131,7 +131,7 @@ namespace MuseXR.Interaction
             if (head == null) return;
             foreach (var t in InsightTarget.All)
             {
-                if (t == null) continue;
+                if (t == null || !t.onApproach) continue;   // anything else answers a click
                 var to = t.transform.position - head.position; var flat = new Vector3(to.x, 0f, to.z);
                 var g = head.forward; g.y = 0f;
                 var off = g.sqrMagnitude > 1e-6f && flat.sqrMagnitude > 1e-6f ? Vector3.Angle(g, flat) : 180f;
