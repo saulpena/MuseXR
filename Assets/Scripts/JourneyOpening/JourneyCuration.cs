@@ -64,7 +64,8 @@ namespace MuseXR.Journey
         const float LanternAside = 1.5f;   // metres either side of the walk's centre line
         const float ModelOpeningCentre = 2.02f;   // measured on the generated model (Docs/Doors/moon-gate.measure.txt)
         const float ModelOpeningRadius = 1.275f;
-        const float GateScale = 1.3f;                                    // a wider opening to see the Palace through
+        const float GateScale = 1.3f;
+        const float MorphSeconds = 2.2f;                                    // a wider opening to see the Palace through
         const float GateCentre = ModelOpeningRadius * GateScale + 0.05f;   // the opening's foot just above the floor
 
         readonly string[] _lines = new string[4];
@@ -435,23 +436,6 @@ namespace MuseXR.Journey
                 frame.localScale = Vector3.zero;
             }
 
-            // The morph: the Palace lantern drifts to the gate and rises into the opening, glowing brighter
-            // and shrinking, while the gate grows round it. Nothing pops.
-            var glow = first.GetComponentInChildren<Light>();
-            Vector3 p0 = first.position, p1 = at + Vector3.up * (GateCentre - 1.42f);
-            var s0 = first.localScale;
-            const float duration = 2.2f;
-            for (float t = 0f; t < duration; t += Time.deltaTime)
-            {
-                var k = Mathf.SmoothStep(0f, 1f, t / duration);
-                first.position = Vector3.Lerp(p0, p1, k);
-                first.localScale = s0 * Mathf.Lerp(1f, 0.25f, Mathf.SmoothStep(0f, 1f, (t / duration - 0.5f) * 2f));
-                if (glow != null) { glow.intensity = Mathf.Lerp(1.6f, 6f, k); glow.range = Mathf.Lerp(3.5f, 6f, k); }
-                if (frame != null) frame.localScale = Vector3.one * GateScale * Mathf.SmoothStep(0f, 1f, (t / duration - 0.3f) / 0.7f);
-                yield return null;
-            }
-            if (frame != null) frame.localScale = Vector3.one * GateScale;
-            first.gameObject.SetActive(false);
             mg.nextWorldAsset = palaceWorld.m_Asset;
             mg.nextWorldKey = def != null ? def.key : "palace-court-of-keeping-500k";
             // Her generated gate's own round opening, no passage: the keyhole is exactly the hole in the frame.
@@ -472,6 +456,33 @@ namespace MuseXR.Journey
             palaceFrame.gameObject.SetActive(true);
             pivot.SetParent(palaceFrame, true);   // MoonGate.Open already cut the Palace's spawn floaters
 
+            // The Palace shows through as the gate forms, not seconds later: no waiting to be looked at,
+            // no separate appear step, and the opening widens in step with the morph (it is passable at
+            // 60%). Measured before: ~0.4 s look + 2.5 s appear + 2.1 s to passable, after the 2.2 s morph,
+            // and a teleport made in that time landed beyond the gate in the old world.
+            var sequence = mg.Door.Sequence;
+            sequence.AppearSeconds = 0.01f;
+            sequence.OpenSeconds = MorphSeconds;
+            sequence.RequestOpen();
+
+
+            // The morph: the Palace lantern drifts to the gate and rises into the opening, glowing brighter
+            // and shrinking, while the gate grows round it. Nothing pops.
+            var glow = first.GetComponentInChildren<Light>();
+            Vector3 p0 = first.position, p1 = at + Vector3.up * (GateCentre - 1.42f);
+            var s0 = first.localScale;
+            const float duration = MorphSeconds;
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                var k = Mathf.SmoothStep(0f, 1f, t / duration);
+                first.position = Vector3.Lerp(p0, p1, k);
+                first.localScale = s0 * Mathf.Lerp(1f, 0.25f, Mathf.SmoothStep(0f, 1f, (t / duration - 0.5f) * 2f));
+                if (glow != null) { glow.intensity = Mathf.Lerp(1.6f, 6f, k); glow.range = Mathf.Lerp(3.5f, 6f, k); }
+                if (frame != null) frame.localScale = Vector3.one * GateScale * Mathf.SmoothStep(0f, 1f, (t / duration - 0.3f) / 0.7f);
+                yield return null;
+            }
+            if (frame != null) frame.localScale = Vector3.one * GateScale;
+            first.gameObject.SetActive(false);
             mg.Arrived += () => StartCoroutine(Arrive());
             StartCoroutine(RetireCard());
             _gate = mg;

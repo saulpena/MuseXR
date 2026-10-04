@@ -87,7 +87,7 @@ namespace MuseXR.Worlds
                 case PortalPhase.Opening:
                 case PortalPhase.Open:
                     if (Opening >= PassableOpening && prevEyeDoor.z < 0f &&
-                        PortalGeometry.SegmentCrossesAperture(prevEyeDoor, eyeDoor, half))
+                        (PortalGeometry.SegmentCrossesAperture(prevEyeDoor, eyeDoor, half) || TeleportedThrough(prevEyeDoor, eyeDoor, half)))
                     {
                         Phase = PortalPhase.Closing;
                         MusicBlend = 1f;
@@ -115,6 +115,21 @@ namespace MuseXR.Worlds
                 default:
                     return PortalEvent.None;
             }
+        }
+
+        /// <summary>How far to either side of the opening a teleport may cross and still go through, metres.</summary>
+        public float TeleportSlack = 1.5f;
+
+        /// <summary>
+        /// A teleport is a jump in one frame. Aimed at the gate it can start off to one side, so the line
+        /// from old eye to new crosses the door plane just outside the opening, and the visitor landed
+        /// beyond the gate still in the old world (headset test, 3 Oct). A jump that ends past the plane,
+        /// within <see cref="TeleportSlack"/> of the opening and no further than 4 m beyond it, goes through.
+        /// </summary>
+        public bool TeleportedThrough(Vector3 prevEyeDoor, Vector3 eyeDoor, Vector2 half)
+        {
+            var jump = new Vector2(eyeDoor.x - prevEyeDoor.x, eyeDoor.z - prevEyeDoor.z).magnitude;
+            return jump > 0.5f && eyeDoor.z >= 0f && eyeDoor.z <= 4f && Mathf.Abs(eyeDoor.x) <= half.x + TeleportSlack;
         }
 
         bool IsNear(Vector3 eyeDoor) =>
