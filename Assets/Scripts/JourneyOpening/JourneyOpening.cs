@@ -67,6 +67,9 @@ namespace MuseXR.Journey
             // Desktop testing in the Editor (no headset): WASD to walk through the rig's CharacterController,
             // Shift faster, hold the right mouse button to look; left click points (HandsBootstrap's mouse
             // hand), Enter is A, Backspace is B, X held speaks. DesktopMove switches itself off in a headset.
+            // Her satchel on the left wrist, and the Gate's hero work to replicate into it.
+            Satchel.Get();
+            if (FindAnyObjectByType<GateHero>() == null) gameObject.AddComponent<GateHero>().gate = gate;
             if (FindAnyObjectByType<MuseXR.Worlds.DesktopMove>() == null)
             {
                 var origin = FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>();

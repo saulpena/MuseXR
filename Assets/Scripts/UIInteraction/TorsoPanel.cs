@@ -18,8 +18,16 @@ namespace MuseXR.UI
     public sealed class TorsoPanel : MonoBehaviour
     {
         // Distances from the eye, metres: the line card a little higher and further than the compass.
-        public const float LineAhead = 0.5f, LineDrop = 0.5f, CompassAhead = 0.42f, CompassDrop = 0.74f;
-        public const float TiltDegrees = 48f;   // the panel's face turned up toward the eye
+        // About 29 deg below the eye line for the card and 43 deg for the compass: a natural glance down
+        // (15-25 deg) brings the card into view; looking ahead it stays below the view. At 45 deg the
+        // card needed a deliberate stare down and sat cut off at the frame's lower edge (review, 4 Oct).
+        public const float LineAhead = 0.62f, LineDrop = 0.34f, CompassAhead = 0.52f, CompassDrop = 0.5f;
+        /// <summary>The panel re-centres on the view direction once the head is this far off it, easing over -
+        /// following the body alone (40 deg dead zone) left it at the lower left of the view.</summary>
+        public const float RecentreDegrees = 20f, RecentreDegreesPerSecond = 110f;
+        /// <summary>Lines shown at once; longer readings page through (live readings run ~50 words).</summary>
+        public const int MaxLines = 3;
+        public const float SecondsPerWord = 0.36f, MinPageSeconds = 3.5f;
 
         // Her web dialogue card.
         static readonly Color Paper = new Color32(255, 252, 245, 230);
@@ -38,6 +46,10 @@ namespace MuseXR.UI
         GameObject _lineCard, _compassCard;
         TextMeshProUGUI _kicker, _speaker, _line, _hint, _stop, _target, _detail;
         RawImage _portrait;
+        float _yaw;
+        bool _yawStarted;
+        float _pageTimer;
+        string _hintBase;
         TMP_FontAsset _gilda;
 
         static TorsoPanel _instance;
@@ -50,6 +62,9 @@ namespace MuseXR.UI
             var go = new GameObject("Torso Panel");
             _instance = go.AddComponent<TorsoPanel>();
             _instance.Build();
+            var satchel = Satchel.Get();
+            if (satchel != null) satchel.Added += item => _instance.Note("Replicated",
+                item.ReplicaName + "  \u00b7  added to your satchel");
             return _instance;
         }
 
@@ -62,8 +77,11 @@ namespace MuseXR.UI
             _kicker.text = kicker ?? string.Empty;
             _speaker.text = speaker ?? string.Empty;
             _line.text = line ?? string.Empty;
-            _hint.text = hint ?? string.Empty;
-            _hint.gameObject.SetActive(!string.IsNullOrEmpty(hint));
+            _hintBase = hint ?? string.Empty;
+            _hint.text = _hintBase;
+            _hint.gameObject.SetActive(true);
+            _line.pageToDisplay = 1;
+            _pageTimer = 0f;
             var tex = Portrait(masterId);
             _portrait.texture = tex;
             _portrait.transform.parent.gameObject.SetActive(tex != null);
@@ -71,6 +89,21 @@ namespace MuseXR.UI
         }
 
         public void ClearLine() { if (_lineCard != null) _lineCard.SetActive(false); }
+
+        /// <summary>A short system line on the card (no portrait), cleared after <paramref name="seconds"/>
+        /// unless a master's line has taken its place.</summary>
+        public void Note(string kicker, string text, float seconds = 4f)
+        {
+            ShowLine(null, kicker, text, null, "");
+            var shown = text;
+            StartCoroutine(ClearAfter(seconds, shown));
+        }
+
+        System.Collections.IEnumerator ClearAfter(float seconds, string shown)
+        {
+            yield return new WaitForSeconds(seconds);
+            if (_line != null && _line.text == shown) ClearLine();
+        }
 
         static Texture2D Portrait(string masterId)
         {
@@ -118,6 +151,10 @@ namespace MuseXR.UI
             _hint = MuseUi.Text(head, "", MuseUi.Face.Sans, 9f, NameInk, 0.12f, true, name: "Hint");
             _hint.enableWordWrapping = false;
             _line = Serif(card, "", 17f, LineInk, "Words");
+            _line.overflowMode = TextOverflowModes.Page;   // three lines at a time, paged
+            var wle = _line.gameObject.AddComponent<LayoutElement>();
+            wle.preferredHeight = wle.minHeight = 17f * 1.35f * MaxLines + 4f;
+            wle.flexibleHeight = 0f;
             _lineCard = card.gameObject;
             _lineCard.SetActive(false);
 
@@ -150,10 +187,26 @@ namespace MuseXR.UI
             if (body == null || body.Head == null) return;
             body.Step(Time.deltaTime);
             var eye = body.Head.position;
-            var fwd = body.Forward;
-            var tilt = Quaternion.LookRotation(Quaternion.AngleAxis(TiltDegrees, body.Right) * fwd, Vector3.up);
-            _lineAnchor.SetPositionAndRotation(eye + fwd * LineAhead - Vector3.up * LineDrop, tilt);
-            _compassAnchor.SetPositionAndRotation(eye + fwd * CompassAhead - Vector3.up * CompassDrop, tilt);
+
+            // Its own yaw: along the walk while walking; otherwise it stays put until the head is more than
+            // RecentreDegrees off it, then eases over. A glance moves nothing; a turn is followed smoothly.
+            var hf = body.Head.forward; hf.y = 0f;
+            var headYaw = hf.sqrMagnitude > 1e-6f ? Mathf.Atan2(hf.x, hf.z) * Mathf.Rad2Deg : _yaw;
+            if (!_yawStarted) { _yaw = headYaw; _yawStarted = true; }
+            float targetYaw = _yaw;
+            if (body.Velocity.magnitude > BodyFrame.WalkingSpeed) targetYaw = Mathf.Atan2(body.Forward.x, body.Forward.z) * Mathf.Rad2Deg;
+            else if (Mathf.Abs(Mathf.DeltaAngle(_yaw, headYaw)) > RecentreDegrees) targetYaw = headYaw;
+            if (Mathf.Abs(Mathf.DeltaAngle(_yaw, headYaw)) > 100f) _yaw = headYaw;   // a snap turn
+            _yaw = Mathf.MoveTowardsAngle(_yaw, targetYaw, RecentreDegreesPerSecond * Time.deltaTime);
+            var fwd = Quaternion.Euler(0f, _yaw, 0f) * Vector3.forward;
+
+            // Each card faces the eye squarely, so nothing reads keystoned (it was tilted 25-30 deg off).
+            var linePos = eye + fwd * LineAhead - Vector3.up * LineDrop;
+            var compassPos = eye + fwd * CompassAhead - Vector3.up * CompassDrop;
+            _lineAnchor.SetPositionAndRotation(linePos, Quaternion.LookRotation(linePos - eye, Vector3.up));
+            _compassAnchor.SetPositionAndRotation(compassPos, Quaternion.LookRotation(compassPos - eye, Vector3.up));
+
+            Page();
 
             var target = CompassTarget.Current(body.Feet);
             _compassCard.SetActive(target != null);
@@ -166,6 +219,24 @@ namespace MuseXR.UI
             _target.text = target.label;
             var metres = Mathf.RoundToInt(to.magnitude) + " M";
             _detail.text = string.IsNullOrEmpty(target.detail) ? metres : metres + "  ·  " + target.detail;
+        }
+
+        /// <summary>Turn the line's pages on a reading clock and show "page / pages" beside the hint.</summary>
+        void Page()
+        {
+            if (_lineCard == null || !_lineCard.activeSelf) return;
+            _line.ForceMeshUpdate();
+            var pages = Mathf.Max(1, _line.textInfo.pageCount);
+            if (pages > 1)
+            {
+                _pageTimer += Time.deltaTime;
+                var words = Mathf.Max(1, _line.text.Split((char[])null, System.StringSplitOptions.RemoveEmptyEntries).Length);
+                var perPage = Mathf.Max(MinPageSeconds, words / (float)pages * SecondsPerWord);
+                if (_pageTimer > perPage && _line.pageToDisplay < pages) { _line.pageToDisplay++; _pageTimer = 0f; }
+            }
+            var page = Mathf.Clamp(_line.pageToDisplay, 1, pages);
+            var counter = pages > 1 ? page + " / " + pages : string.Empty;
+            _hint.text = string.IsNullOrEmpty(_hintBase) ? counter : (counter.Length > 0 ? counter + "   " + _hintBase : _hintBase);
         }
 
         static Sprite _arrowSprite;

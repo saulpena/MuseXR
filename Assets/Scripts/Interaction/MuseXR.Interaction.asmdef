@@ -3,6 +3,7 @@
     "rootNamespace": "MuseXR.Interaction",
     "references": [
         "MuseXR.Slots",
+        "MuseXR.UI",
         "MusePico.Worlds",
         "Unity.InputSystem",
         "Unity.XR.Interaction.Toolkit",
