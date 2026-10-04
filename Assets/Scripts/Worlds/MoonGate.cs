@@ -104,6 +104,7 @@ namespace MuseXR.Worlds
             var pivot = new GameObject("Next World (behind the moon gate): " + NextDefinition.key).transform;
             pivot.SetPositionAndRotation(framePos, frameRot);
             NextWorld = MakeRenderer(NextDefinition, nextWorldAsset, currentWorld, pivot);
+            CutArrivalFloaters(pose, pivot);
 
             var go = Instantiate(doorPrefab);
             go.name = "Moon Gate Door to " + NextDefinition.displayName;
@@ -181,6 +182,29 @@ namespace MuseXR.Worlds
             if (Door == null) { if (_crossed && !_arrived) { _arrived = true; Arrived?.Invoke(); } return; }
             if (!_crossed && Door.HasCrossed) { _crossed = true; Crossed?.Invoke(); }
             if (_crossed && !_arrived && Door.IsDone) { _arrived = true; Arrived?.Invoke(); }
+        }
+
+        /// <summary>
+        /// A capture has big blurred floaters round its spawn: invisible from the spawn, but seen
+        /// through the gate they sit right in the opening (the Gate walk saw the Palace's as a
+        /// red-brown smear over the lower two thirds of the moon gate; musexr-bb, 818b02d). An inverted
+        /// box from the gate plane to just past the arrival, above the floor, removes them. Parented to
+        /// the next world's frame, so it moves with it.
+        /// </summary>
+        void CutArrivalFloaters(DoorPose pose, Transform frame)
+        {
+            if (NextWorld == null) return;
+            var cut = new GameObject("Arrival floaters (splat cutout)").AddComponent<GaussianCutout>();
+            cut.transform.SetParent(frame, true);
+            var half = new Vector3(Mathf.Max(radius, passageWidth * 0.5f) + 0.5f, 1.6f, 0.85f);   // the box spans -1..1 locally
+            cut.transform.SetPositionAndRotation(pose.position + pose.rotation * Vector3.forward * 0.8f + Vector3.up * (0.12f + half.y), pose.rotation);
+            cut.transform.localScale = half;
+            cut.m_Type = GaussianCutout.Type.Box;
+            cut.m_Invert = true;   // inside the box is removed, everything else stays
+            var list = new List<GaussianCutout>();
+            if (NextWorld.m_Cutouts != null) list.AddRange(NextWorld.m_Cutouts);
+            list.Add(cut);
+            NextWorld.m_Cutouts = list.ToArray();
         }
 
         /// <summary>A splat renderer for <paramref name="world"/> under <paramref name="parent"/>,
