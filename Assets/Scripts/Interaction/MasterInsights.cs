@@ -184,6 +184,7 @@ namespace MuseXR.Interaction
         void ShowReplies(InsightTarget t, string opener)
         {
             CloseReplies();
+            if (ArtworkCard.Hushed) return;   // the round table is running
             var eye = Camera.main != null ? Camera.main.transform : null;
             if (eye == null) return;
             _replyTo = t; _opener = opener; _replyAge = 0f;
@@ -244,7 +245,7 @@ namespace MuseXR.Interaction
             _replyAge += Time.deltaTime;
             var eye = Camera.main != null ? Camera.main.transform.position : Vector3.zero;
             var far = _replyTo == null || Vector3.Distance(new Vector3(eye.x, 0f, eye.z), new Vector3(_replyTo.transform.position.x, 0f, _replyTo.transform.position.z)) > ReplyLeave;
-            if (far || _replyAge > ReplySeconds) CloseReplies();
+            if (far || _replyAge > ReplySeconds || ArtworkCard.Hushed) CloseReplies();
         }
 
         void CloseReplies()

@@ -20,6 +20,17 @@ namespace MuseXR.Interaction
 
         public static ArtworkCard Current { get; private set; }
 
+        /// <summary>
+        /// While true, no artwork card or reply chips open (and an open card closes): the Monet round table sets
+        /// it for as long as it runs, so a work hung nearby does not talk over the companions.
+        /// </summary>
+        public static bool Hushed
+        {
+            get => _hushed;
+            set { _hushed = value; if (value && Current != null) Current.Close(); }
+        }
+        static bool _hushed;
+
         ArtworkRecord _record;
         Transform _work;
         InsightTarget _insight;
@@ -37,6 +48,7 @@ namespace MuseXR.Interaction
 
         public static ArtworkCard Show(ArtworkRecord record, Transform work, Vector2 workSize, InsightTarget insight)
         {
+            if (Hushed) return null;
             if (Current != null)
             {
                 if (Current._work == work) return Current;

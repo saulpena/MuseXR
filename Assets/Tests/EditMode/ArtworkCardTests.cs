@@ -28,6 +28,19 @@ namespace MusePico.Tests
         }
 
         [Test]
+        public void NoCardOpensWhileTheRoundTableRuns()
+        {
+            var work = new GameObject("Work").transform;
+            try
+            {
+                ArtworkCard.Hushed = true;
+                Assert.IsNull(ArtworkCard.Show(new ArtworkRecord { title = "Stacks of Wheat", artist = "Claude Monet" }, work, new Vector2(1.2f, 0.8f), null));
+                Assert.IsNull(ArtworkCard.Current);
+            }
+            finally { ArtworkCard.Hushed = false; Object.DestroyImmediate(work.gameObject); }
+        }
+
+        [Test]
         public void TheChapterQuestionReadsAsHerScriptWritesIt()
         {
             Assert.AreEqual("Stop 3  ·  What can my feeling become as expression?", ChapterQuestion.Line("Stop 3", "What can my feeling become as expression?"));
