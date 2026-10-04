@@ -102,7 +102,9 @@ namespace MuseXR.Slots
         // nearly coplanar and touching from the visitor's eye (about 1° apart at their edges); now ~5°.
         // All three inside the visitor's view at once (headset test, 3 Oct: at -48/+46 he had to turn his
         // head to see who was speaking). Still her limits: 1.5-2.2 m, off the path (>20 degrees), <60 degrees.
-        static readonly Mark[] Slots = { new Mark(-24f, 1.7f), new Mark(24f, 1.7f), new Mark(38f, 2.2f) };
+        // Spread 28 degrees or more apart (headset test, 3 Oct: at +24 / +38 the two on the right stood in
+        // front of each other and their subtitles collided). A figure is ~14 degrees wide at 2 m.
+        static readonly Mark[] Slots = { new Mark(-32f, 2.0f), new Mark(26f, 2.0f), new Mark(54f, 2.2f) };
 
         /// <summary>The mark for the companion who speaks <paramref name="order"/>th (0-based).</summary>
         public static Mark For(int order) => Slots[Math.Max(0, Math.Min(Slots.Length - 1, order))];

@@ -26,7 +26,7 @@ namespace MuseXR.Journey
     ///     opening (SplatPortalDoor), the visitor walks through, and the Palace chapter takes over
     ///     with the companions they chose.
     /// </summary>
-    public sealed class JourneyCuration : MonoBehaviour
+    public sealed class JourneyCuration : MonoBehaviour, IConfirmable
     {
         public JourneyOpening opening;
         public GateStage gate;
@@ -68,6 +68,11 @@ namespace MuseXR.Journey
         GameObject _card;
         TextMeshProUGUI _cardKicker, _cardLine, _cardNote;
         MoonGate _gate;
+        // Her 2.3 has no timer: the visitor points at lanterns to hear them, and the first becomes the gate
+        // when they choose to walk on (A) - an 8 s timer opened it before anyone had pointed at anything.
+        readonly HashSet<int> _heard = new HashSet<int>();
+        bool _awaitingWalkOn;
+        Vector3 _toDoor;
         Transform _eye;
 
         [System.Serializable] public class BakedLantern { public string question; public List<string> lines = new List<string>(); }
@@ -197,8 +202,9 @@ namespace MuseXR.Journey
             }
             gate.HideLettering();
             ShowCard(-1);
-            yield return new WaitForSeconds(8f);   // time to point at them; then the first becomes the gate
-            MakeGate(toDoor);
+            _toDoor = toDoor;
+            _awaitingWalkOn = true;
+            ConfirmInput.Take(this);
         }
 
         static Transform Part(Transform parent, PrimitiveType type, Vector3 pos, Vector3 scale, Material m)
@@ -250,13 +256,31 @@ namespace MuseXR.Journey
             {
                 _cardKicker.text = "Your path";
                 _cardLine.text = "Four rooms will answer your question";
-                _cardNote.text = "Point at a lantern and pull the trigger to hear why. The first will open the way.";
+                _cardNote.text = "Point at a lantern and pull the trigger to hear why it fits.";
                 return;
             }
+            _heard.Add(index);
             _cardKicker.text = Chapters[index] + "  ·  " + Subtitles[index];
             _cardLine.text = _lines[index];
-            _cardNote.text = _fallback ? "Local fallback - written ahead, not generated for your question." : "";
+            _cardNote.text = (_fallback ? "Local fallback - written ahead, not generated for your question.\n" : "")
+                             + (_awaitingWalkOn ? "Point at another lantern, or press A to walk on: the first opens the way." : "");
         }
+
+        public bool Confirm()
+        {
+            if (!_awaitingWalkOn) return false;
+            if (_heard.Count == 0)
+            {
+                if (_card != null) _cardNote.text = "Point at a lantern first and pull the trigger to hear why it fits.";
+                return false;
+            }
+            _awaitingWalkOn = false;
+            ConfirmInput.Drop(this);
+            MakeGate(_toDoor);
+            return true;
+        }
+
+        public bool Redo() => false;
 
         // ---- the moon gate --------------------------------------------------------------------------
 

@@ -58,14 +58,15 @@ namespace MuseXR.UI
             // Her A advances at once (Turns.Advance); LineFinished would start the 2 s auto-advance pause.
             var panel = MuseScreens.Dialogue(_panel, d, Vector3.Distance(_eye.position, head), () => Group.Confirm());
             var disclaimer = FindText(panel, "Disclaimer");
-            if (disclaimer != null) { disclaimer.fontSize = 12f; disclaimer.color = MuseTheme.Ink2; }   // readable without zoom
+            // No per-line "not the real artist" notice: on every line it filled most of the view (headset test).
+            if (disclaimer != null) disclaimer.gameObject.SetActive(false);
             // No wider than MaxWidth beside a figure, and lifted so its lower edge clears the head.
             // Measure the glass card itself: the canvas root's own rect is far larger than what it draws,
             // and measuring everything under it shrank the panel to ~0.4 m (musexr-b, 5ff879e).
             var glass = panel.childCount > 0 ? (RectTransform)panel.GetChild(0) : panel;
             float half = Fit(_panel, glass, MaxWidth);
             _follow.ExtraUp = Mathf.Max(0f, half + HeadClearance - SubtitleFollow.Up);
-            _follow.Reset(head, _eye.position, _eye.forward);
+            _follow.Reset(head, _eye.position);   // always over the speaker's head, never at the edge of view
             _panel.position = _follow.Current;
             Face();
             Debug.Log($"[SubtitleRig] {id}: card {Fit(_panel, glass, float.MaxValue) * 2f:F2} m tall, eye {Vector3.Distance(_eye.position, head):F2} m from the head");
@@ -92,7 +93,7 @@ namespace MuseXR.UI
 
         // Her body text is >= 1 degree, which the kit already sizes by distance: ~1.9 m wide at 2.5 m.
         // The cap only stops a far speaker producing a billboard; it does not shrink a normal one.
-        const float MaxWidth = 2.0f;
+        const float MaxWidth = 1.1f;   // 2 m beside a figure 2 m away covered most of the view
         const float HeadClearance = 0.22f;  // from the head point to the panel's lower edge
 
         /// <summary>Scale the panel so it is at most <paramref name="metres"/> wide; returns its half height.</summary>
