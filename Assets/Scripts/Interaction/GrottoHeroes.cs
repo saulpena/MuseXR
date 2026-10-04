@@ -176,13 +176,20 @@ namespace MuseXR.Interaction
             box.isTrigger = true;
         }
 
+        /// <summary>No hero's label stands nearer the arrival than this, metres.</summary>
+        public const float LabelNearest = 2.5f;
+
         void Label(GameObject hero, string title, string sub)
         {
             var b = Bounds(hero);
             var eye = transform.TransformPoint(new Vector3(0f, 1.6f, 0f));
             var at = new Vector3(b.center.x, b.min.y + 0.9f, b.center.z);
             var toEye = eye - at; toEye.y = 0f;
-            at += toEye.normalized * (Mathf.Max(b.extents.x, b.extents.z) + 0.15f);   // in front of the work
+            // In front of the work, but never at the visitor: the five Buddhas spread so wide that their
+            // half-width carried the label past them onto the arrival spot, a huge plate at the knees
+            // (capture, 4 Oct).
+            var push = Mathf.Min(Mathf.Max(b.extents.x, b.extents.z) + 0.15f, toEye.magnitude - LabelNearest);
+            at += toEye.normalized * Mathf.Max(0f, push);
             var anchor = new GameObject("Label " + title).transform;
             anchor.SetParent(hero.transform, true);
             anchor.SetPositionAndRotation(at, Quaternion.LookRotation(-toEye.normalized, Vector3.up));   // +Z away from the viewer reads

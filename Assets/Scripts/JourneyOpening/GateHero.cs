@@ -134,7 +134,11 @@ namespace MuseXR.Journey
             _heroes.Add(root.gameObject);
         }
 
-        public const float VenusAlong = 8.5f, VenusAside = 3.6f, VenusHeight = 2.05f;
+        /// <summary>
+        /// 3.6 m aside put her on the line of the left-hand paintings, just past the second: from the walk the
+        /// Pissarro hid her and only her drum showed beneath it (capture, 4 Oct). 2.6 m stands her clear of them.
+        /// </summary>
+        public const float VenusAlong = 8.5f, VenusAside = 2.6f, VenusHeight = 2.05f;
 
         readonly System.Collections.Generic.List<GameObject> _heroes = new System.Collections.Generic.List<GameObject>();
 

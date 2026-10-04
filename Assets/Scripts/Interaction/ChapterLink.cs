@@ -23,11 +23,14 @@ namespace MuseXR.Interaction
         public Transform nextFrame;
 
         bool _opened, _arrived;
+        float _scan;
+        readonly System.Collections.Generic.List<Renderer> _held = new System.Collections.Generic.List<Renderer>();
 
         void Start() { if (nextFrame != null) nextFrame.gameObject.SetActive(false); }
 
         void Update()
         {
+            if (_opened && !_arrived && nextFrame != null && (_scan -= Time.deltaTime) <= 0f) { _scan = 0.1f; HoldBack(); }
             if (_opened || gate == null || !gate.IsOpen || gate.NextWorld == null) return;
             _opened = true;
             gate.Arrived += () => StartCoroutine(Arrive());
@@ -46,10 +49,49 @@ namespace MuseXR.Interaction
             Debug.Log("[Journey] " + gate.name + " open: " + nextFrame.name + " stands behind it");
         }
 
+        /// <summary>
+        /// B's meshes are not clipped to the gate's opening as its splats are, and A's splat walls do not hide
+        /// them. So until the crossing a mesh of B shows only while the visitor can see it THROUGH the opening:
+        /// wholly beyond the gate, and on a line from the eye that passes inside the aperture. Measured on the
+        /// full walk, 4 Oct: Van Gogh's 21 m Starry Night ceiling hung out of the Grotto's arch over the terrace,
+        /// and Monet's time-ring labels and round-table sign showed through Van Gogh's wall, 22 m off.
+        /// Re-checked as the visitor moves and while B's chapter builds itself.
+        /// </summary>
+        void HoldBack()
+        {
+            var plane = gate.transform;
+            var eye = Camera.main != null ? Camera.main.transform.position : plane.position - plane.forward;
+            var e0 = plane.InverseTransformPoint(eye);
+            var half = gate.Door != null ? gate.Door.apertureSize * 0.5f : new Vector2(1f, 1.5f);
+            foreach (var r in nextFrame.GetComponentsInChildren<Renderer>(true))
+            {
+                if (!_held.Contains(r)) { if (!r.enabled) continue; _held.Add(r); }   // ours to show and hide from now on
+                r.enabled = SeenThrough(plane, r.bounds, e0, half);
+            }
+        }
+
+        /// <summary>Wholly beyond the gate plane, and its centre seen from the eye through the aperture.</summary>
+        static bool SeenThrough(Transform plane, Bounds b, Vector3 eyeLocal, Vector2 half)
+        {
+            var c = b.center; var e = b.extents;
+            for (var i = 0; i < 8; i++)
+            {
+                var corner = c + new Vector3((i & 1) == 0 ? -e.x : e.x, (i & 2) == 0 ? -e.y : e.y, (i & 4) == 0 ? -e.z : e.z);
+                if (plane.InverseTransformPoint(corner).z < 0.05f) return false;   // reaches back to the visitor's side (-Z)
+            }
+            var cl = plane.InverseTransformPoint(c);
+            if (eyeLocal.z >= 0f || cl.z <= 0f) return false;
+            var t = -eyeLocal.z / (cl.z - eyeLocal.z);                              // where eye -> centre meets the plane
+            var hit = Vector3.Lerp(eyeLocal, cl, t);
+            return Mathf.Abs(hit.x) <= half.x && hit.y >= 0f && hit.y <= half.y * 2f;
+        }
+
         IEnumerator Arrive()
         {
             if (_arrived) yield break;
             _arrived = true;
+            foreach (var held in _held) if (held != null) held.enabled = true;
+            _held.Clear();
             if (nextFrame == null)
             {
                 if (gate.Door != null) Destroy(gate.Door.gameObject);

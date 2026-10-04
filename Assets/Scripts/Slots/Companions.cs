@@ -132,7 +132,12 @@ namespace MuseXR.Slots
         // head to see who was speaking). Still her limits: 1.5-2.2 m, off the path (>20 degrees), <60 degrees.
         // Spread 28 degrees or more apart (headset test, 3 Oct: at +24 / +38 the two on the right stood in
         // front of each other and their subtitles collided). A figure is ~14 degrees wide at 2 m.
-        static readonly Mark[] Slots = { new Mark(-32f, 2.0f), new Mark(26f, 2.0f), new Mark(54f, 2.2f) };
+        // Saul, 4 Oct (second walk): "peripheral view and sides at most - they follow you but do not get in
+        // your way". At -32 / +26 Van Gogh stood 5 degrees off the gaze at 1.7 m while the trio stepped out
+        // (CompanionClearanceProbe). The shared answer panel names who is speaking, so nobody needs to stand
+        // in view to be heard: the marks are now out at the sides, clear of the 25 degree in-the-way cone by
+        // a body's width, still inside her 1.5-2.2 m and 60 degrees. The two on the right are 0.7 m apart.
+        static readonly Mark[] Slots = { new Mark(-45f, 2.0f), new Mark(42f, 1.9f), new Mark(60f, 2.2f) };
 
         /// <summary>The mark for the companion who speaks <paramref name="order"/>th (0-based).</summary>
         public static Mark For(int order) => Slots[Math.Max(0, Math.Min(Slots.Length - 1, order))];

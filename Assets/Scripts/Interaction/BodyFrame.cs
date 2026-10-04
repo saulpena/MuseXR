@@ -69,7 +69,10 @@ namespace MuseXR.Interaction
             Feet = feet;
 
             float target = _yaw;
-            if (Velocity.magnitude > WalkingSpeed) target = Mathf.Atan2(Velocity.x, Velocity.z) * Mathf.Rad2Deg;
+            var walkYaw = Mathf.Atan2(Velocity.x, Velocity.z) * Mathf.Rad2Deg;
+            // Walking points the body along the walk - but not a step backwards or sideways, which a body
+            // does without turning round (it swung the crowd in front of a visitor stepping back).
+            if (Velocity.magnitude > WalkingSpeed && Mathf.Abs(Mathf.DeltaAngle(headYaw, walkYaw)) < 60f) target = walkYaw;
             else if (Mathf.Abs(Mathf.DeltaAngle(_yaw, headYaw)) > DeadZoneDegrees) target = headYaw;
             _yaw = Mathf.MoveTowardsAngle(_yaw, target, TurnDegreesPerSecond * dt);
             // A snap turn turns the body with it at once.

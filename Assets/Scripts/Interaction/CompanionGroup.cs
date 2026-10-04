@@ -53,26 +53,15 @@ namespace MuseXR.Interaction
         public bool Crowd { get; set; }
 
         /// <summary>
-        /// The crowd's places: bearing from the body's facing and distance. At +-50 degrees and 1.8 m a
-        /// companion is ~1.4 m to the side - clear of the path - and inside a headset's ~100-degree view,
-        /// so the visitor sees them at the edge like people walking alongside (Saul, 4 Oct). Measured: at
-        /// +-62 to +-80 no companion appeared in any walking frame. The third walks further out on the right.
+        /// The crowd's places: bearing from the body's facing and distance. At +-60 degrees and 2 m a
+        /// companion is ~1.7 m to the side - clear of the path - at the edge of a headset's ~100-degree view,
+        /// like people walking alongside (Saul, 4 Oct: "peripheral view and sides at most"). The third walks
+        /// further out on the right. The head can turn 40 degrees before the body follows, so the places are
+        /// also kept out of the gaze itself (<see cref="CrowdOrbit.AvoidGaze"/>).
         /// </summary>
         public static readonly CompanionMarks.Mark[] CrowdPlaces =
-            { new CompanionMarks.Mark(-50f, 1.8f), new CompanionMarks.Mark(50f, 1.8f), new CompanionMarks.Mark(64f, 2.6f) };
+            { new CompanionMarks.Mark(-60f, 2.0f), new CompanionMarks.Mark(60f, 2.0f), new CompanionMarks.Mark(78f, 2.7f) };
         public const float CrowdCatchUpSpeed = 3.2f, CrowdCatchUpPerMetre = 1.1f, CrowdArrive = 0.12f;
-        /// <summary>Nobody's route passes closer than this to the visitor.</summary>
-        public const float PersonalSpace = 0.9f;
-        /// <summary>Inside this cone and range ahead of the body, a companion is in the way.</summary>
-        public const float InTheWayDegrees = 35f, InTheWayMetres = 2.2f;
-
-        static float DistanceToSegment(Vector3 p, Vector3 a, Vector3 b)
-        {
-            var ab = b - a; ab.y = 0f; var ap = p - a; ap.y = 0f;
-            var t = ab.sqrMagnitude > 1e-6f ? Mathf.Clamp01(Vector3.Dot(ap, ab) / ab.sqrMagnitude) : 0f;
-            var c = a + ab * t; c.y = p.y;
-            return Vector3.Distance(new Vector3(p.x, 0f, p.z), new Vector3(c.x, 0f, c.z));
-        }
 
         public string ActiveSpeaker
         {
@@ -297,15 +286,7 @@ namespace MuseXR.Interaction
             if (Head == null && Camera.main != null) Head = Camera.main.transform;
             if (Head == null || _ids.Count == 0) return;
 
-            if (Crowd)
-            {
-                // A teleport or a chapter arrival: everyone is simply at their place beside the visitor on the
-                // next frame, never left standing where the old world put them (blind review, 4 Oct: a figure
-                // right in front of the eye after a teleport, blown white by the eye light).
-                if (_placedOnce && Vector3.Distance(Flat3(Head.position), Flat3(_lastPos)) > JumpDistance) { SnapCrowd(); Remarked?.Invoke(); }
-                CrowdStep(Time.deltaTime); _placedOnce = true;
-                _lastPos = Head.position;
-            }
+            if (Crowd) { /* placed in LateUpdate, after this frame's turn or teleport */ }
             else if (!FollowVisitor) { _placedOnce = true; }
             else if (!_placedOnce) PlaceAll();
             else
@@ -337,85 +318,109 @@ namespace MuseXR.Interaction
             }
         }
 
+        /// <summary>
+        /// The crowd is placed after everything else this frame has moved the head - a snap turn, a teleport,
+        /// a chapter's arrival - so it never shows for a frame where the view has just turned onto it (blind
+        /// review, 4 Oct: Van Gogh at the centre of the frame a snap turn landed on, in five rooms).
+        /// </summary>
+        void LateUpdate()
+        {
+            if (!Crowd || Head == null || _ids.Count == 0) return;
+            // A teleport or a chapter arrival: everyone is simply at their place beside the visitor, never left
+            // standing where the old world put them (blind review, 4 Oct: a figure right in front of the eye
+            // after a teleport, blown white by the eye light).
+            if (_placedOnce && Vector3.Distance(Flat3(Head.position), Flat3(_lastPos)) > JumpDistance) { SnapCrowd(); Remarked?.Invoke(); }
+            // A snap turn jumps the view in one frame: the crowd jumps to its places with it, rather than being
+            // caught mid-step across the new view.
+            else if (_placedOnce && Mathf.Abs(Mathf.DeltaAngle(GazeYaw(_lastGazeYaw), _lastGazeYaw)) > SnapTurnDegrees) { SnapCrowd(); Remarked?.Invoke(); }
+            CrowdStep(Time.deltaTime); _placedOnce = true;
+            _lastPos = Head.position;
+            _lastGazeYaw = GazeYaw(_lastGazeYaw);
+        }
+
         static Vector3 Flat3(Vector3 v) { v.y = 0f; return v; }
 
         /// <summary>Slow enough to read as a person turning, not a snap.</summary>
         public const float TurnDegreesPerSecond = 90f;
 
         bool _walking;
+        float _lastGazeYaw;
+        /// <summary>A gaze turn bigger than this in one frame is a snap turn (or a teleport's turn), not a head turn.</summary>
+        public const float SnapTurnDegrees = 25f;
 
-        /// <summary>Each companion walks to its place round the body. Someone on the wrong side goes round
-        /// behind the visitor, never across the front.</summary>
+        /// <summary>
+        /// Each companion moves round the visitor to its place beside the body: as a bearing and a radius
+        /// about the feet (<see cref="CrowdOrbit"/>), so nobody walks a straight line across the front of the
+        /// visitor or through them. A place in the head's gaze is pushed to the side, and anyone the gaze turns
+        /// onto slips out of it at once. Measured before (CompanionClearanceProbe at the Gate): in front of the
+        /// eye for 2-3.5 s after turns, glances, teleports and a step back, and inside the visitor after a
+        /// teleport and a turn.
+        /// </summary>
         void CrowdStep(float dt)
         {
             var body = BodyFrame.Get();
             if (body == null) return;
             body.Step(dt);
             _walking = false;
+            var bodyYaw = Yaw(body.Forward);
+            var gaze = GazeYaw(bodyYaw);
             for (var i = 0; i < _ids.Count; i++)
             {
                 var f = _figures[_ids[i]];
                 if (f == null) continue;
                 var place = CrowdPlaces[Mathf.Min(i, CrowdPlaces.Length - 1)];
-                var target = body.Feet + body.Bearing(place.Bearing) * place.Distance;
                 var pos = f.position; var flat = new Vector3(pos.x, body.Feet.y, pos.z);
-                // Going round, never across or through: a route that passes in front of the visitor, or
-                // within PersonalSpace of them, first heads for a point at their side on the target's side
-                // (measured: walking in from behind, one passed 0.2 m from the visitor - through them).
                 var rel = flat - body.Feet;
-                var ahead = Vector3.Dot(rel, body.Forward) > 0.2f;
-                var side = Mathf.Sign(place.Bearing);
-                var wrongSide = Mathf.Sign(Vector3.Dot(rel, body.Right)) != side && rel.magnitude < 3f;
-                // First of all, out of the way: someone the visitor is walking or turning toward steps
-                // aside to whichever side they are already on (measured at a corner: 0.7 m ahead, 43 deg).
-                var bearingNow = Vector3.SignedAngle(body.Forward, rel, Vector3.up);
-                var inTheWay = Mathf.Abs(bearingNow) < InTheWayDegrees && rel.magnitude < InTheWayMetres;
-                if (inTheWay && rel.magnitude < 1.1f)
-                {
-                    // Close enough to fill the view: out of it at once, not a walk across the visitor's eyes.
-                    var aside = body.Feet + body.Bearing(place.Bearing) * place.Distance;
-                    f.position = new Vector3(aside.x, body.Feet.y, aside.z);
-                    continue;
-                }
-                if (inTheWay)
-                {
-                    var out_ = Mathf.Abs(bearingNow) < 3f ? side : Mathf.Sign(bearingNow);
-                    target = flat + body.Right * (out_ * 1.3f) - body.Forward * 0.4f;
-                }
-                else if (ahead && wrongSide) target = body.Feet - body.Forward * 1.3f + body.Right * (side * 0.6f);
-                else if (DistanceToSegment(body.Feet, flat, target) < PersonalSpace && (flat - body.Feet).magnitude > PersonalSpace)
-                    target = body.Feet + body.Right * (side * (PersonalSpace + 0.4f)) - body.Forward * 0.3f;
-                var to = target - flat;
-                var d = to.magnitude;
-                if (d < CrowdArrive) { f.position = new Vector3(pos.x, body.Feet.y, pos.z); continue; }
+                var r = rel.magnitude;
+                var current = r > 1e-3f ? Yaw(rel) : bodyYaw + place.Bearing;
+                var want = CrowdOrbit.AvoidGaze(bodyYaw + place.Bearing, gaze, current);
+                var target = body.Feet + Quaternion.Euler(0f, want, 0f) * Vector3.forward * place.Distance;
+                var gap = (target - flat).magnitude;
+                if (gap < CrowdArrive && !CrowdOrbit.InGaze(current, gaze) && r >= CrowdOrbit.MinRadius) continue;
                 // The visitor's own pace plus a catch-up for the gap: at walking pace alone, someone who
                 // starts behind stays behind (measured in the Palace: most of the walk at 150-180 degrees).
-                var speed = Mathf.Min(CrowdCatchUpSpeed, body.Velocity.magnitude + CrowdCatchUpPerMetre * d);
-                if (d < 0.6f) speed = Mathf.Max(speed, d * 2f);
-                if (inTheWay) speed = CrowdCatchUpSpeed;
-                var step = Mathf.Min(d, speed * dt);
-                var next = flat + to / d * step;
+                var speed = Mathf.Min(CrowdCatchUpSpeed, body.Velocity.magnitude + CrowdCatchUpPerMetre * gap);
+                if (gap < 0.6f) speed = Mathf.Max(speed, gap * 2f);
+                var reach = Mathf.Max(r, CrowdOrbit.MinRadius);
+                var nextYaw = CrowdOrbit.Step(current, want, gaze, speed * dt / reach * Mathf.Rad2Deg,
+                                              CrowdOrbit.EscapeDegreesPerSecond * dt);
+                var nextR = CrowdOrbit.StepRadius(r, place.Distance, speed * dt);
+                var next = body.Feet + Quaternion.Euler(0f, nextYaw, 0f) * Vector3.forward * nextR;
+                var moved = next - flat;
                 f.position = new Vector3(next.x, body.Feet.y, next.z);
-                if (step / Mathf.Max(dt, 1e-5f) > 0.25f)
+                if (moved.magnitude / Mathf.Max(dt, 1e-5f) > 0.25f)
                 {
                     _walking = true;
-                    f.rotation = Quaternion.RotateTowards(f.rotation, Quaternion.LookRotation(to / d, Vector3.up), 240f * dt);
+                    f.rotation = Quaternion.RotateTowards(f.rotation, Quaternion.LookRotation(moved.normalized, Vector3.up), 240f * dt);
                 }
             }
         }
 
-        /// <summary>Everyone straight to their crowd place round the body, facing the way the visitor faces.</summary>
+        static float Yaw(Vector3 v) => Mathf.Atan2(v.x, v.z) * Mathf.Rad2Deg;
+
+        /// <summary>Where the head looks, flat (the body's way when the head looks straight up or down).</summary>
+        float GazeYaw(float fallback)
+        {
+            if (Head == null) return fallback;
+            var g = Head.forward; g.y = 0f;
+            return g.sqrMagnitude > 1e-4f ? Yaw(g) : fallback;
+        }
+
+        /// <summary>Everyone straight to their crowd place round the body - out of the gaze - facing the way the visitor faces.</summary>
         void SnapCrowd()
         {
             var body = BodyFrame.Get();
             if (body == null) return;
             body.Step(0f);
+            var bodyYaw = Yaw(body.Forward);
+            var gaze = GazeYaw(bodyYaw);
             for (var i = 0; i < _ids.Count; i++)
             {
                 var f = _figures[_ids[i]];
                 if (f == null) continue;
                 var place = CrowdPlaces[Mathf.Min(i, CrowdPlaces.Length - 1)];
-                var at = body.Feet + body.Bearing(place.Bearing) * place.Distance;
+                var yaw = CrowdOrbit.AvoidGaze(bodyYaw + place.Bearing, gaze, bodyYaw + place.Bearing);
+                var at = body.Feet + Quaternion.Euler(0f, yaw, 0f) * Vector3.forward * place.Distance;
                 f.SetPositionAndRotation(new Vector3(at.x, body.Feet.y, at.z), Quaternion.LookRotation(body.Forward, Vector3.up));
             }
         }

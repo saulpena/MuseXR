@@ -134,6 +134,24 @@ namespace MuseXR.Interaction
 
         public bool Redo() => false;
 
+        /// <summary>
+        /// The walk from the line-up to the mark, as an arc round the visitor: out to the side first, nearer
+        /// last. A straight line from the row ahead to a mark beside the visitor crossed the middle of the view
+        /// (CompanionClearanceProbe, 4 Oct: Van Gogh 16 degrees off the gaze at 1.7 m for 0.6 s).
+        /// </summary>
+        public static Vector3 StepOut(Vector3 eye, Vector3 from, Vector3 to, float t)
+        {
+            var a = from - eye; a.y = 0f; var b = to - eye; b.y = 0f;
+            if (a.sqrMagnitude < 1e-4f || b.sqrMagnitude < 1e-4f) return Vector3.Lerp(from, to, t);
+            var angle = Vector3.SignedAngle(a, b, Vector3.up);
+            var turn = 1f - (1f - t) * (1f - t) * (1f - t);   // most of the swing early
+            var close = t * t * t;                            // most of the approach late
+            var dir = Quaternion.Euler(0f, angle * turn, 0f) * a.normalized;
+            var r = Mathf.Lerp(a.magnitude, b.magnitude, close);
+            var p = eye + dir * r;
+            return new Vector3(p.x, Mathf.Lerp(from.y, to.y, t), p.z);
+        }
+
         /// <summary>Done once: later chapters reuse the group's turns without re-completing the stage.</summary>
         void Finish()
         {
@@ -172,8 +190,9 @@ namespace MuseXR.Interaction
                 case Phase.Stepping:
                     _walkT += Time.deltaTime;
                     var k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_walkT / StepSeconds));
+                    var eye = Group.Head != null ? Group.Head.position : Vector3.zero;
                     foreach (var kv in _walk)
-                        _standees[kv.Key].SetPositionAndRotation(Vector3.Lerp(kv.Value.from, kv.Value.to, k),
+                        _standees[kv.Key].SetPositionAndRotation(StepOut(eye, kv.Value.from, kv.Value.to, Mathf.Clamp01(_walkT / StepSeconds)),
                                                                  Quaternion.Slerp(kv.Value.fromRot, kv.Value.toRot, k));
                     if (_walkT >= StepSeconds && (ReadyToAnswer == null || ReadyToAnswer()))
                     {
