@@ -56,18 +56,21 @@ namespace MuseXR.Interaction
             Court = SlotStation.Make(courtT.gameObject, global::MuseXR.Slots.Chapter.Palace, new[] { slot }, pieces);
 
             // The companions where her diagram stands them; they answer in turn, they do not walk.
+            // Her diagram has three marks (named for the demo trio); the visitor's chosen companions stand
+            // on them in speaking order (Masters.Company - the journey swaps the figures on the marks).
             var figures = new Dictionary<string, Transform>();
-            foreach (var id in Masters.DefaultTrio)
+            var company = Masters.Company;
+            for (var i = 0; i < Masters.DefaultTrio.Count && i < company.Count; i++)
             {
-                var mark = Find("Mark " + id);
-                if (mark != null) figures[id] = mark;
+                var mark = Find("Mark " + Masters.DefaultTrio[i]);
+                if (mark != null) figures[company[i]] = mark;
             }
             var groupGo = new GameObject("Companions");
             groupGo.transform.SetParent(transform, false);
             Companions = groupGo.AddComponent<CompanionGroup>();
             Companions.FollowVisitor = false;
             Companions.Head = head;
-            var order = new List<string>(); foreach (var id in Masters.DefaultTrio) if (figures.ContainsKey(id)) order.Add(id);
+            var order = new List<string>(); foreach (var id in company) if (figures.ContainsKey(id)) order.Add(id);
             Companions.Set(order, figures);
             var subtitles = System.Type.GetType("MuseXR.UI.SubtitleRig, MuseXR.UI.Interaction");
             if (subtitles != null) groupGo.AddComponent(subtitles);

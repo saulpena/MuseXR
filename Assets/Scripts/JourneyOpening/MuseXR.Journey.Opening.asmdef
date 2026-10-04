@@ -11,7 +11,10 @@
         "MuseXR.UI.Interaction",
         "Unity.XR.CoreUtils",
         "Unity.XR.Interaction.Toolkit",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "MusePico.Tripo",
+        "MusePico.Worlds",
+        "GaussianSplatting"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -57,6 +57,21 @@ namespace MuseXR.Journey
             // Pointing needs a pointer and grip on each controller - the trigger selected nothing without it.
             if (FindAnyObjectByType<HandsBootstrap>() == null) gameObject.AddComponent<HandsBootstrap>();
             if (gate != null) gate.Flow.PhaseChanged += OnGatePhase;
+            HerLight();
+        }
+
+        /// <summary>
+        /// Her hemisphere light, converted (CLAUDE.md: three.js Hemisphere 2.25 -> Trilight 1.3, sky #f7fbff,
+        /// ground #76644e). With Skybox ambient a figure facing away from the sun was a silhouette - Monet
+        /// read black in the Palace once the world turned under the light.
+        /// </summary>
+        static void HerLight()
+        {
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = new Color32(0xf7, 0xfb, 0xff, 0xff);
+            RenderSettings.ambientEquatorColor = Color.Lerp(new Color32(0xf7, 0xfb, 0xff, 0xff), new Color32(0x76, 0x64, 0x4e, 0xff), 0.5f);
+            RenderSettings.ambientGroundColor = new Color32(0x76, 0x64, 0x4e, 0xff);
+            RenderSettings.ambientIntensity = 1.3f;
         }
 
         void OnDestroy()
@@ -239,9 +254,7 @@ namespace MuseXR.Journey
                     _promptHint.text = _answersReady ? "Each answers your question in turn. A moves to the next." : "They are thinking about your question…";
                     break;
                 case CompanyStage.Phase.Done:
-                    _promptTitle.text = "Your companions walk with you";
-                    _promptHint.text = "Next in her journey: the curation lanterns and the first chapter door (not built yet).";
-                    break;
+                    break;   // the curation card takes over the walk; this prompt is retired (Update hides it)
             }
         }
 
@@ -250,8 +263,9 @@ namespace MuseXR.Journey
             // The prompt follows the stage; it hides while a companion is speaking, so the subtitle is the
             // only thing to read.
             if (_prompt == null || Company == null) return;
-            bool speaking = Company.Current == CompanyStage.Phase.Answering && _answersReady;
-            if (_prompt.activeSelf == speaking) _prompt.SetActive(!speaking);
+            bool hidden = Company.Current == CompanyStage.Phase.Done
+                          || (Company.Current == CompanyStage.Phase.Answering && _answersReady);
+            if (_prompt.activeSelf == hidden) _prompt.SetActive(!hidden);
         }
 
         async void OnCompanyPhase(CompanyStage.Phase phase)
@@ -350,6 +364,13 @@ namespace MuseXR.Journey
             var line = sentences.Count > 0 ? sentences[0] : text;
             if (line.Length < 40 && sentences.Count > 1) line += " " + sentences[1];
             return line;
+        }
+
+        /// <summary>The rigged figure for a master id (her row order: Monet, Van Gogh, Socrates, Frida, Hilma, Morisot).</summary>
+        public GameObject PrefabFor(string id)
+        {
+            for (var i = 0; i < Masters.Row.Count && i < masterPrefabs.Length; i++) if (Masters.Row[i] == id) return masterPrefabs[i];
+            return null;
         }
 
         /// <summary>The Company's ids are the Slots spellings; masters.json uses short ones.</summary>

@@ -14,6 +14,10 @@ namespace MuseXR.Slots
         /// <summary>Her demo preset: Monet, Van Gogh, Socrates.</summary>
         public static readonly IReadOnlyList<string> DefaultTrio = new[] { Monet, VanGogh, Socrates };
 
+        /// <summary>The companions the visitor chose at stage 2, carried into every chapter. Her demo trio
+        /// until a journey sets it (a chapter scene opened on its own still has its three masters).</summary>
+        public static IReadOnlyList<string> Company = DefaultTrio;
+
         public static string Name(string id) => id switch
         {
             Monet => "Claude Monet", VanGogh => "Vincent van Gogh", Socrates => "Socrates",
