@@ -611,7 +611,11 @@ namespace MuseXR.Journey
         GameObject _chips;
         TextMeshPro _tableSign;
         CompanionGroup _group;
-        Vector3 _rotundaLocal = new Vector3(6.8f, 0f, -3f);
+        // The capture's own exedra: a curved balustrade with columns and curtains on the +x side of the time ring,
+        // in clear air. The layout's "Form my answer" mark (6.8, -3) sits inside heavy splat floaters, where the
+        // table and the companions vanished in a veil from 2 m (Editor capture and musexr-b's report, 4 Oct).
+        public static readonly Vector3 RotundaAt = new Vector3(8.0f, 0f, -15.2f);
+        Vector3 _rotundaLocal = RotundaAt;
         string _draft = "", _rewrite = "";
         int _answerStage;   // 0 none, 1 draft shown (A keep · X rewrite · Y say), 2 rewrite shown (A use · B back)
         float _undoUntil;   // her 3 s undo after the painting is chosen
@@ -622,8 +626,7 @@ namespace MuseXR.Journey
         void Start()
         {
             _layout = transform.parent.Find("Chapter Monet") ?? transform.parent;
-            var exit = ChapterFeatures.FindDeep(_layout, "Exit Choose");
-            if (exit != null) _rotundaLocal = transform.parent.InverseTransformPoint(exit.position);
+
             BuildWave();
             BuildLilies();
             BuildTimeRing();
@@ -845,7 +848,9 @@ namespace MuseXR.Journey
                 if (away.sqrMagnitude > 1e-4f) _tableSign.transform.rotation = Quaternion.LookRotation(away);
             }
             var flat = new Vector3(cam.transform.position.x, _rotunda.position.y, cam.transform.position.z);
-            if (!_tableStarted && Arrived && _undoUntil <= 0f && Vector3.Distance(flat, _rotunda.position) < 2.6f) StartCoroutine(Roundtable());
+            // Only once the garden's choice is kept: walking past it on the way to the time ring starts nothing.
+            var ready = _picked && _undoUntil <= 0f && JourneyMemory.Record.Monet != null;
+            if (!_tableStarted && Arrived && ready && Vector3.Distance(flat, _rotunda.position) < 2.4f) StartCoroutine(Roundtable());
             if (_undoUntil > 0f && Time.time > _undoUntil) KeepWork();
             if (_answerStage == 1 && _x != null && _x.WasPressedThisFrame()) Rewrite();
             if (_answerStage == 1 && _y != null && _y.WasPressedThisFrame()) SayOwn();
