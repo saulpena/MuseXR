@@ -64,6 +64,14 @@ namespace MuseXR.Journey
             if (gate == null) gate = FindAnyObjectByType<GateStage>();
             // Pointing needs a pointer and grip on each controller - the trigger selected nothing without it.
             if (FindAnyObjectByType<HandsBootstrap>() == null) gameObject.AddComponent<HandsBootstrap>();
+            // Desktop testing in the Editor (no headset): WASD to walk through the rig's CharacterController,
+            // Shift faster, hold the right mouse button to look; left click points (HandsBootstrap's mouse
+            // hand), Enter is A, Backspace is B, X held speaks. DesktopMove switches itself off in a headset.
+            if (FindAnyObjectByType<MuseXR.Worlds.DesktopMove>() == null)
+            {
+                var origin = FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>();
+                if (origin != null) origin.gameObject.AddComponent<MuseXR.Worlds.DesktopMove>();
+            }
             if (gate != null) gate.Flow.PhaseChanged += OnGatePhase;
             HerLight();
         }

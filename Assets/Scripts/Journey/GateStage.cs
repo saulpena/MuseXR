@@ -584,6 +584,14 @@ namespace MusePico.Journey
                 interactable.hoverEntered.AddListener(_ => edge.color = hover);
                 interactable.hoverExited.AddListener(_ => edge.color = idle);
             }
+            // At a desk the mouse hand points with MuseXR's Pointer, not the XR ray: give it the same
+            // control. Only without a headset, so a trigger never fires both paths.
+            if (!UnityEngine.XR.XRSettings.isDeviceActive)
+            {
+                var p = MuseXR.Interaction.Pointable.Make(rect.gameObject, rect.name);
+                p.Selected += (_, __) => action();
+                if (edge != null) { p.Hovering += _ => edge.color = hover; p.Unhovered += _ => edge.color = idle; }
+            }
         }
 
         void EnterMuseum()
