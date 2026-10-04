@@ -37,7 +37,16 @@ namespace MuseXR.Worlds
         [Tooltip("Its key in WorldCatalog.Small, e.g. grotto-hall-of-time-500k: gives its scale, mirror and spawn.")]
         public string nextWorldKey;
 
+        /// <summary>The palace capture's gate: the defaults below.</summary>
         public const float Radius = 1.6f, CentreHeight = 2.3f, PassageWidth = 2.1f;
+
+        [Header("Keyhole (metres)")]
+        [Tooltip("Radius of the round opening.")]
+        public float radius = Radius;
+        [Tooltip("Height of the round opening's centre above the threshold.")]
+        public float centreHeight = CentreHeight;
+        [Tooltip("Width of the passage below the circle, down to the floor. 0: round opening only (a gate with a solid lower wall).")]
+        public float passageWidth = PassageWidth;
 
         /// <summary>How far past the threshold the next world's spawn lies (JourneyDoors' value).</summary>
         public const float ArrivalPastDoor = 1.2f;
@@ -91,10 +100,10 @@ namespace MuseXR.Worlds
             Door.nextWorld = NextWorld;
             Door.currentWorldProps = currentWorldProps != null ? new List<GameObject>(currentWorldProps).ToArray() : new GameObject[0];
             Door.triggerDistance = TriggerDistance;
-            float top = CentreHeight + Radius;
-            Door.apertureSize = new Vector2(2f * Radius, top);
+            float top = centreHeight + radius;
+            Door.apertureSize = new Vector2(2f * radius, top);
             if (Door.aperture != null) Door.aperture.localPosition = new Vector3(0f, top * 0.5f, 0f);
-            Door.maskMesh = KeyholeMesh(Radius, CentreHeight, PassageWidth);
+            Door.maskMesh = KeyholeMesh(radius, centreHeight, passageWidth);
             if (Door.doorVisual != null) Door.doorVisual.gameObject.SetActive(false);
             Door.doorVisual = null; Door.leftLeaf = null; Door.rightLeaf = null;   // the capture's ring is the frame
             var eye = head != null ? head : (Camera.main != null ? Camera.main.transform : null);
@@ -143,14 +152,17 @@ namespace MuseXR.Worlds
             for (int i = 0; i <= 48; i++)
             {
                 float a = 2f * Mathf.PI * i / 48f;
-                var p = new Vector3(Mathf.Cos(a) * Radius, CentreHeight + Mathf.Sin(a) * Radius, 0f);
+                var p = new Vector3(Mathf.Cos(a) * radius, centreHeight + Mathf.Sin(a) * radius, 0f);
                 if (i > 0) Gizmos.DrawLine(prev, p);
                 prev = p;
             }
-            float hw = PassageWidth * 0.5f;
-            Gizmos.DrawLine(new Vector3(-hw, 0f, 0f), new Vector3(hw, 0f, 0f));
-            Gizmos.DrawLine(new Vector3(-hw, 0f, 0f), new Vector3(-hw, CentreHeight, 0f));
-            Gizmos.DrawLine(new Vector3(hw, 0f, 0f), new Vector3(hw, CentreHeight, 0f));
+            float hw = passageWidth * 0.5f;
+            if (hw > 0f)
+            {
+                Gizmos.DrawLine(new Vector3(-hw, 0f, 0f), new Vector3(hw, 0f, 0f));
+                Gizmos.DrawLine(new Vector3(-hw, 0f, 0f), new Vector3(-hw, centreHeight, 0f));
+                Gizmos.DrawLine(new Vector3(hw, 0f, 0f), new Vector3(hw, centreHeight, 0f));
+            }
             Gizmos.color = Color.cyan;   // out through the gate, into the next world
             Gizmos.DrawLine(new Vector3(0f, 0.05f, 0f), new Vector3(0f, 0.05f, ArrivalPastDoor));
         }
