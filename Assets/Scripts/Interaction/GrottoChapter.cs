@@ -122,7 +122,10 @@ namespace MuseXR.Interaction
 
         void Update()
         {
-            _rim = Mathf.MoveTowards(_rim, Flow.RimsTheBuddha ? 1f : 0f, Time.deltaTime / RimSeconds);
+            // Shown while the lamp is in "whole" and the choice is open; after keeping it fades, since
+            // splats write no depth and from the arch the ring showed through the alcove wall.
+            var on = Flow.Current == GrottoFlow.Phase.Placed && Flow.LampSlot == GrottoFlow.Whole;
+            _rim = Mathf.MoveTowards(_rim, on ? 1f : 0f, Time.deltaTime / RimSeconds);
             if (BuddhaRim != null) BuddhaRim.sharedMaterial.SetColor("_BaseColor", RimGold * Mathf.SmoothStep(0f, 1f, _rim));
         }
 

@@ -25,13 +25,15 @@ namespace MuseXR.Interaction
         public CompanionGroup Companions { get; private set; }
         public MusePico.Dialogue.JourneyRecord Record { get; } = new MusePico.Dialogue.JourneyRecord();
 
+        // The floor exists before the first physics frame: made after a yield, gravity had already
+        // dropped the rig a hair below y 0 and it fell through for ever (Grotto run, 3 Oct 2026).
+        void Awake() => TeleportFloor();
+
         IEnumerator Start()
         {
             yield return null;   // after the rig and the layout have woken
             var head = Camera.main != null ? Camera.main.transform : null;
             var spawn = head != null ? head.position : Vector3.zero;
-
-            TeleportFloor();
 
             var crane = Find("Prop crane");
             var turtle = Find("Prop turtle");

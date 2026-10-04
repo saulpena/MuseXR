@@ -65,6 +65,19 @@ namespace MuseXR.Worlds
         public event Action Arrived;
 
         bool _crossed, _arrived;
+        Transform _pads;
+
+        /// <summary>
+        /// The threshold step: an invisible teleport pad on the floor just before the gate. Locomotion
+        /// is teleport only, and a capture's own collider usually walls the door off (in the grotto the
+        /// arch's back panel stopped every teleport ray), so teleporting onto this step while the
+        /// gate is open carries the visitor through - the same as walking through.
+        /// </summary>
+        public const float StepDepth = 1.2f;
+        /// <summary>The floor laid on the far side at threshold height, to arrive and stand on.</summary>
+        public const float LandingSize = 6f;
+        /// <summary>The "Teleport" interaction layer the rig's teleport rays select on (bit 31).</summary>
+        const int TeleportLayer = 1 << 31;
 
         /// <summary>
         /// Open the gate onto the next world. <paramref name="currentWorld"/> is the splat the visitor
@@ -115,12 +128,56 @@ namespace MuseXR.Worlds
                 if (cam != null) cam.farClipPlane = Mathf.Max(cam.farClipPlane, NextDefinition.cameraFar);
             }
             Door.enabled = true;
+            BuildPads();
             Debug.Log($"[MoonGate] open at {pose.position:F2} onto {NextDefinition.displayName}");
             return true;
         }
 
+        void BuildPads()
+        {
+            _pads = new GameObject("Moon Gate Pads").transform;
+            _pads.SetParent(transform, false);
+            float w = Mathf.Max(passageWidth, 1.2f);
+            Pad("Threshold Step", new Vector3(0f, -0.05f, -StepDepth * 0.5f - 0.05f), new Vector3(w, 0.1f, StepDepth));
+            Pad("Landing", new Vector3(0f, -0.05f, LandingSize * 0.5f + 0.1f), new Vector3(LandingSize, 0.1f, LandingSize));
+        }
+
+        void Pad(string name, Vector3 local, Vector3 size)
+        {
+            var go = new GameObject(name);
+            go.SetActive(false);   // XRI registers an area once, with its colliders set
+            go.transform.SetParent(_pads, false);
+            go.transform.localPosition = local;
+            go.AddComponent<BoxCollider>().size = size;
+            var area = go.AddComponent<UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation.TeleportationArea>();
+            area.interactionLayers = TeleportLayer;
+            area.filterSelectionByHitNormal = true;
+            go.SetActive(true);
+        }
+
+        /// <summary>On the threshold step with the gate open: carry the visitor through to the far side.</summary>
+        void StepThrough()
+        {
+            if (Door == null || _crossed || (Door.Phase != PortalPhase.Open && Door.Phase != PortalPhase.Opening)) return;
+            var head = Door.head != null ? Door.head : (Camera.main != null ? Camera.main.transform : null);
+            if (head == null) return;
+            var local = transform.InverseTransformPoint(head.position);
+            float w = Mathf.Max(passageWidth, 1.2f) * 0.5f;
+            if (local.z > -0.05f || local.z < -StepDepth - 0.1f || Mathf.Abs(local.x) > w) return;
+            var origin = head.GetComponentInParent<Unity.XR.CoreUtils.XROrigin>();
+            if (origin == null) return;
+            var body = origin.GetComponent<CharacterController>();
+            bool had = body != null && body.enabled;
+            if (had) body.enabled = false;
+            var target = transform.TransformPoint(new Vector3(local.x, local.y, ArrivalPastDoor));
+            origin.MoveCameraToWorldLocation(target);
+            Physics.SyncTransforms();
+            if (had) body.enabled = true;
+        }
+
         void Update()
         {
+            StepThrough();
             if (Door == null) { if (_crossed && !_arrived) { _arrived = true; Arrived?.Invoke(); } return; }
             if (!_crossed && Door.HasCrossed) { _crossed = true; Crossed?.Invoke(); }
             if (_crossed && !_arrived && Door.IsDone) { _arrived = true; Arrived?.Invoke(); }

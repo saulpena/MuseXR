@@ -29,6 +29,12 @@ namespace MuseXR.Interaction
         [Tooltip("Assets/Art/Props/lamp.glb.")]
         public GameObject lampPrefab;
 
+        [Tooltip("Assets/Worlds/Colliders/grotto-hall-of-time-collider.glb: the terrace rises ~2.7 m to the arch, so teleport needs the capture's own floor.")]
+        public GameObject colliderModel;
+
+        [Tooltip("The Moon Gate standing in the capture's arch door, next world: Van Gogh's studio.")]
+        public MuseXR.Worlds.MoonGate arch;
+
         public GrottoChapter Chapter { get; private set; }
         public SlotStation Sockets { get; private set; }
         public CompanionGroup Companions { get; private set; }
@@ -63,13 +69,25 @@ namespace MuseXR.Interaction
         /// <summary>Socket heights above the floor: hand height on a post (her 0.8-1.3 m).</summary>
         public const float DetailHeight = 1.0f, WholeHeight = 1.05f;
 
+        GameObject _floor;
+
+        // The floor exists before the first physics frame. Made after a yield, gravity had already
+        // dropped the rig a hair below y 0, the one-sided plane appeared above it, and it fell for
+        // ever (measured: y -4,227 in a Grotto run; the Gate walk hit the same).
+        void Awake() => _floor = TeleportFloor();
+
         IEnumerator Start()
         {
             yield return null;   // after the rig and the layout have woken
             var head = Camera.main != null ? Camera.main.transform : null;
             var entry = head != null ? head.position : Vector3.zero;
 
-            TeleportFloor();
+            var teleportFloor = _floor;
+            MuseXR.Worlds.WorldDefinition grotto = null;
+            foreach (var w in MuseXR.Worlds.WorldCatalog.Small) if (w.key == "grotto-hall-of-time-500k") grotto = w;
+            _probe = colliderModel != null ? MuseXR.Worlds.CaptureProbe.Open(grotto, new[] { colliderModel }) : null;
+            if (_probe != null) _probe.MakeTeleportable();
+            else Debug.LogWarning("[Grotto] no capture collider: teleport only on the flat floor, not up to the arch");
 
             var relief = Find("Prop relief");
             var detailAt = Find("Interaction Socket · detail");
@@ -89,9 +107,9 @@ namespace MuseXR.Interaction
             var reliefFacing = Flat(relief.forward);
             if (Vector3.Dot(reliefFacing, entry - relief.position) < 0f) reliefFacing = -reliefFacing;
             var detailFloor = new Vector3(relief.position.x, 0f, relief.position.z) + reliefFacing * DetailFromRelief;
-            var detail = Socket("Detail", detailFloor, DetailHeight, entry, stone);
+            var detail = Socket("Detail", detailFloor, DetailHeight, entry, stone, Icon.Magnifier);
             _relief = relief;
-            var whole = Socket("Whole", wholeAt.position, WholeHeight, entry, stone);
+            var whole = Socket("Whole", wholeAt.position, WholeHeight, entry, stone, Icon.Mountain);
 
             // The lamp on the capture's brass stand.
             GameObject lamp;
@@ -120,16 +138,167 @@ namespace MuseXR.Interaction
             var rim = BuddhaRim(entry);
             Label(whole.position + Vector3.up * 0.35f, entry, "Cliff Buddha: an AI rendition\nreferencing the Longmen Vairocana form", 0.22f);
 
+            BoothLabel("Work Gandhara", "GANDHARA", "Kushan period · 1st-2nd century");
+            BoothLabel("Work Tang / N. Wei", "CHINA · NORTHERN WEI", "dated 495");
+
             Chapter = GrottoChapter.Make(gameObject, Sockets, Companions, Record, rim);
             Chapter.Saved += _ =>
             {
                 Debug.Log("[Record] " + Record.SummaryJson());
-                Label(Lamp.transform.position + Vector3.up * 0.5f, Camera.main != null ? Camera.main.transform.position : entry, "Kept.", 0.36f);
+                OpenArch(teleportFloor, Camera.main != null ? Camera.main.transform.position : entry);
             };
         }
 
+        // ---- the exit: her arch, cobalt and gold, into Van Gogh's studio ------------------------
+
+        /// <summary>
+        /// The capture's arch door (the grey inner door inside the cobalt-and-gold arch), on its
+        /// threshold, measured 3 Oct 2026: the recess triangulated from (-3, -9) and (2, -14) by the
+        /// collider (27.5 m deep along bearings 218.5 and 233.5, against ~21 m of wall either side),
+        /// the threshold height from the collider's floor (the terrace rises 1.2 -> 2.8 m over the last
+        /// 8 m), the door's size and centre from a capture against a 2.6 m marker. The layout's
+        /// "Exit Arch" marker stood 18 m away.
+        /// </summary>
+        public static readonly Vector3 ArchThreshold = new Vector3(-20.85f, 2.65f, -29.95f);
+        public const float ArchYaw = 218f;   // +Z out through the door, into the next world
+
+        MuseXR.Worlds.CaptureProbe _probe;
+
+        /// <summary>After A keeps: the arch opens onto Van Gogh's studio; walking through leaves the grotto.</summary>
+        void OpenArch(GameObject teleportFloor, Vector3 eye)
+        {
+            Label(Lamp.transform.position + Vector3.up * 0.5f, eye, "Kept.  The arch is open, ahead and to your right.\nWalk through it.", 0.3f);
+            if (arch == null) { Debug.LogError("[Grotto] no arch Moon Gate in the scene"); return; }
+            var here = FindAnyObjectByType<GaussianSplatting.Runtime.GaussianSplatRenderer>();
+            foreach (var f in Companions.Figures.Values) f.SetParent(Companions.transform, true);   // they come along
+            var props = new List<GameObject>();
+            var layout = Find("Chapter Grotto"); if (layout != null) props.Add(layout.gameObject);
+            var vis = GameObject.Find("Interaction Visuals"); if (vis != null) props.Add(vis);
+            foreach (Transform c in transform) if (c != Companions.transform && c.gameObject != teleportFloor) props.Add(c.gameObject);
+            if (_probe != null && _probe.Root != null) props.Add(_probe.Root.gameObject);
+            if (!arch.Open(here, props)) return;
+            Companions.StopTurns();
+            Companions.FollowVisitor = true;
+            arch.Crossed += () =>
+            {
+                // Van Gogh's floor: the flat teleport floor moves up to the threshold, under the arrival
+                // (the gate's own landing pad covers the first 6 m).
+                if (teleportFloor != null)
+                {
+                    teleportFloor.SetActive(false);
+                    var at = arch.transform.position + arch.transform.forward * MuseXR.Worlds.MoonGate.ArrivalPastDoor;
+                    teleportFloor.transform.position = new Vector3(at.x, arch.transform.position.y - 0.02f, at.z);
+                    teleportFloor.SetActive(true);
+                }
+                Companions.PlaceAll();
+                Debug.Log("[Grotto] through the arch: in Van Gogh's studio");
+            };
+        }
+
+        // ---- labels and icons --------------------------------------------------------------
+
+        /// <summary>Her booths "with separate labels (region, period)": a plate under each booth's work, always shown.</summary>
+        void BoothLabel(string work, string region, string period)
+        {
+            var w = Find(work);
+            if (w == null) { Debug.LogWarning("[Grotto] no " + work); return; }
+            var fwd = Flat(w.forward);   // a work faces INTO its wall: +Z away from the viewer reads
+            var at = new Vector3(w.position.x, BoothLabelHeight, w.position.z) - fwd * 0.04f;
+            var plate = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            plate.name = "Booth Plate " + region;
+            DestroyImmediate(plate.GetComponent<Collider>());
+            plate.transform.SetParent(transform, false);
+            plate.transform.SetPositionAndRotation(at + fwd * 0.005f, Quaternion.LookRotation(fwd, Vector3.up));
+            plate.transform.localScale = new Vector3(0.9f, 0.24f, 1f);
+            plate.GetComponent<Renderer>().sharedMaterial = Unlit(new Color(0.18f, 0.14f, 0.1f));
+            var t = new GameObject("Booth Label " + region).AddComponent<TMPro.TextMeshPro>();
+            t.transform.SetParent(transform, false);
+            t.transform.SetPositionAndRotation(at, Quaternion.LookRotation(fwd, Vector3.up));
+            t.rectTransform.sizeDelta = new Vector2(0.84f, 0.2f);
+            t.enableAutoSizing = true; t.fontSizeMin = 0.2f; t.fontSizeMax = 0.6f;
+            t.alignment = TMPro.TextAlignmentOptions.Center;
+            t.color = new Color(0.95f, 0.85f, 0.6f);
+            t.text = "<b>" + region + "</b>\n<size=70%>" + period + "</size>";
+        }
+
+        /// <summary>Booth plates at eye level under the works (which hang 2.6-2.8 m up).</summary>
+        public const float BoothLabelHeight = 1.55f;
+
+        enum Icon { Magnifier, Mountain }
+
+        static Material Unlit(Color c)
+        {
+            var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            m.SetColor("_BaseColor", c);
+            return m;
+        }
+
+        /// <summary>
+        /// Her socket text and icons (magnifier, mountain) that "stay legible under any light": dark
+        /// ink on a cream plate, unlit, on the post's face toward the visitor's start.
+        /// </summary>
+        void SocketSign(Transform post, string word, Icon icon, Vector3 entry, float top)
+        {
+            var toEntry = Flat(entry - post.position);
+            var face = post.position + toEntry * 0.085f;
+            var rot = Quaternion.LookRotation(-toEntry, Vector3.up);   // +Z away from the viewer reads
+            var plate = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            plate.name = word + " Sign";
+            DestroyImmediate(plate.GetComponent<Collider>());
+            plate.transform.SetParent(transform, false);
+            // Just under the post's top, above the slot card (which carries the word and covered a
+            // sign lower down - capture, 3 Oct 2026).
+            plate.transform.SetPositionAndRotation(new Vector3(face.x, top - 0.1f, face.z), rot);
+            plate.transform.localScale = new Vector3(0.13f, 0.13f, 1f);
+            var m = Unlit(Color.white);
+            m.SetTexture("_BaseMap", IconTexture(icon));
+            plate.GetComponent<Renderer>().sharedMaterial = m;
+        }
+
+        /// <summary>A magnifier or a mountain in dark ink on cream.</summary>
+        static Texture2D IconTexture(Icon icon)
+        {
+            const int w = 128, h = 128;
+            var t = new Texture2D(w, h, TextureFormat.RGBA32, true) { name = "socket-" + icon, wrapMode = TextureWrapMode.Clamp };
+            var cream = new Color(0.95f, 0.91f, 0.82f); var ink = new Color(0.2f, 0.15f, 0.1f);
+            var px = new Color[w * h];
+            for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+            {
+                float u = (x + 0.5f) / w, v = (y + 0.5f) / h;          // v up
+                float iy = v;                                            // the whole plate
+                bool on = false;
+                if (iy >= 0f)
+                {
+                    float px0 = u - 0.5f, py0 = iy - 0.5f;
+                    if (icon == Icon.Magnifier)
+                    {
+                        float cx = px0 + 0.08f, cy = py0 - 0.08f;
+                        float r = Mathf.Sqrt(cx * cx + cy * cy);
+                        on = Mathf.Abs(r - 0.2f) < 0.045f;                                   // the lens ring
+                        float hx = px0 + 0.08f + 0.2f * 0.707f, hy = py0 - 0.08f + 0.2f * 0.707f;   // handle from the rim, down-left
+                        float along = (-hx - hy) * 0.707f, across = (hx - hy) * 0.707f;
+                        on |= along > 0f && along < 0.24f && Mathf.Abs(across) < 0.045f;
+                    }
+                    else
+                    {
+                        // two peaks on a base line
+                        float b = -0.28f;
+                        bool big = py0 > b && py0 < b + 0.5f - Mathf.Abs(px0 + 0.05f) * 1.3f;
+                        bool small = py0 > b && py0 < b + 0.32f - Mathf.Abs(px0 - 0.22f) * 1.3f;
+                        on = big || small;
+                        bool snow = py0 > b + 0.38f - Mathf.Abs(px0 + 0.05f) * 1.3f && big;
+                        if (snow) on = false;
+                    }
+                }
+                px[y * w + x] = on ? ink : cream;
+            }
+            t.SetPixels(px); t.Apply();
+            return t;
+        }
+
         /// <summary>A stone post with the socket point on top, facing the visitor's start.</summary>
-        Transform Socket(string name, Vector3 floorAt, float height, Vector3 entry, Material stone)
+        Transform Socket(string name, Vector3 floorAt, float height, Vector3 entry, Material stone, Icon icon)
         {
             var floor = new Vector3(floorAt.x, Mathf.Max(0f, floorAt.y), floorAt.z);
             var post = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -138,6 +307,7 @@ namespace MuseXR.Interaction
             post.transform.position = floor + Vector3.up * (height * 0.5f - 0.02f);
             post.transform.localScale = new Vector3(0.16f, height, 0.16f);
             post.GetComponent<Renderer>().sharedMaterial = stone;
+            SocketSign(post.transform, name, icon, entry, floor.y + height);
             var socket = new GameObject("Socket " + name).transform;
             socket.SetParent(transform, false);
             socket.SetPositionAndRotation(floor + Vector3.up * height, Quaternion.LookRotation(Flat(entry - floor), Vector3.up));
@@ -208,19 +378,20 @@ namespace MuseXR.Interaction
         static Vector3 Flat(Vector3 v) { v.y = 0f; return v.sqrMagnitude < 1e-6f ? Vector3.forward : v.normalized; }
 
         /// <summary>An invisible floor at the terrace, teleportable everywhere (the rig selects on layer bit 31).</summary>
-        void TeleportFloor()
+        GameObject TeleportFloor()
         {
             var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
             floor.name = "Teleport Floor";
             floor.transform.SetParent(transform, false);
             floor.transform.position = Vector3.zero;
-            floor.transform.localScale = new Vector3(4f, 1f, 4f);   // 40 x 40 m
+            floor.transform.localScale = new Vector3(8f, 1f, 8f);   // 80 x 80 m: a safety net under the capture's own floor, which reaches the arch ~37 m out
             floor.GetComponent<Renderer>().enabled = false;
             floor.SetActive(false);                                  // XRI registers an area once, with its settings
             var area = floor.AddComponent<TeleportationArea>();
             area.interactionLayers = PalaceChapterInteractions.TeleportLayer;
             area.filterSelectionByHitNormal = true;
             floor.SetActive(true);
+            return floor;
         }
 
         static Transform Find(string name)
