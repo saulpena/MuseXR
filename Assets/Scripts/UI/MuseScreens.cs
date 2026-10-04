@@ -96,8 +96,9 @@ namespace MuseXR.UI
             var nav = MuseUi.Row(p, 6f);
             if (!string.IsNullOrEmpty(d.NextSpeakerId))
             {
-                MuseUi.Text(nav, "Next", MuseUi.Face.Sans, 12f, MuseTheme.Ink3, name: "NextLabel").enableWordWrapping = false;
-                MuseUi.Avatar(nav, d.NextSpeakerId, px: 20f);
+                // Words only: the speaker's letter in a round badge here read as a button to press
+                // ("there is no S button", Saul, headset test 3 Oct 2026). The A pill is the button.
+                MuseUi.Text(nav, "Next:", MuseUi.Face.Sans, 12f, MuseTheme.Ink3, name: "NextLabel").enableWordWrapping = false;
                 MuseUi.Text(nav, d.NextSpeakerName, MuseUi.Face.Sans, 12f, MuseTheme.Ink2, name: "NextName").enableWordWrapping = false;
             }
             var fill = new GameObject("Fill", typeof(RectTransform), typeof(LayoutElement));

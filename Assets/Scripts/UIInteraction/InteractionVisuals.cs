@@ -90,6 +90,7 @@ namespace MuseXR.UI
             }
 
             var phase = st.Board.Choice.Current;
+            if (st.HideStrip && phase == ChoiceConfirm.Phase.Pending) phase = ChoiceConfirm.Phase.Open;
             // Rebuilt when its words change too: a chapter retitles the pending choice (the Palace adds
             // the chosen reason), and a strip built once kept showing the old line.
             if (phase != v.ShownPhase || (phase == ChoiceConfirm.Phase.Pending && st.Board.Choice.Summary != v.ShownSummary))

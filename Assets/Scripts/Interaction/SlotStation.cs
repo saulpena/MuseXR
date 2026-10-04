@@ -39,6 +39,12 @@ namespace MuseXR.Interaction
         /// <summary>The station A and B speak to (through <see cref="ConfirmInput"/>), if the focus is a station.</summary>
         public static SlotStation Focus => ConfirmInput.Focus as SlotStation;
 
+        /// <summary>
+        /// While true the confirm strip is not drawn although a choice is pending: a chapter showing
+        /// one thing at a time (the Palace lets the companions speak before it asks to keep).
+        /// </summary>
+        public bool HideStrip { get; set; }
+
         Transform[] _slots;
         Holdable[] _pieces;
         string[] _slotNames;

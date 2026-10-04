@@ -405,6 +405,16 @@ namespace MusePico.Tests
             Assert.IsTrue(lines.Exists(l => l.StartsWith(Masters.Monet)), "the companions respond, Monet first");
             Assert.IsTrue(lines[0].StartsWith(Masters.Monet));
 
+            // One thing at a time: the reasons wait until the companions have spoken; A is "next".
+            Assert.IsTrue(chapter.Listening);
+            Assert.IsFalse(chapter.PickChip(0), "no reason while they speak");
+            Assert.IsFalse(station.Board.Choice.IsConfirmed);
+            for (var i = 0; i < 600 && chapter.Listening; i++) { ConfirmInput.PressA(); yield return null; }
+            Assert.IsFalse(chapter.Listening, "A takes the companions through their turns");
+            Assert.AreEqual(3, lines.Count, "each of the trio spoke once");
+            Assert.IsFalse(station.Board.Choice.IsConfirmed, "A as 'next' never kept the piece");
+            Assert.IsTrue(chapter.Chips[0].gameObject.activeInHierarchy, "then the reasons appear");
+
             Assert.IsTrue(chapter.PickChip(0));
             Assert.AreEqual("Keep this moment? Crane · 15° · It still looks up", station.Board.Choice.StripLine);
             Assert.IsTrue(ConfirmInput.PressA());

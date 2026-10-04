@@ -167,11 +167,32 @@ namespace MuseXR.Interaction
             Turns.Begin();
         }
 
-        /// <summary>About 2.6 words a second, plus a breath: her lines are one sentence.</summary>
+        /// <summary>
+        /// How long a line stays up with no voice to time it: READING time in a headset, not speaking
+        /// time - turning to find the panel, then reading it. Two words a second plus a second and a
+        /// half, and never under <see cref="MinLineSeconds"/>. Measured in Saul's headset test: at
+        /// 2.6 words a second Socrates' four words were up for 2.5 s - "super fast, impossible to
+        /// read". A skips ahead.
+        /// </summary>
         public static float EstimateSeconds(string line)
         {
-            if (string.IsNullOrWhiteSpace(line)) return 1f;
-            return 1f + line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries).Length / 2.6f;
+            if (string.IsNullOrWhiteSpace(line)) return MinLineSeconds;
+            var words = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries).Length;
+            return Mathf.Max(MinLineSeconds, 1.5f + words / 2f);
+        }
+
+        public const float MinLineSeconds = 5f;
+
+        /// <summary>
+        /// Stop mid-turns (the piece was lifted back out). Raises <see cref="TurnsFinished"/> so the
+        /// subtitle goes; listeners that only want a completed round should track their own state.
+        /// </summary>
+        public void StopTurns()
+        {
+            if (Turns == null) return;
+            Turns = null;
+            ConfirmInput.Drop(this);
+            TurnsFinished?.Invoke();
         }
 
         public void LineFinished() => Turns?.LineFinished();

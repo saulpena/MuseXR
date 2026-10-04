@@ -25,14 +25,16 @@ namespace MuseXR.UI
             if (Group == null) Group = GetComponent<CompanionGroup>();
             if (Group == null) return;
             Group.LineStarted += Show;
-            Group.LineEnded += Hide;
+            // The panel stays through the pause after a line and goes when the next one starts or
+            // the round ends: hiding it as the line ended made each line read as a flash.
+            Group.TurnsFinished += HideAll;
         }
 
         void OnDisable()
         {
             if (Group == null) return;
             Group.LineStarted -= Show;
-            Group.LineEnded -= Hide;
+            Group.TurnsFinished -= HideAll;
         }
 
         void Show(string id, string line)
@@ -68,6 +70,8 @@ namespace MuseXR.UI
             Face();
             Debug.Log($"[SubtitleRig] {id}: card {Fit(_panel, glass, float.MaxValue) * 2f:F2} m tall, eye {Vector3.Distance(_eye.position, head):F2} m from the head");
         }
+
+        void HideAll() => Hide(null);
 
         void Hide(string id)
         {

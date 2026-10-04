@@ -13,9 +13,15 @@ namespace MuseXR.Interaction
     ///   2 During    grip takes one, it follows the hand, the stick turns it in 15° steps (Holdable).
     ///   3 Feedback  it snaps in with the bronze bell (SlotStation); the court lights; the companions
     ///               respond in turn - if nobody has been invited yet, her default trio is called.
-    ///   4 Saved     three reason chips appear; pick one (or speak one: <see cref="SpeakReason"/>).
-    ///               A saves palace{object, yaw, reason, mode} to the journey record. A before a reason
-    ///               is refused with a knock. B inside 3 s, or lifting the piece out, undoes all of it.
+    ///               Nothing else is on show while they speak, and A means "next".
+    ///   4 Saved     when they have finished, three reason chips and the confirm strip appear; pick
+    ///               one (or speak one: <see cref="SpeakReason"/>). A saves palace{object, yaw, reason,
+    ///               mode} to the journey record. A before a reason is refused with a knock. Lifting
+    ///               the piece out undoes all of it.
+    ///
+    /// One thing at a time, in her storyboard's order (Saul, headset test 3 Oct 2026: with the chips,
+    /// the strip and the subtitles all up at once, and A meaning both "next" and "keep", it was
+    /// unclear what anything did).
     ///
     /// The card fallback (two cards: point, flip, glow) runs the same steps with mode "card".
     /// </summary>
@@ -41,6 +47,9 @@ namespace MuseXR.Interaction
 
         public event Action<string> Note;
         public event Action<PalaceFlow> Saved;
+
+        /// <summary>True while the companions are responding to the placed piece (step 3).</summary>
+        public bool Listening { get; private set; }
 
         public const float CourtLightIntensity = 2.6f, CourtLightRange = 0.9f;   // a pool on the court, not the room
 
@@ -93,6 +102,7 @@ namespace MuseXR.Interaction
                     break;
                 case SlotCue.Undone:
                 case SlotCue.Lifted:
+                    StopListening();
                     Flow.Unplaced();
                     ShowChips(false);
                     Say("[Palace] taken back - choose again");
@@ -100,13 +110,41 @@ namespace MuseXR.Interaction
             }
         }
 
-        /// <summary>Step 3 and the start of 4: light, companions, chips, and A/B to this chapter.</summary>
+        /// <summary>Step 3: the court lights and the companions respond. The reasons wait for them.</summary>
         void Respond(string piece)
         {
+            Say("[Palace] " + piece + " placed at " + Flow.YawDeg + "°. Your companions respond.");
+            Listening = true;
+            _wantFocus = true;   // A comes here while they speak, and never keeps the piece early
+            if (Court != null) Court.HideStrip = true;
+            ShowChips(false);
+            CallCompanions();
+            if (Listening && Company == null && (Group == null || Group.Ids.Count == 0)) AskForReason();   // nobody to listen to
+        }
+
+        /// <summary>Step 4: the reasons and the confirm strip, and A to this chapter.</summary>
+        void AskForReason()
+        {
+            Listening = false;
+            if (Court != null) Court.HideStrip = false;
             ShowChips(true);
             _wantFocus = true;
-            Say("[Palace] " + piece + " placed at " + Flow.YawDeg + "°. Pick a reason, then A.");
-            CallCompanions();
+            Say("[Palace] pick a reason, then A to keep it");
+        }
+
+        void OnTurnsFinished()
+        {
+            if (Listening && (Flow.Current == PalaceFlow.Phase.Placed || Flow.Current == PalaceFlow.Phase.Ready)) AskForReason();
+        }
+
+        /// <summary>Back to choosing: stop whoever is speaking, hide the reasons.</summary>
+        void StopListening()
+        {
+            Listening = false;
+            _turnsPending = false;
+            if (Court != null) Court.HideStrip = false;
+            var g = Company != null ? Company.Group : Group;
+            if (g != null) g.StopTurns();
         }
 
         void CallCompanions()
@@ -136,8 +174,9 @@ namespace MuseXR.Interaction
             _turnsPending = false;
             var piece = Flow.Piece;
             group.LineFor = id => LineFor(id, piece);
-            group.BeginTurns();
-            _wantFocus = true;   // the group took A for its turns; A here still means "keep"
+            group.TurnsFinished -= OnTurnsFinished;
+            group.TurnsFinished += OnTurnsFinished;
+            group.BeginTurns();   // the group takes A while they speak: A is "next"
         }
 
         public static string CannedLine(string master, string piece)
@@ -170,6 +209,7 @@ namespace MuseXR.Interaction
                 }
                 else if (cards.Logic.FaceUp < 0)
                 {
+                    StopListening();
                     Flow.Unplaced();
                     ShowChips(false);
                 }
@@ -289,7 +329,7 @@ namespace MuseXR.Interaction
 
         public bool PickChip(int index, Pointer pointer = null)
         {
-            if (index < 0 || index >= _chipText.Count) return false;
+            if (index < 0 || index >= _chipText.Count || Listening) return false;   // the reasons come after the companions
             if (!Flow.ChooseReason(PalaceFlow.ReasonsFor(Flow.Piece)[index])) return false;
             // The chosen chip turns solid gold, bold, with a "»", a little larger and nearer; the other
             // two dim. Shape and weight as well as colour, so the choice reads at a glance (Saul: "I can
@@ -315,7 +355,7 @@ namespace MuseXR.Interaction
         /// <summary>Hold-X speech, from whatever dictation the scene has.</summary>
         public bool SpeakReason(string transcript)
         {
-            if (!Flow.SpeakReason(transcript)) return false;
+            if (Listening || !Flow.SpeakReason(transcript)) return false;
             Retitle();
             _wantFocus = true;
             Say("[Palace] reason (spoken): " + Flow.Reason);
@@ -332,6 +372,14 @@ namespace MuseXR.Interaction
 
         public bool Confirm()
         {
+            if (Listening)
+            {
+                // While the companions speak, A is "next"; before anyone has started, it is refused.
+                var g = Company != null ? Company.Group : Group;
+                if (g != null && g.Turns != null) return g.Confirm();
+                ChimePlayer.Play(ChimePlayer.RefuseClip(), transform.position, 0.5f);
+                return false;
+            }
             if (Flow.Current == PalaceFlow.Phase.Placed)
             {
                 ChimePlayer.Play(ChimePlayer.RefuseClip(), transform.position, 0.5f);

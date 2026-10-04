@@ -2003,6 +2003,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3fcc8dc03827b9b4db02bace19b09a29, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MuseXR.Interaction::MuseXR.Interaction.PalaceChapterInteractions
+  doorPrefab: {fileID: 3022796259160638339, guid: f78ff52c13f1ddb498a93a51b268f760, type: 3}
+  nextWorldAsset: {fileID: 11400000, guid: 989e33f0c2177c54cb58a2039f720650, type: 2}
 --- !u!114 &384758445
 MonoBehaviour:
   m_ObjectHideFlags: 0

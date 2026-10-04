@@ -10,7 +10,8 @@
         "Unity.RenderPipelines.Core.Runtime",
         "Unity.TextMeshPro",
         "Unity.XR.CoreUtils",
-        "MusePico.Dialogue"
+        "MusePico.Dialogue",
+        "GaussianSplatting"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
