@@ -85,7 +85,18 @@ namespace MusePico.Journey
         public void ShowCard(string artworkId, bool show)
         {
             if (Cards.TryGetValue(artworkId, out var c) && c != null) c.SetActive(show);
+            if (show && Works.TryGetValue(artworkId, out var w) && w != null)
+            {
+                var target = w.GetComponent<MuseXR.Interaction.CompassTarget>();
+                if (target != null) target.MarkDone();   // not ?.: Unity's fake null
+            }
         }
+
+        /// <summary>Each hung work by artwork id.</summary>
+        public readonly Dictionary<string, GameObject> Works = new Dictionary<string, GameObject>();
+
+        /// <summary>Where paintings come in the compass's order: after a chapter's own interaction marks.</summary>
+        public const int CompassOrder = 30;
 
         Func<Vector3, Vector3, float, float?> _ray;   // world origin, direction, max -> distance
 
@@ -216,6 +227,11 @@ namespace MusePico.Journey
             }
             var box = work.AddComponent<BoxCollider>(); box.size = new Vector3(size.x, size.y, 0.06f);   // pointable
             Placed[item.Id] = new Pose(onWall, faces);
+            // Every work is somewhere the compass leads (Saul, 3 Oct); pointing at it to read its card is
+            // the interaction that moves the compass on (ShowCard).
+            var title = info?.Invoke(item.Id)?.Title;
+            MuseXR.Interaction.CompassTarget.Add(work, CompassOrder, string.IsNullOrEmpty(title) ? item.Label : title);
+            Works[item.Id] = work;
 
             // Her 4.1 card: 0.3 m to the right of the frame as the visitor faces it, same depth.
             var a = info?.Invoke(item.Id);

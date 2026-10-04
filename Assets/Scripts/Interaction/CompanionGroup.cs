@@ -45,6 +45,18 @@ namespace MuseXR.Interaction
         /// Her rule: the speaker gets a floor ring and the others turn toward them. Set by the turns,
         /// and by any stage that has a companion speak outside them (the lanterns); null for nobody.
         /// </summary>
+        /// <summary>
+        /// The crowd: the companions walk with the visitor like people moving through a museum - always
+        /// beside or a little behind, never in front or in the way, keeping pace smoothly (no jumps).
+        /// Their places hang off the visitor's body (<see cref="BodyFrame"/>), so a glance moves nobody.
+        /// </summary>
+        public bool Crowd { get; set; }
+
+        /// <summary>The crowd's places: bearing from the body's facing (never inside +-70) and distance.</summary>
+        public static readonly CompanionMarks.Mark[] CrowdPlaces =
+            { new CompanionMarks.Mark(-80f, 1.4f), new CompanionMarks.Mark(80f, 1.4f), new CompanionMarks.Mark(-125f, 1.8f) };
+        public const float CrowdWalkSpeed = 1.5f, CrowdCatchUpSpeed = 3f, CrowdArrive = 0.15f;
+
         public string ActiveSpeaker
         {
             get => _active;
@@ -230,7 +242,8 @@ namespace MuseXR.Interaction
             if (Head == null && Camera.main != null) Head = Camera.main.transform;
             if (Head == null || _ids.Count == 0) return;
 
-            if (!FollowVisitor) { _placedOnce = true; }
+            if (Crowd) { CrowdStep(Time.deltaTime); _placedOnce = true; }
+            else if (!FollowVisitor) { _placedOnce = true; }
             else if (!_placedOnce) PlaceAll();
             else
             {
@@ -251,7 +264,7 @@ namespace MuseXR.Interaction
                 _lastPos = Head.position; _lastYaw = Head.eulerAngles.y;
             }
 
-            Face(Time.deltaTime);
+            if (!Crowd || !_walking) Face(Time.deltaTime);
             if (Turns == null) return;
             Turns.Tick(Time.deltaTime, FollowVisitor ? AngleFromGaze(Turns.Speaker) : 0f);
             if (TimeLinesByLength && Turns.Current == TurnTaking.Phase.Speaking)
@@ -265,6 +278,43 @@ namespace MuseXR.Interaction
 
         /// <summary>Slow enough to read as a person turning, not a snap.</summary>
         public const float TurnDegreesPerSecond = 90f;
+
+        bool _walking;
+
+        /// <summary>Each companion walks to its place round the body. Someone on the wrong side goes round
+        /// behind the visitor, never across the front.</summary>
+        void CrowdStep(float dt)
+        {
+            var body = BodyFrame.Get();
+            if (body == null) return;
+            body.Step(dt);
+            _walking = false;
+            for (var i = 0; i < _ids.Count; i++)
+            {
+                var f = _figures[_ids[i]];
+                if (f == null) continue;
+                var place = CrowdPlaces[Mathf.Min(i, CrowdPlaces.Length - 1)];
+                var target = body.Feet + body.Bearing(place.Bearing) * place.Distance;
+                var pos = f.position; var flat = new Vector3(pos.x, body.Feet.y, pos.z);
+                // Going round, not across: aim first for a point behind the visitor on the target's side.
+                var rel = flat - body.Feet;
+                var ahead = Vector3.Dot(rel, body.Forward) > 0.2f;
+                var wrongSide = Mathf.Sign(Vector3.Dot(rel, body.Right)) != Mathf.Sign(place.Bearing) && rel.magnitude < 3f;
+                if (ahead && wrongSide) target = body.Feet - body.Forward * 1.3f + body.Right * (Mathf.Sign(place.Bearing) * 0.6f);
+                var to = target - flat;
+                var d = to.magnitude;
+                if (d < CrowdArrive) { f.position = new Vector3(pos.x, body.Feet.y, pos.z); continue; }
+                var speed = d > 3f ? CrowdCatchUpSpeed : Mathf.Max(CrowdWalkSpeed * Mathf.Clamp01(d / 1.2f), body.Velocity.magnitude);
+                var step = Mathf.Min(d, speed * dt);
+                var next = flat + to / d * step;
+                f.position = new Vector3(next.x, body.Feet.y, next.z);
+                if (step / Mathf.Max(dt, 1e-5f) > 0.25f)
+                {
+                    _walking = true;
+                    f.rotation = Quaternion.RotateTowards(f.rotation, Quaternion.LookRotation(to / d, Vector3.up), 240f * dt);
+                }
+            }
+        }
 
         void RingUnder(string id)
         {

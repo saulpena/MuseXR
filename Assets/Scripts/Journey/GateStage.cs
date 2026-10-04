@@ -187,57 +187,15 @@ namespace MusePico.Journey
             _glow.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
             glow.GetComponent<Renderer>().sharedMaterial = _glow;
 
-            // The four questions stand on the pool side of the walk, 2.2 m away between 18 and 43
-            // degrees right - inside her +/-60 degrees, and clear of the straight view down the walk
-            // to the pavilion, which is her hero image and where the question will be lettered.
+            // Her web app's first two screens, in her web styling (muse-infinity, localhost:4173): the
+            // landing, then "What question are you carrying?" with her dark glass question panel.
             var forward = facing * Vector3.forward;
-            // One flat grid on a single plane facing the visitor, so the cards line up like her option
-            // stack instead of fanning (blind review, 3 Oct: each card turned to its own angle read as
-            // tilted and ragged). Centred between her 18 and 43 degrees, columns 0.94 m apart.
-            var gridDir = Quaternion.Euler(0f, questionsFrom + questionsStep * 0.5f, 0f) * forward;
-            var gridRot = Quaternion.LookRotation(gridDir, Vector3.up);
-            var gridRight = gridRot * Vector3.right;
-            for (var i = 0; i < GateFlow.Samples.Count; i++)
-            {
-                var cell = origin + gridDir * PlateDistance + gridRight * ((i % 2 == 0 ? -1f : 1f) * 0.47f)
-                         + Vector3.up * (i < 2 ? 1.3f : 0.98f);
-                Plate(i, cell, gridRot);
-            }
-
-            // Her prompt, in her kit: a glass panel above the questions it is about - kicker, the
-            // question it asks, how to answer (trigger, or the X pill to speak), and a level meter
-            // while listening, because "recording silence" and "no microphone" look identical.
-            var promptDir = Quaternion.Euler(0f, questionsFrom + questionsStep * 0.5f, 0f) * forward;
-            var promptAnchor = new GameObject("Gate Prompt").transform;
-            promptAnchor.SetParent(transform, false);
-            promptAnchor.SetPositionAndRotation(origin + promptDir * PromptDistance + Vector3.up * 1.86f,
-                                                Quaternion.LookRotation(promptDir, Vector3.up));
-            _promptRoot = promptAnchor.gameObject;
-            var pc = MuseUi.Canvas(promptAnchor, "Prompt", PromptDistance, 380f);
-            var glass = MuseUi.Glass(pc, 380f, gap: 8f);
-            MuseUi.Kicker(glass, "The gate · your question", MuseTheme.Gold);
-            _promptTitle = MuseUi.Title(glass, "What question are you carrying?", 22f);
-            _promptHint = MuseUi.Body(glass, "");
-            var how = MuseUi.Row(glass, 10f);
-            MuseUi.Pill(how, "X", "Hold to speak your own", false);
-            _meter = MuseUi.Row(glass, 0f, TextAnchor.MiddleLeft, "Level").gameObject;
-            var track = _meter.AddComponent<Image>();
-            track.sprite = UiSprites.Rounded(4f); track.type = Image.Type.Sliced; track.color = MuseTheme.Line;
-            var tle = _meter.AddComponent<LayoutElement>(); tle.preferredHeight = 8f; tle.minHeight = 8f;
-            var fill = new GameObject("Fill", typeof(RectTransform), typeof(Image));
-            fill.transform.SetParent(_meter.transform, false);
-            _meterFill = (RectTransform)fill.transform;
-            var fi = fill.GetComponent<Image>();
-            fi.sprite = UiSprites.Rounded(4f); fi.type = Image.Type.Sliced; fi.color = MuseTheme.Rose;
-            fill.AddComponent<LayoutElement>().ignoreLayout = true;
-            _meterFill.anchorMin = Vector2.zero; _meterFill.anchorMax = new Vector2(0f, 1f); _meterFill.pivot = new Vector2(0f, 0.5f);
-            _meterFill.offsetMin = Vector2.zero; _meterFill.offsetMax = Vector2.zero;
-            _meter.SetActive(false);
-
+            BuildWebScreens(origin, forward);
+            var promptDir = forward;
             // Her undo: the B pill and its countdown, under the questions, only while a choice can be undone.
             var undoAnchor = new GameObject("Gate Undo").transform;
             undoAnchor.SetParent(transform, false);
-            undoAnchor.SetPositionAndRotation(origin + promptDir * PromptDistance + Vector3.up * 0.62f,
+            undoAnchor.SetPositionAndRotation(origin + promptDir * ScreenDistance + Vector3.up * 0.72f,
                                               Quaternion.LookRotation(promptDir, Vector3.up));
             var uc = MuseUi.Canvas(undoAnchor, "Undo", PromptDistance, 200f);
             var urow = MuseUi.Row(uc, 0f, TextAnchor.MiddleCenter);
@@ -453,13 +411,216 @@ namespace MusePico.Journey
         public void Choose(int index)
         {
             if (_promptHidden) return;   // the question is settled once the journey has moved on
+            if (index < 0 || index >= GateFlow.Samples.Count) return;
+            EnterMuseum();
+            SetDraft(GateFlow.Samples[index]);
             Flow.ChooseSample(index);
         }
 
         void OnDictated(string text)
         {
             _listening = false;
-            if (!Flow.SetSpoken(text)) RefreshPrompt("Nothing heard. Hold X and speak again.");
+            if (string.IsNullOrWhiteSpace(text)) { RefreshPrompt("Nothing heard. Hold X and speak again."); return; }
+            SetDraft(text.Trim());
+            RefreshPrompt("Heard you. Choose who walks with you, or hold X to say it again.");
+        }
+
+        // ---- her web screens ------------------------------------------------------------------------
+
+        // Her web palette (muse-infinity styles): cream ink, lavender accent, dark glass.
+        static readonly Color WebInk = new Color32(238, 233, 223, 255);
+        static readonly Color WebInk2 = new Color32(238, 233, 223, 163);   // 0.64
+        static readonly Color WebInkFaint = new Color32(238, 233, 223, 92);
+        static readonly Color WebLine = new Color32(238, 233, 223, 46);    // 0.18
+        static readonly Color WebLineStrong = new Color32(238, 233, 223, 107);   // 0.42
+        static readonly Color WebAccent = new Color32(158, 135, 170, 255);
+        static readonly Color WebGlass = new Color32(8, 6, 10, 122);       // 0.48
+        static readonly Color WebDim = new Color32(8, 6, 10, 84);          // her screen dim behind the copy
+        static readonly Color WebButton = new Color32(56, 48, 61, 131);
+        static readonly Color LandingInk = new Color32(44, 36, 31, 255);
+        static readonly Color LandingInk2 = new Color32(72, 62, 54, 255);
+        const string Placeholder = "What makes a life meaningful?";
+        const float ScreenDistance = 2.6f;
+
+        GameObject _landing;
+        TextMeshProUGUI _draftText;
+        string _draft = string.Empty;
+        bool _entered;
+        readonly System.Collections.Generic.List<(Image edge, TextMeshProUGUI label, string question)> _chips =
+            new System.Collections.Generic.List<(Image, TextMeshProUGUI, string)>();
+        readonly System.Collections.Generic.List<(RectTransform rect, System.Action action, Image edge, Color idle, Color hover)> _clickables =
+            new System.Collections.Generic.List<(RectTransform, System.Action, Image, Color, Color)>();
+
+        TextMeshProUGUI WebText(Transform parent, string text, bool serif, float px, Color colour, float trackingEm = 0f,
+                                bool upper = false, float lineHeight = 1.4f, string name = "Text")
+        {
+            var t = MuseUi.Text(parent, text, MuseUi.Face.Sans, px, colour, trackingEm, upper, lineHeight, name);
+            if (serif && titleFont != null) t.font = titleFont;
+            return t;
+        }
+
+        void BuildWebScreens(Vector3 origin, Vector3 forward)
+        {
+            var at = origin + forward * ScreenDistance + Vector3.up * 1.55f;
+            var rot = Quaternion.LookRotation(forward, Vector3.up);   // +Z away from the viewer reads
+
+            // Landing: "A LIVING ARCHIVE BEYOND TIME", the title, her line, and the round ENTER.
+            var la = new GameObject("Gate Landing").transform;
+            la.SetParent(transform, false);
+            la.SetPositionAndRotation(at, rot);
+            _landing = la.gameObject;
+            var lc = MuseUi.Canvas(la, "Landing", ScreenDistance, 760f);
+            lc.GetComponent<VerticalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;
+            // A soft pale ground under her dark copy: in the headset the pavilion behind it is as busy as
+            // her hero image, and the title went unread over it.
+            var col = MuseUi.Card(lc, new Color32(247, 242, 233, 150), 18f, null, 0f, padX: 40f, padY: 34f, gap: 10f, name: "Landing Copy");
+            col.GetComponent<VerticalLayoutGroup>().childAlignment = TextAnchor.UpperCenter;
+            var e = WebText(col, "A living archive beyond time", false, 10f, LandingInk2, 0.28f, true, name: "Eyebrow");
+            e.alignment = TextAlignmentOptions.Center;
+            var t = WebText(col, "The Impossible\nMuseum", true, 72f, LandingInk, 0f, false, 0.95f, "Title");
+            t.alignment = TextAlignmentOptions.Center;
+            var sub = WebText(col, "Enter a cultural memory where artists disagree\u2014and your answer becomes part of the architecture.",
+                              false, 14f, LandingInk2, 0f, false, 1.5f, "Lede");
+            sub.alignment = TextAlignmentOptions.Center;
+            MuseUi.Space(col, 14f);
+            var row = MuseUi.Row(col, 22f, TextAnchor.MiddleCenter, "Enter Row");
+            var rowLayout = row.GetComponent<HorizontalLayoutGroup>();
+            rowLayout.childForceExpandWidth = false; rowLayout.childControlWidth = true;   // the ENTER disc keeps its round 88 px
+            var enter = MuseUi.Card(row, new Color32(238, 233, 223, 225), 44f, null, 0f, padX: 0f, padY: 0f, name: "Enter");
+            var ele = enter.gameObject.AddComponent<LayoutElement>(); ele.preferredWidth = 88f; ele.preferredHeight = 88f;
+            ele.minWidth = 88f; ele.minHeight = 88f; ele.flexibleWidth = 0f;
+            enter.GetComponent<VerticalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;
+            enter.GetComponent<VerticalLayoutGroup>().childControlHeight = false;
+            var et = WebText(enter, "Enter", false, 9f, LandingInk2, 0.2f, true, name: "Label");
+            et.alignment = TextAlignmentOptions.Center;
+            var how = WebText(row, "Point and pull the trigger to cross", false, 9f, LandingInk2, 0.2f, true, name: "How");
+            how.enableWordWrapping = false;
+            var enterEdge = enter.GetComponent<Image>();
+            _clickables.Add((enter, EnterMuseum, enterEdge, enterEdge.color, Color.white));
+
+            // The question screen: her copy on the left, her dark glass question panel on the right.
+            var qa = new GameObject("Gate Prompt").transform;
+            qa.SetParent(transform, false);
+            qa.SetPositionAndRotation(at, rot);
+            _promptRoot = qa.gameObject;
+            var qc = MuseUi.Canvas(qa, "Prompt", ScreenDistance, 1060f);
+            var dim = MuseUi.Card(qc, WebDim, 0f, null, 0f, padX: 34f, padY: 34f, gap: 0f, name: "Screen");
+            var cols = MuseUi.Row(dim, 46f, TextAnchor.MiddleLeft, "Columns");
+            cols.GetComponent<HorizontalLayoutGroup>().childControlHeight = true;
+            cols.GetComponent<HorizontalLayoutGroup>().childForceExpandHeight = false;
+
+            var left = MuseUi.Column(cols, 14f, "Copy");
+            left.gameObject.AddComponent<LayoutElement>().preferredWidth = 400f;
+            WebText(left, "01 / Begin with your life", false, 10f, WebAccent, 0.28f, true, name: "Eyebrow");
+            _promptTitle = WebText(left, "What question are you carrying?", true, 64f, WebInk, 0f, false, 1.05f, "Title");
+            WebText(left, "There is no correct question. The museum will use it as the curatorial thread connecting every artwork, companion and space.",
+                    false, 14f, WebInk2, 0f, false, 1.5f, "Lede");
+
+            var panel = MuseUi.Card(cols, WebGlass, 0f, WebLine, 1f, padX: 30f, padY: 30f, gap: 16f, name: "Question Panel");
+            panel.gameObject.AddComponent<LayoutElement>().preferredWidth = 540f;
+            WebText(panel, "Your question", false, 8f, WebAccent, 0.22f, true, name: "Label");
+            _draftText = WebText(panel, Placeholder, true, 40f, WebInkFaint, 0f, false, 1.15f, "Question");
+            var chips = MuseUi.Row(panel, 8f, TextAnchor.MiddleLeft, "Chips");
+            for (var k = 1; k < GateFlow.Samples.Count; k++)   // her three web samples
+            {
+                var q = GateFlow.Samples[k];
+                var chip = MuseUi.Card(chips, new Color(0f, 0f, 0f, 0f), 0f, WebLine, 1f, padX: 10f, padY: 8f, name: "Chip");
+                var cl = WebText(chip, q, false, 8.5f, WebInk2, 0f, false, 1.2f, "Label");
+                cl.enableWordWrapping = false;
+                var edge = EdgeOf(chip);
+                _chips.Add((edge, cl, q));
+                var question = q;
+                _clickables.Add((chip, () => { if (!_promptHidden) SetDraft(question); }, edge, WebLine, WebAccent));
+            }
+            var speak = MuseUi.Row(panel, 10f, TextAnchor.MiddleLeft, "Speak");
+            WebText(speak, "Hold X to speak your own", false, 9f, WebInk2, 0.16f, true, name: "Hint").enableWordWrapping = false;
+            _meter = MuseUi.Row(panel, 0f, TextAnchor.MiddleLeft, "Level").gameObject;
+            var track = _meter.AddComponent<Image>();
+            track.sprite = UiSprites.Rounded(4f); track.type = Image.Type.Sliced; track.color = WebLine;
+            var tle = _meter.AddComponent<LayoutElement>(); tle.preferredHeight = 6f; tle.minHeight = 6f;
+            var fill = new GameObject("Fill", typeof(RectTransform), typeof(Image));
+            fill.transform.SetParent(_meter.transform, false);
+            _meterFill = (RectTransform)fill.transform;
+            var fi = fill.GetComponent<Image>();
+            fi.sprite = UiSprites.Rounded(4f); fi.type = Image.Type.Sliced; fi.color = WebAccent;
+            fill.AddComponent<LayoutElement>().ignoreLayout = true;
+            _meterFill.anchorMin = Vector2.zero; _meterFill.anchorMax = new Vector2(0f, 1f); _meterFill.pivot = new Vector2(0f, 0.5f);
+            _meterFill.offsetMin = Vector2.zero; _meterFill.offsetMax = Vector2.zero;
+            _meter.SetActive(false);
+
+            var buttonRow = MuseUi.Row(panel, 0f, TextAnchor.MiddleLeft, "Button Row");
+            var button = MuseUi.Card(buttonRow, WebButton, 22f, WebLineStrong, 1f, padX: 22f, padY: 14f, name: "Choose");
+            button.gameObject.AddComponent<LayoutElement>().flexibleWidth = 0f;
+            WebText(button, "Choose who walks with me  \u2192", false, 10f, WebInk, 0.2f, true, name: "Label").enableWordWrapping = false;
+            _clickables.Add((button, ConfirmDraft, EdgeOf(button), WebLineStrong, WebInk));
+            _promptHint = WebText(panel, "", false, 10f, WebInk2, 0f, false, 1.4f, "Status");
+
+            _promptRoot.SetActive(false);
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(lc);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(qc);
+            foreach (var c in _clickables) MakeClickable(c.rect, c.action, c.edge, c.idle, c.hover);
+        }
+
+        static Image EdgeOf(RectTransform card)
+        {
+            foreach (var img in card.GetComponentsInChildren<Image>(true)) if (img.name == "Edge") return img;
+            return card.GetComponent<Image>();
+        }
+
+        /// <summary>A collider the size of the drawn rect and an XRI interactable: the ray's Select (the
+        /// trigger) runs <paramref name="action"/>; hovering lights the edge in her accent.</summary>
+        static void MakeClickable(RectTransform rect, System.Action action, Image edge, Color idle, Color hover)
+        {
+            var box = rect.gameObject.AddComponent<BoxCollider>();   // not a trigger: XRI drops triggers
+            box.center = rect.rect.center;
+            box.size = new Vector3(rect.rect.width, rect.rect.height, 12f);
+            var interactable = rect.gameObject.AddComponent<XRSimpleInteractable>();
+            interactable.colliders.Clear();
+            interactable.colliders.Add(box);
+            interactable.selectEntered.AddListener(_ => action());
+            if (edge != null)
+            {
+                interactable.hoverEntered.AddListener(_ => edge.color = hover);
+                interactable.hoverExited.AddListener(_ => edge.color = idle);
+            }
+        }
+
+        void EnterMuseum()
+        {
+            if (_entered) return;
+            _entered = true;
+            if (_landing != null) _landing.SetActive(false);
+            Buzz(0.2f, 0.05f);
+            RefreshPrompt();
+        }
+
+        void SetDraft(string question)
+        {
+            _draft = question ?? string.Empty;
+            if (_draftText != null)
+            {
+                _draftText.text = _draft.Length > 0 ? _draft : Placeholder;
+                _draftText.color = _draft.Length > 0 ? WebInk : WebInkFaint;
+            }
+            foreach (var c in _chips)
+            {
+                var on = c.question == _draft;
+                if (c.edge != null) c.edge.color = on ? WebAccent : WebLine;
+                if (c.label != null) c.label.color = on ? WebInk : WebInk2;
+            }
+        }
+
+        /// <summary>Her "Choose who walks with me": the question in the field (or her placeholder) is set.</summary>
+        void ConfirmDraft()
+        {
+            if (_promptHidden) return;
+            var q = _draft.Length > 0 ? _draft : Placeholder;
+            SetDraft(q);
+            var index = -1;
+            for (var k = 0; k < GateFlow.Samples.Count; k++) if (GateFlow.Samples[k] == q) index = k;
+            if (index >= 0) Flow.ChooseSample(index); else Flow.SetSpoken(q);
+            Buzz(0.3f, 0.06f);
         }
 
         void OnPhase(GateFlow.Phase phase)
@@ -576,13 +737,13 @@ namespace MusePico.Journey
             };
             string hint = Flow.Current switch
             {
-                GateFlow.Phase.Asking => "Point at one and pull the trigger, or hold X and say your own.",
-                GateFlow.Phase.Chosen => "Point at another to change it, or hold X to say it differently.",
+                GateFlow.Phase.Asking => "Point at a question, or hold X and say your own. Then choose who walks with you.",
+                GateFlow.Phase.Chosen => "B undoes it. Point at another, or hold X, to change it.",
                 GateFlow.Phase.DoorsOpen => "Walk through when you are ready.",
                 _ => string.Empty,
             };
             _promptHint.text = note ?? hint;
-            if (_promptRoot != null) _promptRoot.SetActive(!_promptHidden && Flow.Current != GateFlow.Phase.Entered);
+            if (_promptRoot != null) _promptRoot.SetActive(_entered && !_promptHidden && Flow.Current != GateFlow.Phase.Entered);
         }
 
         static void Buzz(float amplitude, float seconds)

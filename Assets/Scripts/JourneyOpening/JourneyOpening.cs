@@ -136,6 +136,9 @@ namespace MuseXR.Journey
             Company.ReadyToAnswer = () => _answersReady;
             Company.PhaseChanged += OnCompanyPhase;
             Company.Completed += ids => Companions = ids;
+            // The compass's first target: the row of masters to choose from.
+            var rowTarget = CompassTarget.Add(root.gameObject, 5, "Choose your companions");
+            Company.PhaseChanged += ph => { if (ph != CompanyStage.Phase.Choosing) rowTarget.MarkDone(); };   // chosen: on to the next
             root.gameObject.AddComponent<SubtitleRig>().Group = Company.Group;
             // No preset: with Monet, Van Gogh and Socrates preselected a single A chose for the visitor
             // (headset test). Her demo preset is for the 3-minute demo route, not this walk.
@@ -284,6 +287,8 @@ namespace MuseXR.Journey
         async void OnCompanyPhase(CompanyStage.Phase phase)
         {
             RefreshPrompt();
+            // Once chosen they walk with the visitor as a crowd: beside, never in front (Saul, 3 Oct).
+            if (phase == CompanyStage.Phase.Answering) Company.Group.Crowd = true;
             if (phase == CompanyStage.Phase.Stepping)
                 foreach (var kv in _marks) { kv.Value.ring.gameObject.SetActive(false); kv.Value.state.transform.parent.parent.parent.gameObject.SetActive(false); }
             if (phase != CompanyStage.Phase.Stepping || _asked) return;
@@ -343,9 +348,20 @@ namespace MuseXR.Journey
             }
             source.clip = clip; source.Play();
             _speaking = source;
-            if (Company.Group.Turns == null) Company.Group.ActiveSpeaker = id;   // a lantern line: ring and heads too
+            var outsideTurns = Company.Group.Turns == null;
+            if (outsideTurns)
+            {
+                Company.Group.ActiveSpeaker = id;   // a lantern line: ring and heads too
+                var panel = TorsoPanel.Get();
+                if (panel != null) panel.ShowLine(Masters.Name(id), text);   // and on the waist panel
+            }
             for (float t = 0f; t < clip.length + 0.3f && source != null && source.isPlaying; t += Time.deltaTime) yield return null;
-            if (Company != null && Company.Group.Turns == null && Company.Group.ActiveSpeaker == id) Company.Group.ActiveSpeaker = null;
+            if (Company != null && Company.Group.Turns == null && Company.Group.ActiveSpeaker == id)
+            {
+                Company.Group.ActiveSpeaker = null;
+                var panel = TorsoPanel.Get();
+                if (panel != null) panel.ClearLine();
+            }
         }
 
         System.Collections.IEnumerator SpeakTurn(string id, string line)

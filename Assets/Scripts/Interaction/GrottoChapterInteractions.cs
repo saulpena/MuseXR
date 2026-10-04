@@ -136,6 +136,7 @@ namespace MuseXR.Interaction
             groupGo.transform.SetParent(transform, false);
             Companions = groupGo.AddComponent<CompanionGroup>();
             Companions.FollowVisitor = false;
+            Companions.Crowd = true;   // Saul, 3 Oct: always a crowd beside the visitor, never in front
             Companions.Head = head;
             var order = new List<string>(); foreach (var id in Masters.DefaultTrio) if (figures.ContainsKey(id)) order.Add(id);
             Companions.Set(order, figures);

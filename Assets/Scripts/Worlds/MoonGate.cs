@@ -173,6 +173,9 @@ namespace MuseXR.Worlds
         }
 
         /// <summary>On the threshold step with the gate open: carry the visitor through to the far side.</summary>
+        [Tooltip("Carry a visitor through when they stand on the threshold step (for teleport locomotion only).")]
+        public bool stepCarriesThrough = false;
+
         void StepThrough()
         {
             if (Door == null || _crossed || (Door.Phase != PortalPhase.Open && Door.Phase != PortalPhase.Opening)) return;
@@ -217,7 +220,9 @@ namespace MuseXR.Worlds
         void Update()
         {
             Rise();
-            StepThrough();
+            // Smooth locomotion now (Saul, 3 Oct): walking through the plane is the crossing, so the step
+            // no longer carries anyone - it jumped visitors the last metre as they walked up.
+            if (stepCarriesThrough) StepThrough();
             if (Door == null) { if (_crossed && !_arrived) { _arrived = true; Arrived?.Invoke(); } return; }
             if (!_crossed && Door.HasCrossed) { _crossed = true; Crossed?.Invoke(); }
             if (_crossed && !_arrived && Door.IsDone) { _arrived = true; Arrived?.Invoke(); }
