@@ -57,6 +57,13 @@ namespace MuseXR.Interaction
             var pieces = new[] { Holdable.Make(crane.gameObject, "Crane"), Holdable.Make(turtle.gameObject, "Turtle") };
             Court = SlotStation.Make(courtT.gameObject, global::MuseXR.Slots.Chapter.Palace, new[] { slot }, pieces);
 
+            // The compass (musexr-bb, 3c2b476): the pieces, then the court, then the gate - before the
+            // paintings (30). Done when the piece is set in the court.
+            var targets = new[] { CompassTarget.Add(crane.gameObject, 21, "Crane: grip to lift it"),
+                                  CompassTarget.Add(turtle.gameObject, 21, "Turtle: grip to lift it"),
+                                  CompassTarget.Add(courtT.gameObject, 22, "The miniature court: set it here") };
+            Court.Cue += (s, e) => { if (e.Cue == SlotCue.Placed) foreach (var t in targets) t.MarkDone(); };
+
             // The companions where her diagram stands them; they answer in turn, they do not walk.
             // Her diagram has three marks (named for the demo trio); the visitor's chosen companions stand
             // on them in speaking order (Masters.Company - the journey swaps the figures on the marks).
@@ -136,8 +143,10 @@ namespace MuseXR.Interaction
                 if (t.name.StartsWith("Exit Moon gate") && t.parent != null) props.Add(t.parent.gameObject);   // the layout root
             foreach (var n in new[] { "Court Table", "Interaction Visuals" }) { var g = GameObject.Find(n); if (g != null) props.Add(g); }
             if (!moonGate.Open(here, props, null, showNow: true)) return;
+            var gateTarget = CompassTarget.Add(moonGate.gameObject, 29, "The moon gate: walk through it");
             moonGate.Crossed += () =>
             {
+                gateTarget.MarkDone();
                 if (_afterKeep != null) Destroy(_afterKeep.gameObject);
                 Companions.PlaceAll();   // round the visitor in the grotto
                 Debug.Log("[Palace] through the moon gate: in the grotto");

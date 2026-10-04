@@ -129,6 +129,14 @@ namespace MuseXR.Interaction
             Sockets = SlotStation.Make(gameObject, global::MuseXR.Slots.Chapter.Grotto, new[] { detail, whole }, new[] { Lamp },
                                        new[] { "Detail", "Whole" });
 
+            // The compass (musexr-bb, 3c2b476): the lamp, then its two stands, then the arch - before the
+            // paintings (30).
+            var lampTarget = CompassTarget.Add(Lamp.gameObject, 21, "The lamp: grip to take it");
+            Lamp.Grabbed += _ => lampTarget.MarkDone();
+            var stands = new[] { CompassTarget.Add(Find("Detail Post").gameObject, 22, "DETAIL: set the lamp by the relief"),
+                                 CompassTarget.Add(Find("Whole Post").gameObject, 22, "WHOLE: set the lamp at the rail") };
+            Sockets.Cue += (s, e) => { if (e.Cue == SlotCue.Placed) foreach (var t in stands) t.MarkDone(); };
+
             // The companions where her diagram stands them.
             var figures = new Dictionary<string, Transform>();
             foreach (var id in Masters.DefaultTrio) { var m = Find("Mark " + id); if (m != null) figures[id] = m; }
@@ -206,6 +214,8 @@ namespace MuseXR.Interaction
             foreach (Transform c in transform) if (c != Companions.transform && c.gameObject != teleportFloor) props.Add(c.gameObject);
             if (_probe != null && _probe.Root != null) props.Add(_probe.Root.gameObject);
             if (!arch.Open(here, props, showNow: true)) return;
+            var archTarget = CompassTarget.Add(arch.gameObject, 29, "The arch: walk through it");
+            arch.Crossed += () => archTarget.MarkDone();
             Companions.StopTurns();
             Companions.FollowVisitor = true;
             arch.Crossed += () =>
