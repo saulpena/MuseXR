@@ -15,6 +15,7 @@ namespace MuseXR.UI
         public TMP_FontAsset sansSemi;      // Inter SemiBold (600)
         public TMP_FontAsset sansBold;      // Inter Bold (700)
         public TMP_FontAsset mono;          // JetBrains Mono SemiBold
+        public TMP_FontAsset display;       // Gilda Display: her web app's headings and dialogue lines
 
         static MuseFonts _loaded;
         public static MuseFonts Get() => _loaded != null ? _loaded : (_loaded = Resources.Load<MuseFonts>("MuseFonts"));

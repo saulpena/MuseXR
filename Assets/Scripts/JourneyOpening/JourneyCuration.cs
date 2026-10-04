@@ -212,7 +212,7 @@ namespace MuseXR.Journey
                 box.isTrigger = true;
                 var index = i;
                 var p = Pointable.Make(lantern.gameObject, Keys[i]);
-                CompassTarget.Add(lantern.gameObject, 10 + i, "Lantern  ·  " + Chapters[i]);   // done when pointed at
+                CompassTarget.Add(lantern.gameObject, 10 + i, Chapters[i] + " lantern", "Point to hear why");   // done when pointed at
                 p.Selected += (_, __) => Hear(index);
                 p.Hovering += _ => light.intensity = 3.2f;     // brightens under the laser
                 p.Unhovered += _ => light.intensity = 1.6f;
@@ -520,7 +520,7 @@ namespace MuseXR.Journey
             first.gameObject.SetActive(false);
             mg.Arrived += () => StartCoroutine(Arrive());
             foreach (var l in _lanterns) if (l != null) { var lt = l.GetComponent<CompassTarget>(); if (lt != null) lt.MarkDone(); }
-            CompassTarget.Add(mg.gameObject, 20, "Moon gate  ·  the Palace");
+            CompassTarget.Add(mg.gameObject, 20, "The moon gate", "Walk through to the Palace");
             StartCoroutine(RetireCard());
             _gate = mg;
             Debug.Log("[Curation] the moon gate stands; the Palace is behind it");

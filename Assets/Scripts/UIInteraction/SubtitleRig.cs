@@ -36,7 +36,7 @@ namespace MuseXR.UI
         void Show(string id, string line)
         {
             var panel = TorsoPanel.Get();
-            if (panel != null) panel.ShowLine(MuseXR.Slots.Masters.Name(id), line, "A  next");
+            if (panel != null) panel.ShowLine(id, MuseXR.Slots.Masters.Name(id), line, "A  next");
         }
 
         void HideAll()

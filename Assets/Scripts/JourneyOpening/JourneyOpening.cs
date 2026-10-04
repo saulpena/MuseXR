@@ -137,7 +137,7 @@ namespace MuseXR.Journey
             Company.PhaseChanged += OnCompanyPhase;
             Company.Completed += ids => Companions = ids;
             // The compass's first target: the row of masters to choose from.
-            var rowTarget = CompassTarget.Add(root.gameObject, 5, "Choose your companions");
+            var rowTarget = CompassTarget.Add(root.gameObject, 5, "Choose your companions", "Point and pull the trigger");
             Company.PhaseChanged += ph => { if (ph != CompanyStage.Phase.Choosing) rowTarget.MarkDone(); };   // chosen: on to the next
             root.gameObject.AddComponent<SubtitleRig>().Group = Company.Group;
             // No preset: with Monet, Van Gogh and Socrates preselected a single A chose for the visitor
@@ -333,30 +333,40 @@ namespace MuseXR.Journey
         /// </summary>
         public System.Collections.IEnumerator Say(string id, string text)
         {
+            // Outside the answer turns (a lantern's line) the words go up at once: waiting for the voice
+            // left the panel empty for the 2-3 s a clip takes to come back.
+            // The answer round is over once the company is Done (its finished turns object stays set).
+            var outsideTurns = Company != null && (Company.Group.Turns == null || Company.Current == CompanyStage.Phase.Done);
+            if (outsideTurns)
+            {
+                Company.Group.ActiveSpeaker = id;   // ring and heads too
+                var panel = TorsoPanel.Get();
+                if (panel != null) panel.ShowLine(id, Masters.Name(id), text, null, "Why this room fits your question");
+            }
             var task = VoiceFor(id, text);
             for (float t = 0f; !task.IsCompleted && t < 10f; t += Time.deltaTime) yield return null;
             var clip = task.IsCompleted && !task.IsFaulted ? task.Result : null;
             var figure = FigureOf(id);
-            if (clip == null || figure == null) yield break;
-            if (_speaking != null) _speaking.Stop();
-            var source = figure.GetComponent<AudioSource>();
-            if (source == null)
+            if (clip != null && figure != null)
             {
-                source = figure.gameObject.AddComponent<AudioSource>();
-                source.spatialBlend = 0.85f; source.minDistance = 2f; source.maxDistance = 25f;
-                source.rolloffMode = AudioRolloffMode.Linear; source.playOnAwake = false;
+                if (_speaking != null) _speaking.Stop();
+                var source = figure.GetComponent<AudioSource>();
+                if (source == null)
+                {
+                    source = figure.gameObject.AddComponent<AudioSource>();
+                    source.spatialBlend = 0.85f; source.minDistance = 2f; source.maxDistance = 25f;
+                    source.rolloffMode = AudioRolloffMode.Linear; source.playOnAwake = false;
+                }
+                source.clip = clip; source.Play();
+                _speaking = source;
+                for (float t = 0f; t < clip.length + 0.3f && source != null && source.isPlaying; t += Time.deltaTime) yield return null;
             }
-            source.clip = clip; source.Play();
-            _speaking = source;
-            var outsideTurns = Company.Group.Turns == null;
-            if (outsideTurns)
+            else if (outsideTurns)
             {
-                Company.Group.ActiveSpeaker = id;   // a lantern line: ring and heads too
-                var panel = TorsoPanel.Get();
-                if (panel != null) panel.ShowLine(Masters.Name(id), text);   // and on the waist panel
+                // No voice: leave the words up for their reading time.
+                for (float t = 0f; t < CompanionGroup.EstimateSeconds(text); t += Time.deltaTime) yield return null;
             }
-            for (float t = 0f; t < clip.length + 0.3f && source != null && source.isPlaying; t += Time.deltaTime) yield return null;
-            if (Company != null && Company.Group.Turns == null && Company.Group.ActiveSpeaker == id)
+            if (outsideTurns && Company != null && Company.Group.ActiveSpeaker == id)
             {
                 Company.Group.ActiveSpeaker = null;
                 var panel = TorsoPanel.Get();

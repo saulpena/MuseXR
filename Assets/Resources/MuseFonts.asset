@@ -19,3 +19,4 @@ MonoBehaviour:
   sansSemi: {fileID: 11400000, guid: e83367fcc592d224e898e6ec4bf2bae3, type: 2}
   sansBold: {fileID: 11400000, guid: c38345cd044c12f40838dde33070fb7c, type: 2}
   mono: {fileID: 11400000, guid: 1bd99215720a7464d81b04b78baf121b, type: 2}
+  display: {fileID: 11400000, guid: f133212365f6ce34db12a418ea1eea30, type: 2}

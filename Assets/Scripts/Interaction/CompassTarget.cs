@@ -13,16 +13,31 @@ namespace MuseXR.Interaction
     {
         public int order;
         public string label;
+        /// <summary>The small line under the label after the distance: an artist, or what to do there.</summary>
+        public string detail;
         public bool Done { get; private set; }
 
         static readonly List<CompassTarget> All = new List<CompassTarget>();
 
-        public static CompassTarget Add(GameObject go, int order, string label)
+        public static CompassTarget Add(GameObject go, int order, string label, string detail = null)
         {
             var t = go.GetComponent<CompassTarget>();
             if (t == null) t = go.AddComponent<CompassTarget>();
-            t.order = order; t.label = label;
+            t.order = order; t.label = label; t.detail = detail;
             return t;
+        }
+
+        /// <summary>Her "stop n / N": where <paramref name="target"/> falls among the active targets, done or not.</summary>
+        public static void Progress(CompassTarget target, out int stop, out int stops)
+        {
+            stop = 1; stops = 0;
+            foreach (var t in All)
+            {
+                if (t == null || !t.isActiveAndEnabled) continue;
+                stops++;
+                if (t != target && (t.order < target.order || (t.order == target.order && t.GetInstanceID() < target.GetInstanceID()))) stop++;
+            }
+            if (stops == 0) stops = 1;
         }
 
         void OnEnable()
