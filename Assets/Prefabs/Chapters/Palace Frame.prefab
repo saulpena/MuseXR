@@ -1566,6 +1566,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3745116848250558901}
   - component: {fileID: 672629185060541667}
+  - component: {fileID: 6183395052683929797}
   m_Layer: 0
   m_Name: Chapter Palace
   m_TagString: Untagged
@@ -1609,6 +1610,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53c8595c5a1853949a764a399a092d87, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MusePico.Journey::MusePico.Journey.ChapterLayout
+--- !u!114 &6183395052683929797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3746316688306067591}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc469d003af37c94fab2920f9098e57a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MuseXR.Interaction::MuseXR.Interaction.PalaceHeroes
+  goddess: {fileID: 8919934127225428127, guid: ee816a300fb71584c80d9c49db9c1afe, type: 3}
 --- !u!1 &3767513228326396403
 GameObject:
   m_ObjectHideFlags: 0
