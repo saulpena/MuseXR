@@ -1401,6 +1401,7 @@ Transform:
   - {fileID: 789104150}
   - {fileID: 384758446}
   - {fileID: 2067842579}
+  - {fileID: 556850854}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &253301554
@@ -2012,7 +2013,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3fcc8dc03827b9b4db02bace19b09a29, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MuseXR.Interaction::MuseXR.Interaction.PalaceChapterInteractions
-  moonGate: {fileID: 0}
+  moonGate: {fileID: 556850855}
 --- !u!4 &384758446
 Transform:
   m_ObjectHideFlags: 0
@@ -2611,6 +2612,87 @@ SkinnedMeshRenderer:
     m_Center: {x: 0.020872712, y: -0.17651138, z: -0.014390692}
     m_Extent: {x: 0.56245685, y: 0.9428426, z: 0.29901195}
   m_DirtyAABB: 0
+--- !u!1001 &556850853
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 248439241}
+    m_Modifications:
+    - target: {fileID: 1871832555614348656, guid: 20b78fea75a9b084b85869000055e83d, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -7.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1871832555614348656, guid: 20b78fea75a9b084b85869000055e83d, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1871832555614348656, guid: 20b78fea75a9b084b85869000055e83d, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1871832555614348656, guid: 20b78fea75a9b084b85869000055e83d, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 1871832555614348656, guid: 20b78fea75a9b084b85869000055e83d, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1871832555614348656, guid: 20b78fea75a9b084b85869000055e83d, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 1871832555614348656, guid: 20b78fea75a9b084b85869000055e83d, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1871832555614348656, guid: 20b78fea75a9b084b85869000055e83d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1871832555614348656, guid: 20b78fea75a9b084b85869000055e83d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1871832555614348656, guid: 20b78fea75a9b084b85869000055e83d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4204574980123885127, guid: 20b78fea75a9b084b85869000055e83d, type: 3}
+      propertyPath: nextWorldKey
+      value: grotto-hall-of-time-500k
+      objectReference: {fileID: 0}
+    - target: {fileID: 4204574980123885127, guid: 20b78fea75a9b084b85869000055e83d, type: 3}
+      propertyPath: nextWorldAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 989e33f0c2177c54cb58a2039f720650, type: 2}
+    - target: {fileID: 9034076791565464116, guid: 20b78fea75a9b084b85869000055e83d, type: 3}
+      propertyPath: m_Name
+      value: Moon Gate to Grotto
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 20b78fea75a9b084b85869000055e83d, type: 3}
+--- !u!4 &556850854 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1871832555614348656, guid: 20b78fea75a9b084b85869000055e83d, type: 3}
+  m_PrefabInstance: {fileID: 556850853}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &556850855 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4204574980123885127, guid: 20b78fea75a9b084b85869000055e83d, type: 3}
+  m_PrefabInstance: {fileID: 556850853}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0680c888d5bc59c4ea242f2d203041f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Worlds::MuseXR.Worlds.MoonGate
 --- !u!1 &585934965
 GameObject:
   m_ObjectHideFlags: 0
