@@ -102,9 +102,12 @@ The epistemic state of each claim is marked:
 - **Palace:** the crane and the turtle can't be lifted until both are heard (`SlotStation.GrabGate`). Reaching early pulses the card. **Measured:** `CanGrab` is false before; the crane ticked when heard.
 - **Grotto:** the lamp can be carried and held to the relief, but it seats in neither socket until both sockets ("Look at detail" / "Look at the whole") are heard (`SlotStation.SeatGate`).
 - **Taps while a companion speaks** are now queued in `MasterInsights`, not ignored. Before this, tapping the turtle during the crane's reading did nothing.
-- **Not checked:**
-  - **Palace:** the full unlock after the second option is heard, now that taps queue. Also the card's new position beside the court, moved because it covered the goddess.
-  - **Grotto:** none of it has been seen running, neither the card nor the gating.
+- **Walked in Play, 4 Oct (second session), billed calls muted (no voice, no live readings):**
+  - **Palace, measured:** a grab before hearing is refused; tapping the turtle while the crane's line plays queues it, and the card unlocks when it lands; crane set in the court, chip, A; record `palace{crane, "It still looks up"}`; moon gate opens.
+  - **Palace, looked at:** the card read correctly but stood in front of a hanging scroll. Moved to the court's other side, against a red pillar (`fix-palace-01-card-other-side.png`).
+  - **Grotto, measured:** the lamp set on the detail stand before hearing floats home (placed = -1); both stands heard, then it seats; the round runs about 12 s a line; A keeps; record `grotto{detail}`; arch opens.
+  - **Grotto, looked at:** the card hung 2 m up across the cliff Buddha's chest, dark glass on gold, barely legible, and 10 m out it had faded before the visitor arrived. It now stands 45% of the way to the stands, just above eye height, against sky and balustrade (`fix-grotto-02-card-after-question.png`). The arrival guide said "Take the lamp" first; it now says to hear both stands first (`Step.Hear`). Post titles were shortened, because the canned openings quote them.
+  - Captures are in `Assets/Screenshots/review-1004/`. The blind review of the first-run set is summarised in §2.
 - **Van Gogh and Monet** (`ChapterFeatures.Take`, not `ChoicePreview`): the companions take each option in turn, voiced as each turn starts.
   - **Van Gogh:** after the reply lights the easel, touching each pot gives its take, with nothing on the brush yet. The prompt counts n / 3, then "Now choose"; the next touch picks.
   - **Monet:** the time ring speaks on each moment the first time it is reached. The painting chips appear only after all three. The first tap on each chip gives its take, and after all four a tap chooses (3 s undo).
@@ -114,7 +117,10 @@ The epistemic state of each claim is marked:
 
 - **Hole behind you after a gate:** `MoonGate.CutArrivalFloaters` cuts the next world's floaters out of the view through the gate, and the cut was never removed. It is now restored on arrival (`MoonGate.RestoreCut`).
   - **Gate → Palace:** **measured** that the cut is gone after arrival, and **looked at**: solid wall behind the visitor.
-  - **Grotto, Van Gogh, Monet and Your world: not checked** (same code path).
+  - **Every other link, 4 Oct (second session):** **measured** zero cutouts left after each arrival, and **looked at** the view back after each: Palace→Grotto (carved niche wall), Grotto→Van Gogh (blue corridor), Van Gogh→Monet (rose arbour; near floaters are soft but there is no hole), Monet→Your world.
+- **Two companion groups in every chapter (fixed):** `MasterInsights` built its own group over the "Mark *" figures in the frame before a chapter's `Start()` made the real one, and kept it. **Measured** in the Grotto and Monet: two groups driving the same three figures, so insights and the chapter's turns could talk over each other. It now adopts the chapter's group (`_built`). **Measured** after the fix: one group in the Palace, Grotto and Monet, and it is the chapter's own.
+- **The last link re-opened its gate (fixed):** the `Your world to the Gate` link has no `previousFrame`. On arrival it destroyed the door only, and Your world's `ChapterExit` saw its gate closed and opened it again. The result was a second conservatory renderer, a stray floater cut, and Your world's labels and paintings floating in the conservatory (`conservatory-01-lookback-after-yourworld.png`). Now `ChapterExit` opens once, and the last link destroys the frame the gate stands in. It keeps that frame's `Walk Floor`, which is the only floor the conservatory has: without it the visitor fell to y -86.
+- **Your world's exit was doubled and too close (fixed):** the layout's schematic "Exit Behind: start again" arch stood 0.36 m behind the real gate frame, and both were 0.9 m behind the arrival point, which is one step back for a gate that opens by itself after 20 s. The marker is now hidden when the gate opens, and the gate moved to 2.5 m (prefab). **Looked at:** one arch (`fix-yourworld-03-single-exit-alone.png`).
 - **No delay crossing:**
   - Gates are walkable at 35% risen (was 60%).
   - The door shuts behind in 0.4 s (was 2.5), so the next chapter wakes almost at once. The Gate's own moon gate uses 0.6 s, set in `JourneyCuration`.
@@ -135,13 +141,14 @@ The epistemic state of each claim is marked:
 
 In priority order:
 
-1. **Finish and see the choice flow.**
-   - Palace: unlock after both are heard; the card's position.
-   - Grotto: the card, the seat gate, and floating home when set down too early.
-   - Van Gogh and Monet: done (see above); not yet blind-reviewed.
-   - Then a blind review of each card.
-2. **Walk every transition and look back after each.** Gate→Palace was done; still to do are Palace→Grotto, Grotto→Van Gogh, Van Gogh→Monet, Monet→Your world and Your world→conservatory. Check for holes, for anything blocking the opening, and for how long until the chapter wakes.
-3. **Pre-wake chapters when the gate opens**, if Saul still sees a delay (see Transitions above).
+1. **Choice flow and transitions: walked in Play on 4 Oct, second session (see §1).** Still open from that walk and its blind review:
+   - **Companions crowd the camera.** After a teleport and then a turn, the crowd (`CompanionGroup.Crowd`) stood between the visitor and what they turned to face. Twice a figure filled the frame, blown to white by the eye's fill light (`grotto-05-arch-to-vangogh.png`, Your world exit). They also stand in the gate openings (`palace-05`, `vangogh-02`). This is shared machinery and the scripted teleports exaggerate it, so check in a headset before changing it.
+   - **The Van Gogh side door** shows the next world as a flat rectangle that is narrower than, and to the left of, the capture's own doorway, with a dark smear at its lower right (`vangogh-02-sidedoor-to-monet.png`).
+   - **The "Five golden Buddhas" label** hangs huge and tilted at knee height right in front of the Grotto arrival (`grotto-02`).
+   - **At the very end, the companions go with Your world**, so the conservatory is empty of them. Decide whether that is the ending wanted.
+   - **The Palace card is beside the court now.** Seen from the court it reads well; from the arrival spot it sits at the edge of the view.
+   - **Grotto `Step.Hear` and the moved card: looked at, not yet in a headset.**
+2. **Pre-wake chapters when the gate opens: not done, and not worth it now.** Derived from the code, not measured with a timer: a chapter wakes about 0.4 s plus three frames after the crossing (`MoonGate.CloseBehindSeconds`, then the `ChapterLink.Arrive` frames, then `Start()`'s one-frame yield). Every chapter `Start()` reads the head at the origin, so waking it early is a refactor of all five. Only do it if Saul still feels the delay in a headset.
 4. **The remaining Palace/Grotto heroes from her concept stills**, by the same generated route as the goddess, after Saul approves the cost:
    - The two peach-tray goddesses flanking the throne steps (`goddess-tray.webp`, 4 m each).
    - Her gold-roofed red hall (`palace.webp`). It has no placement yet, because the Palace's moon gate shows the Grotto.

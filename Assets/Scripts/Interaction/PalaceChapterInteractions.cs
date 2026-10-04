@@ -77,7 +77,8 @@ namespace MuseXR.Interaction
             // stay on their plinths and a reach for one only pulses the card.
             // Beside the plinths, not over them: on the axis it stood across the throne and its goddess.
             var side = Vector3.Cross(Vector3.up, toViewer).normalized;
-            var cardAt = courtT.position + side * PreviewAside + Vector3.up * PreviewUp;
+            // On the open side: on the other it stood in front of a hanging scroll (capture, 4 Oct).
+            var cardAt = courtT.position - side * PreviewAside + Vector3.up * PreviewUp;
             var cardFacing = cardAt - spawn;
             Preview = ChoicePreview.Make(transform, cardAt, cardFacing,
                 "Stop 1  ·  the crane or the turtle",

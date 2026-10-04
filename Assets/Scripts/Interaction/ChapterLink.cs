@@ -53,7 +53,17 @@ namespace MuseXR.Interaction
             if (nextFrame == null)
             {
                 if (gate.Door != null) Destroy(gate.Door.gameObject);
-                if (previousFrame != null) Destroy(previousFrame.gameObject);
+                // Unset on the last link (Your world -> the Gate), Your world's props stood on in the
+                // conservatory: the frame the gate stands in is the chapter just left.
+                var last = previousFrame != null ? previousFrame : gate.transform.root;
+                if (last != null && last != transform.root)
+                {
+                    // Its walk floor is the only floor the conservatory has now (the Gate's went at the
+                    // first crossing): taken with the frame, the visitor fell (y -86 in the next second).
+                    foreach (var floor in last.GetComponentsInChildren<Transform>())
+                        if (floor.name == "Walk Floor") floor.SetParent(null, true);
+                    Destroy(last.gameObject);
+                }
                 Debug.Log("[Journey] through " + gate.name + ": the journey's last world");
                 yield break;
             }

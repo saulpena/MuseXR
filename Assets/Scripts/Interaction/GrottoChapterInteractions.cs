@@ -49,8 +49,12 @@ namespace MuseXR.Interaction
         public CompanionGroup Companions { get; private set; }
         public Holdable Lamp { get; private set; }
         public ChoicePreview Preview { get; private set; }
-        /// <summary>The "hear each first" card: between the two posts, a little toward the visitor, at eye height.</summary>
-        public const float PreviewUp = 2.0f, PreviewBefore = 0.6f;
+        /// <summary>
+        /// The "hear each first" card: on the way from the entry to the two posts (this fraction of the way),
+        /// a little above eye height. Between the posts and 2 m up it hung across the cliff Buddha's chest,
+        /// dark glass on gold, and 10 m out it had faded before the visitor reached it (capture, 4 Oct).
+        /// </summary>
+        public const float PreviewAlong = 0.45f, PreviewUp = 0.3f;
         public MusePico.Dialogue.JourneyRecord Record { get; } = new MusePico.Dialogue.JourneyRecord();
 
         /// <summary>Her brass stand: the lamp "at reachable height, seated too".</summary>
@@ -146,13 +150,14 @@ namespace MuseXR.Interaction
             // Saul, 4 Oct: hear the companions on BOTH ways of seeing before the lamp can be set in either.
             // The lamp can still be taken and held to the relief (that is looking, not choosing); it only
             // will not seat until both sockets have been heard, and floats home if set down early.
-            var detailTalk = InsightTarget.Add(Find("Detail Post").gameObject, "looking at the detail: the carved stele, close, under the lamp", "a way of seeing", "grotto-detail");
-            var wholeTalk = InsightTarget.Add(Find("Whole Post").gameObject, "looking at the whole: the cliff Buddha across the sea of clouds", "a way of seeing", "grotto-whole");
+            var detailTalk = InsightTarget.Add(Find("Detail Post").gameObject, "the carved stele, seen close under the lamp", "a way of seeing", "grotto-detail");
+            var wholeTalk = InsightTarget.Add(Find("Whole Post").gameObject, "the cliff Buddha, seen whole across the clouds", "a way of seeing", "grotto-whole");
             var mid = (detail.position + whole.position) * 0.5f;
             var toPosts = Flat(mid - entry);
-            Preview = ChoicePreview.Make(transform, new Vector3(mid.x, entry.y + PreviewUp, mid.z) - toPosts * PreviewBefore, toPosts,
+            var way = mid - entry; way.y = 0f;
+            Preview = ChoicePreview.Make(transform, entry + way * PreviewAlong + Vector3.up * PreviewUp, toPosts,
                 "Stop 2  ·  detail or the whole",
-                new[] { (detailTalk, "Look at detail  ·  the socket by the relief"), (wholeTalk, "Look at the whole  ·  the socket on the railing") },
+                new[] { (detailTalk, "Detail  ·  the stand by the relief"), (wholeTalk, "The whole  ·  the stand at the rail") },
                 "Take the lamp. Put it where you want to see clearly");
             Sockets.SeatGate = () => Preview.Ready;
             Sockets.Refused += _ => Preview.Nudge();
@@ -274,7 +279,7 @@ namespace MuseXR.Interaction
         // step changes (and then it stays put - moving text made him sick), and a pulsing gold ring
         // on the floor at the place to go next.
 
-        enum Step { None, TakeLamp, SetLamp, Listen, Keep, GoThrough, Done }
+        enum Step { None, Hear, TakeLamp, SetLamp, Listen, Keep, GoThrough, Done }
         Step _step = Step.None;
         Vector3 _standFloor, _detailFloor, _wholeFloor;
         TMPro.TextMeshPro _guideText;
@@ -315,7 +320,10 @@ namespace MuseXR.Interaction
             if (Chapter == null) return Step.None;
             if (arch != null && arch.IsOpen) return arch.Door != null && arch.Door.HasCrossed ? Step.Done : Step.GoThrough;
             if (Chapter.Flow.Current == GrottoFlow.Phase.Placed) return Chapter.Listening ? Step.Listen : Step.Keep;
-            return Lamp != null && Lamp.State == Holdable.Mode.Held ? Step.SetLamp : Step.TakeLamp;
+            if (Lamp != null && Lamp.State == Holdable.Mode.Held) return Step.SetLamp;
+            // Both ways of seeing are heard before the lamp is the next thing asked for (Saul, 4 Oct): told to
+            // take it first, the visitor carried it to a stand that would not take it.
+            return Preview != null && !Preview.Ready ? Step.Hear : Step.TakeLamp;
         }
 
         void UpdateGuide()
@@ -335,6 +343,10 @@ namespace MuseXR.Interaction
             string text = null;
             switch (step)
             {
+                case Step.Hear:
+                    text = "First hear your companions on both ways of seeing.\nPoint at the <b>DETAIL</b> stand and the <b>WHOLE</b> stand, and pull the trigger.";
+                    Ring(_detailFloor); Ring(_wholeFloor);
+                    break;
                 case Step.TakeLamp:
                     text = "<b>Take the lamp</b> from the brass stand on your left.\nPoint at it and hold GRIP.";
                     Ring(_standFloor);

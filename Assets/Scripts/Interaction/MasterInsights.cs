@@ -70,11 +70,21 @@ namespace MuseXR.Interaction
 
         CompanionGroup Group()
         {
-            // Our stand-in voices give way to the real companions the moment there are some.
-            if (_group != null && _voicesOnly)
+            // A group we built ourselves gives way to the real companions the moment there are some: the
+            // Gate's stand-in voices, and the marks we gather in the frame before a chapter's own Start()
+            // makes its companions. Kept, two groups drove the same three figures and talked over each
+            // other (Grotto and Monet, full walk 4 Oct 2026). Adopted directly: cleared to null, the find
+            // below met our own group again, since Destroy only lands at the end of the frame.
+            if (_group != null && _built && !_group.Busy)
             {
                 foreach (var g in FindObjectsByType<CompanionGroup>(FindObjectsSortMode.None))
-                    if (g != _group && !g.Busy) { Destroy(_group.gameObject); _group = null; _voicesOnly = false; break; }
+                    if (g != _group && g.Ids.Count > 0 && !g.Busy)
+                    {
+                        Destroy(_group.gameObject);
+                        _group = g; _built = false; _voicesOnly = false;
+                        _rule = new Insights(g.Ids);
+                        break;
+                    }
             }
             if (_group == null)
             {
@@ -155,8 +165,12 @@ namespace MuseXR.Interaction
             g.Set(order, figures);
             var subtitles = System.Type.GetType("MuseXR.UI.SubtitleRig, MuseXR.UI.Interaction");
             if (subtitles != null) go.AddComponent(subtitles);
+            _built = true;
             return g;
         }
+
+        /// <summary>True while <see cref="_group"/> is one <see cref="BuildGroup"/> made, not a chapter's own.</summary>
+        bool _built;
 
         /// <summary>A master has begun on this target (a tap or walking up to it): it has been heard about.</summary>
         public static event System.Action<InsightTarget> Spoke;

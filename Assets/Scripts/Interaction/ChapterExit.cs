@@ -49,7 +49,7 @@ namespace MuseXR.Interaction
 
         void Update()
         {
-            if (gate == null || gate.IsOpen) return;
+            if (gate == null || gate.IsOpen || _opened) return;
             // Chained into GateWorld a frame can be awake behind a gate: only count once it stands at the origin.
             if (transform.root.position.sqrMagnitude > 0.01f) return;
             _since += Time.deltaTime;
@@ -65,15 +65,27 @@ namespace MuseXR.Interaction
         /// <summary>The chapter is done: open the exit. The world's layout goes with the old world.</summary>
         public bool Complete()
         {
-            if (gate == null || gate.IsOpen) return gate != null;
+            if (gate == null || gate.IsOpen || _opened) return gate != null;
             var here = FindAnyObjectByType<GaussianSplatting.Runtime.GaussianSplatRenderer>();
+            // The layout's schematic of the exit ("Exit Behind: start again") stood just behind the real
+            // gate's frame: a second, smaller arch inside the first (Your world, 4 Oct 2026).
+            if (transform.parent != null)
+                foreach (var t in transform.parent.GetComponentsInChildren<Transform>())
+                    if (t.name.StartsWith("Exit ") && !t.IsChildOf(gate.transform) && !gate.transform.IsChildOf(t) && t.GetComponent<Renderer>() != null)
+                        t.gameObject.SetActive(false);
             var props = new List<GameObject>();
             // Its chapter's layout: the scene's roots, or - chained into one scene - its frame's children.
             foreach (var t in FindObjectsByType<Transform>(FindObjectsSortMode.None))
                 if (t.parent == transform.parent && t.name.StartsWith("Chapter ") && t != transform) props.Add(t.gameObject);   // not this: its floor stays
             if (_probe != null && _probe.Root != null) props.Add(_probe.Root.gameObject);
-            return gate.Open(here, props, null, showNow: true);
+            // Once only. After the crossing the link destroys the door, IsOpen reads false again, and the
+            // last chapter's exit opened a second gate onto the conservatory round the visitor who had
+            // just come through it: a second copy of the world, a stray floater cut (full walk, 4 Oct).
+            _opened = gate.Open(here, props, null, showNow: true);
+            return _opened;
         }
+
+        bool _opened;
 
         void Floor(Vector3 at)
         {
