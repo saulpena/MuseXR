@@ -38,10 +38,10 @@ namespace MusePico.Journey
         public Vector3 doorwayWorld;
         [System.NonSerialized] public float archYawOffset = -3f;
         [System.NonSerialized] public float archDistance = 50f;
-        [System.NonSerialized] public float letteringHeight = 7.6f;
+        [System.NonSerialized] public float letteringHeight = 15f;   // above the masters' name cards and clear of the company panel (Saul, 4 Oct)
         [Tooltip("Cap height of the lettering, metres. Her rule: body text >= 1 degree; at 50 m that is 0.87 m.")]
-        [System.NonSerialized] public float letteringCapHeight = 1.0f;
-        [System.NonSerialized] public float letteringWidth = 14f;
+        [System.NonSerialized] public float letteringCapHeight = 1.6f;   // read at 50 m: ~1.8 degrees of cap height
+        [System.NonSerialized] public float letteringWidth = 24f;
         [Tooltip("Within this many metres of the doorway (horizontally) counts as walking through it.")]
         [System.NonSerialized] public float doorwayRadius = 4f;
 
