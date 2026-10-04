@@ -635,7 +635,7 @@ namespace MuseXR.Journey
             _y = new InputAction("monet-y", InputActionType.Button); UnityEngine.InputSystem.InputActionSetupExtensions.AddBinding(_y, "<XRController>{LeftHand}/secondaryButton"); UnityEngine.InputSystem.InputActionSetupExtensions.AddBinding(_y, "<Keyboard>/y"); _y.Enable();
         }
 
-        void OnDestroy() { _x?.Dispose(); _y?.Dispose(); }
+        void OnDestroy() { _x?.Dispose(); _y?.Dispose(); if (_tableStarted) ArtworkCard.Hushed = false; }   // never leave the gallery muted
 
         bool Arrived => transform.parent.position.sqrMagnitude < 0.01f && transform.parent.rotation == Quaternion.identity;
 
@@ -859,6 +859,7 @@ namespace MuseXR.Journey
         IEnumerator Roundtable()
         {
             _tableStarted = true;
+            ArtworkCard.Hushed = true;   // no artwork card or reply chips over the table while it runs
             var target = _rotunda.GetComponent<CompassTarget>(); if (target != null) target.MarkDone();
             // The companions sit in her 150-degree arc on the far side of the table, facing the visitor.
             if (_group != null)
@@ -1064,6 +1065,7 @@ namespace MuseXR.Journey
             var rec = JourneyMemory.Record;
             rec.FinalAnswer.Draft = _draft; rec.FinalAnswer.Final = final; rec.FinalAnswer.RewrittenBy = _answerStage == 2 ? "socrates" : "self";
             _tableDone = true; _answerStage = 0;
+            ArtworkCard.Hushed = false;
             ConfirmInput.Drop(this);
             var panel = TorsoPanel.Get();
             if (panel != null) panel.Note("Your answer", "\"" + final + "\"", 8f);
