@@ -2012,6 +2012,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3fcc8dc03827b9b4db02bace19b09a29, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MuseXR.Interaction::MuseXR.Interaction.PalaceChapterInteractions
+  moonGate: {fileID: 0}
 --- !u!4 &384758446
 Transform:
   m_ObjectHideFlags: 0
@@ -5014,7 +5015,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: MuseXR.Journey.Opening::MuseXR.Journey.JourneyCuration
   opening: {fileID: 1561913101}
   gate: {fileID: 959012093}
-  portalDoorPrefab: {fileID: 3022796259160638339, guid: f78ff52c13f1ddb498a93a51b268f760, type: 3}
+  moonGatePrefab: {fileID: 4204574980123885127, guid: 20b78fea75a9b084b85869000055e83d, type: 3}
   moonGateModel: {fileID: -8818630859558976325, guid: dcda6dc8c1fad9f40a6208c4895258d6, type: 3}
   palaceFrame: {fileID: 248439241}
   palaceWorld: {fileID: 487625187}

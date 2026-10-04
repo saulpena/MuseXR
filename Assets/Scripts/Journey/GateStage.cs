@@ -81,6 +81,14 @@ namespace MusePico.Journey
         }
         bool _promptHidden;
 
+        /// <summary>Take the question off the arch once the curation lanterns take over: at 50 m it sat
+        /// behind the lantern labels and showed through the moon gate's opening.</summary>
+        public void HideLettering()
+        {
+            if (_lettering != null) _lettering.gameObject.SetActive(false);
+            if (_plaqueT != null) _plaqueT.gameObject.SetActive(false);
+        }
+
         /// <summary>Raised once, when the visitor walks through the open doors.</summary>
         public event Action<string> Entered;
 
