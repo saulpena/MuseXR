@@ -3108,6 +3108,52 @@ Transform:
   m_Children: []
   m_Father: {fileID: 6814178592345188832}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &5228773495462510451
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8949406239547913888}
+  - component: {fileID: 6385769135467503093}
+  m_Layer: 0
+  m_Name: Chapter Question
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8949406239547913888
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5228773495462510451}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4045204918533760363}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6385769135467503093
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5228773495462510451}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43a43236a2adc674b8c104e6689d9faf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MuseXR.Interaction::MuseXR.Interaction.ChapterQuestion
+  stop: 
+  question: What will you carry back into the life outside?
 --- !u!1 &5241563759671973056
 GameObject:
   m_ObjectHideFlags: 0
@@ -4021,6 +4067,8 @@ MonoBehaviour:
   colliderModel: {fileID: -212285753890768171, guid: e53ba7e9c44f5484e84f34367681dfb0, type: 3}
   worldKey: fantasy-realm-of-shimmering-spheres-500k
   walkOnCapture: 0
+  openWhenChapterDone: 
+  openAfterSeconds: 20
 --- !u!1 &6832795894902765588
 GameObject:
   m_ObjectHideFlags: 0
@@ -4394,6 +4442,7 @@ Transform:
   - {fileID: 2361381517431529307}
   - {fileID: 5522844523730834905}
   - {fileID: 8458109737103683914}
+  - {fileID: 8949406239547913888}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7406914587827329156

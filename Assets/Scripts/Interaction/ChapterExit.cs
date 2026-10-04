@@ -28,7 +28,13 @@ namespace MuseXR.Interaction
         [Tooltip("Walk on the capture's collider (for raised floors). Off: the flat floor only.")]
         public bool walkOnCapture;
 
+        [Tooltip("Open by itself once this chapter's choice is in the journey record: 'vangogh' (the stroke kept), 'monet'. Empty: opened by a script.")]
+        public string openWhenChapterDone;
+        [Tooltip("Open by itself this many seconds after arriving (0: never). Your world's 'start again' arch.")]
+        public float openAfterSeconds;
+
         MuseXR.Worlds.CaptureProbe _probe;
+        float _since;
 
         // The floor exists before the first physics frame (made later, gravity drops the rig through it).
         void Awake() => Floor(Vector3.zero);
@@ -39,6 +45,21 @@ namespace MuseXR.Interaction
             foreach (var x in MuseXR.Worlds.WorldCatalog.Small) if (x.key == worldKey) w = x;
             _probe = walkOnCapture && colliderModel != null && w != null ? MuseXR.Worlds.CaptureProbe.Open(w, new[] { colliderModel }) : null;
             _probe?.MakeTeleportable();   // a walkable (and teleportable) copy of the capture's floor
+        }
+
+        void Update()
+        {
+            if (gate == null || gate.IsOpen) return;
+            // Chained into GateWorld a frame can be awake behind a gate: only count once it stands at the origin.
+            if (transform.root.position.sqrMagnitude > 0.01f) return;
+            _since += Time.deltaTime;
+            bool done = openWhenChapterDone switch
+            {
+                "vangogh" => JourneyMemory.Record.VanGogh != null,
+                "monet" => JourneyMemory.Record.Monet != null,
+                _ => false,
+            };
+            if (done || (openAfterSeconds > 0f && _since >= openAfterSeconds)) Complete();
         }
 
         /// <summary>The chapter is done: open the exit. The world's layout goes with the old world.</summary>

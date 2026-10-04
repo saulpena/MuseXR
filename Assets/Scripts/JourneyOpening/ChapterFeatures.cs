@@ -1120,6 +1120,7 @@ namespace MuseXR.Journey
             if (panel != null) panel.Note("Your answer", "\"" + final + "\"", 8f);
             if (_tableSign != null) _tableSign.text = "Your world is rising";
             Debug.Log("[Roundtable] final answer: " + final);
+            YourWorldMiniature.Rise(_rotunda);   // her step into Your world: the miniature, its door, a fade
             return true;
         }
 

@@ -181,8 +181,45 @@ namespace MuseXR.Interaction
             var target = CompassTarget.Add(go, CompassOrder, record.title);
             // Tap: a master speaks about it (and the compass moves on); hold: take it off the wall;
             // two hands: scale it. Walking up to it also has a master speak (MasterInsights).
-            InsightTarget.AddGrabbable(go, record.title, record.artist, record.id, target.MarkDone);
+            var insight = InsightTarget.AddGrabbable(go, record.title, record.artist, record.id, target.MarkDone);
+            Watch(go, record, canvas, insight);
             Hung.Add(go.transform);
+        }
+
+        /// <summary>
+        /// Her card (4.1) and her "seen" (>= 4 s of gaze): a ray on the work for 0.4 s, or standing within
+        /// 1.2 m of its viewing mark (2.1 m out in front, on the floor), puts up the card; gaze goes to the
+        /// journey record, which is where Your world finds the works the visitor stayed with.
+        /// </summary>
+        static void Watch(GameObject go, ArtworkRecord record, Vector2 size, InsightTarget insight)
+        {
+            var mark = new GameObject("Viewing mark").transform;
+            mark.SetParent(go.transform.parent, false);
+            var facing = -go.transform.forward; facing.y = 0f;
+            mark.position = go.transform.position + facing.normalized * 2.1f - Vector3.up * HangAboveFloor;
+            var grab = go.GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable>();
+            var w = ArtworkWatcher.Make(go, record.id, mark, () => grab != null && grab.isHovered && !grab.isSelected);
+            w.CardWanted += _ => ArtworkCard.Show(record, go.transform, size, insight);
+            go.AddComponent<DwellReporter>().Watcher = w;
+        }
+
+        /// <summary>
+        /// Her "seen" counts once at 4 s, but Your world wants the works stayed with LONGEST: once seen,
+        /// the whole gaze total goes to the journey record and keeps growing while the visitor looks.
+        /// </summary>
+        sealed class DwellReporter : MonoBehaviour
+        {
+            public ArtworkWatcher Watcher;
+            float _reported;
+
+            void Update()
+            {
+                if (Watcher == null || Watcher.Attention == null || !Watcher.Attention.Seen) return;
+                var more = Watcher.GazeSeconds - _reported;
+                if (more < 0.5f) return;
+                JourneyMemory.Record.AddDwell(Watcher.ArtworkId, more);
+                _reported = Watcher.GazeSeconds;
+            }
         }
 
         /// <summary>Her picture frame, as Museum.unity builds it (MuseumJourneyRunner.AddFrame).</summary>

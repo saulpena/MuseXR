@@ -28,11 +28,17 @@ namespace MuseXR.Interaction
         public static event Action<ArtworkWatcher> AnyCardWanted;
         public static event Action<ArtworkWatcher, float> AnySeen;
 
-        public static ArtworkWatcher Make(GameObject frame, string artworkId, Transform viewingMark)
+        /// <summary>Is a ray on the work: for a grabbable work, XRI's hover (it carries no Pointable).</summary>
+        public Func<bool> RayOn { get; private set; }
+
+        public static ArtworkWatcher Make(GameObject frame, string artworkId, Transform viewingMark) => Make(frame, artworkId, viewingMark, null);
+
+        public static ArtworkWatcher Make(GameObject frame, string artworkId, Transform viewingMark, Func<bool> rayOn)
         {
             var w = frame.AddComponent<ArtworkWatcher>();
             w.Attention = new ArtworkAttention(artworkId);
-            w.Frame = Pointable.Make(frame, artworkId);
+            w.RayOn = rayOn;
+            if (rayOn == null) w.Frame = Pointable.Make(frame, artworkId);
             w.ViewingMark = viewingMark;
             w.Attention.CardWanted += _ => { w.CardWanted?.Invoke(w); AnyCardWanted?.Invoke(w); };
             w.Attention.BecameSeen += (_, s) => { w.Seen?.Invoke(w, s); AnySeen?.Invoke(w, s); };
@@ -43,7 +49,7 @@ namespace MuseXR.Interaction
         {
             if (Attention == null) return;
             if (Head == null && Camera.main != null) Head = Camera.main.transform;
-            var rayOn = Pointer.AnyOn(Frame);
+            var rayOn = RayOn != null ? RayOn() : Pointer.AnyOn(Frame);
             var dist = float.MaxValue;
             var gaze = false;
             if (Head != null)
@@ -53,7 +59,7 @@ namespace MuseXR.Interaction
                     var flat = Head.position - ViewingMark.position; flat.y = 0f;
                     dist = flat.magnitude;
                 }
-                var centre = Frame.GetComponentInChildren<Renderer>() is Renderer r ? r.bounds.center : transform.position;
+                var centre = GetComponentInChildren<Renderer>() is Renderer r ? r.bounds.center : transform.position;
                 var to = centre - Head.position;
                 gaze = to.magnitude < 8f && ArtworkAttention.GazeOn(Vector3.Angle(Head.forward, to));
             }

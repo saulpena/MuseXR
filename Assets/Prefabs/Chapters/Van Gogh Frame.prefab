@@ -1207,6 +1207,7 @@ Transform:
   - {fileID: 139565396119233100}
   - {fileID: 2312630303248000251}
   - {fileID: 4900156722746248684}
+  - {fileID: 247224023100796223}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &859555646699568236
@@ -11393,6 +11394,52 @@ Transform:
   - {fileID: 6359643505941656959}
   m_Father: {fileID: 5843540176834325423}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6464718164015813139
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 247224023100796223}
+  - component: {fileID: 1143441918141985983}
+  m_Layer: 0
+  m_Name: Chapter Question
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &247224023100796223
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6464718164015813139}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8403239427847392558}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1143441918141985983
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6464718164015813139}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43a43236a2adc674b8c104e6689d9faf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MuseXR.Interaction::MuseXR.Interaction.ChapterQuestion
+  stop: Stop 3
+  question: What can my feeling become as expression?
 --- !u!1 &6539865717505949394
 GameObject:
   m_ObjectHideFlags: 0
@@ -14954,6 +15001,8 @@ MonoBehaviour:
   colliderModel: {fileID: -212285753890768171, guid: a94c74fadf643ff4badf16405d327656, type: 3}
   worldKey: van-gogh-inspired-gallery-interior-500k
   walkOnCapture: 0
+  openWhenChapterDone: vangogh
+  openAfterSeconds: 0
 --- !u!1 &8762959084904047094
 GameObject:
   m_ObjectHideFlags: 0
