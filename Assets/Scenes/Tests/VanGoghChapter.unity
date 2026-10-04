@@ -3804,7 +3804,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &472319132
 Transform:
   m_ObjectHideFlags: 0
@@ -5654,6 +5654,60 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2065242977}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &700542761
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 700542763}
+  - component: {fileID: 700542762}
+  m_Layer: 0
+  m_Name: World Paintings
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &700542762
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 700542761}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd0d247a525845341919eb395eba8ac3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MuseXR.Interaction::MuseXR.Interaction.WorldPaintings
+  worldKey: van-gogh-inspired-gallery-interior-500k
+  collectionId: burning-sky
+  artworksJson: {fileID: 4900000, guid: 005558b8ec3c4d143a4baba5f6d45dd0, type: 3}
+  artworkImages:
+  - {fileID: 2800000, guid: c721e7f4be62b4947b4015f2988de14a, type: 3}
+  - {fileID: 2800000, guid: 976d4481d50ff4e49b62ecd94060b5f9, type: 3}
+  - {fileID: 2800000, guid: 699e1bc4913a9844a984f912368b7ffb, type: 3}
+  - {fileID: 2800000, guid: ce1a04e17790fce4f8221623280b98f6, type: 3}
+  - {fileID: 2800000, guid: 0bf1f27486631b84d8bb274c953c4718, type: 3}
+  colliderModel: {fileID: -212285753890768171, guid: a94c74fadf643ff4badf16405d327656, type: 3}
+--- !u!4 &700542763
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 700542761}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &701834790
 GameObject:
@@ -8948,7 +9002,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1094078254
 Transform:
   m_ObjectHideFlags: 0
@@ -12937,7 +12991,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1534331920
 Transform:
   m_ObjectHideFlags: 0
@@ -14533,7 +14587,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1767230886
 Transform:
   m_ObjectHideFlags: 0
@@ -17510,3 +17564,4 @@ SceneRoots:
   - {fileID: 1091965686}
   - {fileID: 1889713711}
   - {fileID: 309870513}
+  - {fileID: 700542763}

@@ -10417,7 +10417,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1073474507
 Transform:
   m_ObjectHideFlags: 0
@@ -13346,7 +13346,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1383899030
 Transform:
   m_ObjectHideFlags: 0
@@ -13389,6 +13389,59 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.15, y: 0.86215895, z: 0.06}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &1393528014
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1393528016}
+  - component: {fileID: 1393528015}
+  m_Layer: 0
+  m_Name: World Paintings
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1393528015
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1393528014}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd0d247a525845341919eb395eba8ac3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MuseXR.Interaction::MuseXR.Interaction.WorldPaintings
+  worldKey: enchanted-water-garden-sanctuary-500k
+  collectionId: water-and-light
+  artworksJson: {fileID: 4900000, guid: 005558b8ec3c4d143a4baba5f6d45dd0, type: 3}
+  artworkImages:
+  - {fileID: 2800000, guid: bde640907196b6e42bb121f21f80f271, type: 3}
+  - {fileID: 2800000, guid: bb964692e6bb6694797ff949fc98b100, type: 3}
+  - {fileID: 2800000, guid: 4e9ee9cace557ce4fa46bbc67788cc85, type: 3}
+  - {fileID: 2800000, guid: c9146ee571aefaa4abff82432c24811d, type: 3}
+  colliderModel: {fileID: -212285753890768171, guid: 3af9f3a05389d494daf8accdae6171df, type: 3}
+--- !u!4 &1393528016
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1393528014}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1393579485
 GameObject:
   m_ObjectHideFlags: 0
@@ -15770,7 +15823,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1590671396
 Transform:
   m_ObjectHideFlags: 0
@@ -17119,7 +17172,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1676238598
 Transform:
   m_ObjectHideFlags: 0
@@ -22259,3 +22312,4 @@ SceneRoots:
   - {fileID: 433051748}
   - {fileID: 1261602845}
   - {fileID: 574984597}
+  - {fileID: 1393528016}

@@ -3371,7 +3371,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &981078548
 Transform:
   m_ObjectHideFlags: 0
@@ -4072,7 +4072,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1169597138
 Transform:
   m_ObjectHideFlags: 0
@@ -5139,6 +5139,60 @@ Transform:
   m_Children: []
   m_Father: {fileID: 281039794}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1393528014
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1393528016}
+  - component: {fileID: 1393528015}
+  m_Layer: 0
+  m_Name: World Paintings
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1393528015
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1393528014}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd0d247a525845341919eb395eba8ac3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MuseXR.Interaction::MuseXR.Interaction.WorldPaintings
+  worldKey: fantasy-realm-of-shimmering-spheres-500k
+  collectionId: personal-dream-world
+  artworksJson: {fileID: 4900000, guid: 005558b8ec3c4d143a4baba5f6d45dd0, type: 3}
+  artworkImages:
+  - {fileID: 2800000, guid: e1c585c91ff45b843870310dd75e5d3e, type: 3}
+  - {fileID: 2800000, guid: 009459dd984611b48bb24aeb9c97f370, type: 3}
+  - {fileID: 2800000, guid: a88b8f84529a0c6488a382d3ba34a9ba, type: 3}
+  - {fileID: 2800000, guid: 662f6e96aa0edcb428b63169db3ede23, type: 3}
+  - {fileID: 2800000, guid: 4319622a8fd9a334f93e269ad53ddc07, type: 3}
+  colliderModel: {fileID: -212285753890768171, guid: e53ba7e9c44f5484e84f34367681dfb0, type: 3}
+--- !u!4 &1393528016
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1393528014}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1394881091
 GameObject:
   m_ObjectHideFlags: 0
@@ -5651,6 +5705,7 @@ MonoBehaviour:
   gate: {fileID: 1199848513}
   colliderModel: {fileID: -212285753890768171, guid: e53ba7e9c44f5484e84f34367681dfb0, type: 3}
   worldKey: fantasy-realm-of-shimmering-spheres-500k
+  walkOnCapture: 0
 --- !u!4 &1497398608
 Transform:
   m_ObjectHideFlags: 0
@@ -7641,3 +7696,4 @@ SceneRoots:
   - {fileID: 1433482568}
   - {fileID: 1497398608}
   - {fileID: 1199848512}
+  - {fileID: 1393528016}
