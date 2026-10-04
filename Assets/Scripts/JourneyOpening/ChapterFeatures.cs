@@ -1027,6 +1027,47 @@ namespace MuseXR.Journey
             _tableSign.alpha = 0.25f;
         }
 
+        /// <summary>The companions in her 150-degree arc on the far side of the table from where the visitor stands NOW.</summary>
+        void SeatAcross()
+        {
+            var cam = Camera.main != null ? Camera.main.transform : null;
+            if (_group == null || cam == null) return;
+            var toVisitor = new Vector3(cam.position.x, 0f, cam.position.z) - new Vector3(_rotunda.position.x, 0f, _rotunda.position.z);
+            toVisitor = toVisitor.sqrMagnitude > 1e-4f ? toVisitor.normalized : Vector3.back;
+            var ids = _group.Ids;
+            for (var i = 0; i < ids.Count; i++)
+            {
+                var bearing = 180f + (i - (ids.Count - 1) / 2f) * 60f;   // spread across 150 degrees opposite the visitor
+                var dir = Quaternion.Euler(0f, bearing, 0f) * toVisitor;
+                var f = _group.Figures[ids[i]];
+                var at = _rotunda.position + dir * 1.45f; at.y = _rotunda.position.y;
+                f.SetPositionAndRotation(at, Quaternion.LookRotation(-dir, Vector3.up));
+            }
+        }
+
+        /// <summary>
+        /// Saul's rule holds at the table too: a companion is never in front of the camera. The seats were set once,
+        /// when the table started, and a visitor walking on round it stood 0.36 m from Socrates (musexr-b's live run,
+        /// 4 Oct). While the table runs, anyone within 1.3 m of the eye, or ahead of it nearer than 2 m, re-seats
+        /// the arc across from where the visitor now stands.
+        /// </summary>
+        void KeepSeatsClear()
+        {
+            if (!_tableStarted || _tableDone || _group == null || _group.Crowd) return;
+            var cam = Camera.main != null ? Camera.main.transform : null;
+            if (cam == null) return;
+            var eye = new Vector3(cam.position.x, 0f, cam.position.z);
+            var gaze = cam.forward; gaze.y = 0f;
+            foreach (var id in _group.Ids)
+            {
+                var f = _group.Figures[id];
+                if (f == null) continue;
+                var rel = new Vector3(f.position.x, 0f, f.position.z) - eye;
+                var ahead = gaze.sqrMagnitude > 1e-4f && Vector3.Angle(gaze, rel) < 30f && rel.magnitude < 2f;
+                if (rel.magnitude < 1.3f || ahead) { SeatAcross(); return; }
+            }
+        }
+
         static readonly Color GlowDim = new Color(0.05f, 0.03f, 0.01f), GlowWarm = new Color(0.22f, 0.14f, 0.05f);
         Material _glowMat;
         Light _rotundaLight;
@@ -1057,6 +1098,7 @@ namespace MuseXR.Journey
             // Only once the garden's choice is kept: walking past it on the way to the time ring starts nothing.
             var ready = _picked && _undoUntil <= 0f && JourneyMemory.Record.Monet != null;
             UpdateRotundaGlow(ready);
+            KeepSeatsClear();
             if (!_tableStarted && Arrived && ready && Vector3.Distance(flat, _rotunda.position) < 2.4f) StartCoroutine(Roundtable());
             if (_undoUntil > 0f && Time.time > _undoUntil) KeepWork();
             if (_answerStage == 1 && _x != null && _x.WasPressedThisFrame()) Rewrite();
@@ -1072,18 +1114,7 @@ namespace MuseXR.Journey
             if (_group != null)
             {
                 _group.Crowd = false;
-                var cam = Camera.main.transform;
-                var toVisitor = new Vector3(cam.position.x, 0f, cam.position.z) - new Vector3(_rotunda.position.x, 0f, _rotunda.position.z);
-                toVisitor = toVisitor.sqrMagnitude > 1e-4f ? toVisitor.normalized : Vector3.back;
-                var ids = _group.Ids;
-                for (var i = 0; i < ids.Count; i++)
-                {
-                    var bearing = 180f + (i - (ids.Count - 1) / 2f) * 60f;   // spread across 150 degrees opposite the visitor
-                    var dir = Quaternion.Euler(0f, bearing, 0f) * toVisitor;
-                    var f = _group.Figures[ids[i]];
-                    var at = _rotunda.position + dir * 1.45f; at.y = _rotunda.position.y;
-                    f.SetPositionAndRotation(at, Quaternion.LookRotation(-dir, Vector3.up));
-                }
+                SeatAcross();
             }
             if (_tableSign != null) _tableSign.text = "Roundtable  ·  they look back on your walk";
             Note("Roundtable  ·  they will look back on your walk");
@@ -1117,7 +1148,7 @@ namespace MuseXR.Journey
             else if (lines.Count > 0) ChapterFeatures.Voice(this, lines[0].Key, lines[0].Value);
             while (_group != null && _group.Busy) yield return null;
             for (float t = 0f; answer != null && !answer.IsCompleted && t < 15f; t += Time.deltaTime) yield return null;
-            if (answer != null && answer.IsCompleted && !answer.IsFaulted && !string.IsNullOrWhiteSpace(answer.Result)) _draft = answer.Result.Trim();
+            if (answer != null && answer.IsCompleted && !answer.IsFaulted && !string.IsNullOrWhiteSpace(answer.Result)) _draft = FirstSentence(answer.Result);
             else if (answer != null) Debug.LogWarning("[Roundtable] one-sentence draft failed; the summary stands: " + answer.Exception);
             TorsoPanel.BasedOn.Clear();
             ShowDraft();
@@ -1231,6 +1262,15 @@ namespace MuseXR.Journey
 
         [System.Serializable] class RewriteReply { public string answer; }
 
+        /// <summary>Her draft is one sentence: if the model ran on (measured live: two), keep the first.</summary>
+        internal static string FirstSentence(string text)
+        {
+            var t = text.Trim();
+            for (var i = 0; i < t.Length - 1; i++)
+                if ((t[i] == '.' || t[i] == '!' || t[i] == '?') && t[i + 1] == ' ' && i > 12) return t.Substring(0, i + 1);
+            return t;
+        }
+
         /// <summary>The visitor's answer to their question, one first-person sentence built from what they kept.</summary>
         static async System.Threading.Tasks.Task<string> DraftLive(JourneyRecord rec, string synthesis)
         {
@@ -1252,7 +1292,7 @@ namespace MuseXR.Journey
             if (rec.Monet != null) kept.Append("In the Monet garden they stopped at " + rec.Monet.Reason + " at " + rec.Monet.Preset + ". ");
             const string instructions =
                 "Write the visitor's own answer to the question they carried through a museum, as one sentence they could keep. " +
-                "First person or a plain statement, under 22 words, built from what they kept on the walk, answering the question directly. " +
+                "Exactly ONE sentence with a single full stop at the end. First person or a plain statement, under 22 words, built from what they kept on the walk, answering the question directly. " +
                 "No quotation marks, no preamble, no summary of the walk.";
             var text = await call.SendAsync(instructions,
                 "Question: " + rec.Question + "\nWhat they kept: " + kept + "\nThe masters' synthesis: " + synthesis,
