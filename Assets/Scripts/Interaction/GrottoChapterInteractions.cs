@@ -20,9 +20,12 @@ namespace MuseXR.Interaction
     ///   the companions on her marks, voicing the two ways of seeing, with subtitles;
     ///   GrottoChapter: chime, light / rim, companions, then A keeps grotto{lampSlot, exhibitId}.
     ///
-    /// Positions in the capture were found by eye from Editor captures (3 Oct 2026), not from the
-    /// collider: the brass stand from the entry (bearing 152, base 6.6 m out); the Buddha by
-    /// triangulating the entry (bearing 183.4, 22.6 deg up) and the rail (bearing 185.1, 26 deg up).
+    /// Everything stands where her diagram B puts it (Saul, 3 Oct 2026: "exactly the diagram"), read
+    /// from the layout's objects - "Prop lamp-stand", "Prop relief", "Interaction Socket · detail" /
+    /// "· whole", the marks, and the Arch Gate at "Exit Arch". The capture has its own niche, brass
+    /// stand and arch elsewhere (4-23 m off her plan, Docs/HerPlan/diagram-B-vs-scene.png); they stay
+    /// as scenery. The Buddha, which only the capture has, was found by triangulating two captures:
+    /// the entry (bearing 183.4, 22.6 deg up) and the rail (bearing 185.1, 26 deg up).
     /// </summary>
     public sealed class GrottoChapterInteractions : MonoBehaviour
     {
@@ -41,15 +44,13 @@ namespace MuseXR.Interaction
         public Holdable Lamp { get; private set; }
         public MusePico.Dialogue.JourneyRecord Record { get; } = new MusePico.Dialogue.JourneyRecord();
 
-        /// <summary>The top of the capture's brass lampstand, front-left of the entry.</summary>
-        public static readonly Vector3 StandTop = new Vector3(3.1f, 1.58f, -5.0f);
+        /// <summary>Her brass stand: the lamp "at reachable height, seated too".</summary>
+        public const float StandHeight = 0.95f;
         /// <summary>Where the lamp's flame sits in the generated lamp, its own space (InteractionsDemo's value).</summary>
         public static readonly Vector3 LampFlame = new Vector3(0f, 0.31f, 0f);
         /// <summary>The cliff Buddha's centre, and its size (about 30 m seated).</summary>
         public static readonly Vector3 BuddhaCentre = new Vector3(-5.2f, 33.8f, -76.3f);
         public static readonly Vector2 RimSize = new Vector2(38f, 42f);
-        /// <summary>How far the "detail" post stands out from the relief: clear of the niche's altar ledge.</summary>
-        public const float DetailFromRelief = 0.75f;
         /// <summary>LampLight's intensity is tuned for 0.43 m from the relief; it is scaled by distance squared so
         /// the carving reads the same from the socket, capped so a lamp held right against it never clips.</summary>
         public const float TunedDistance = 0.43f, MaxBoost = 6f;
@@ -92,9 +93,11 @@ namespace MuseXR.Interaction
             var relief = Find("Prop relief");
             var detailAt = Find("Interaction Socket · detail");
             var wholeAt = Find("Interaction Socket · whole");
-            if (relief == null || detailAt == null || wholeAt == null)
+            var standAt = Find("Prop lamp-stand");
+            if (relief == null || detailAt == null || wholeAt == null || standAt == null)
             {
-                Debug.LogError("[Grotto] layout objects missing: relief " + (relief != null) + ", detail " + (detailAt != null) + ", whole " + (wholeAt != null));
+                Debug.LogError("[Grotto] layout objects missing: relief " + (relief != null) + ", detail " + (detailAt != null) +
+                               ", whole " + (wholeAt != null) + ", lamp-stand " + (standAt != null));
                 yield break;
             }
             foreach (var r in relief.GetComponentsInChildren<Renderer>()) LampLight.MarkRelief(r);
@@ -102,20 +105,17 @@ namespace MuseXR.Interaction
             // Unlit cream: the splat world takes no light, and a lit post read as a blue-grey box (capture).
             var stone = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
             stone.SetColor("_BaseColor", new Color(0.86f, 0.79f, 0.67f));
-            // "detail" stands just before the niche relief: the layout's point is 1.5 m out, too far for
-            // the lamp to light the carving (capture, 3 Oct 2026). In front of the niche's altar ledge.
-            var reliefFacing = Flat(relief.forward);
-            if (Vector3.Dot(reliefFacing, entry - relief.position) < 0f) reliefFacing = -reliefFacing;
-            var detailFloor = new Vector3(relief.position.x, 0f, relief.position.z) + reliefFacing * DetailFromRelief;
-            var detail = Socket("Detail", detailFloor, DetailHeight, entry, stone, Icon.Magnifier);
+            // "detail" on her socket point, ~0.7 m before the relief on the wall.
+            var detail = Socket("Detail", detailAt.position, DetailHeight, entry, stone, Icon.Magnifier);
             _relief = relief;
             var whole = Socket("Whole", wholeAt.position, WholeHeight, entry, stone, Icon.Mountain);
 
-            // The lamp on the capture's brass stand.
+            // Her brass stand, front-left of the entry, the lamp on it.
+            var standTop = BrassStand(standAt.position);
             GameObject lamp;
-            var face = Quaternion.LookRotation(Flat(entry - StandTop), Vector3.up);
-            if (lampPrefab != null) { lamp = Instantiate(lampPrefab, StandTop, face, transform); lamp.name = "Lamp"; }
-            else { lamp = GameObject.CreatePrimitive(PrimitiveType.Sphere); lamp.name = "Lamp"; lamp.transform.SetPositionAndRotation(StandTop + Vector3.up * 0.08f, face); lamp.transform.localScale = Vector3.one * 0.15f; }
+            var face = Quaternion.LookRotation(Flat(entry - standTop), Vector3.up);
+            if (lampPrefab != null) { lamp = Instantiate(lampPrefab, standTop, face, transform); lamp.name = "Lamp"; }
+            else { lamp = GameObject.CreatePrimitive(PrimitiveType.Sphere); lamp.name = "Lamp"; lamp.transform.SetPositionAndRotation(standTop + Vector3.up * 0.08f, face); lamp.transform.localScale = Vector3.one * 0.15f; }
             _lampLight = LampLight.Make(lamp, lampPrefab != null ? LampFlame : Vector3.zero);
             Lamp = Holdable.Make(lamp, "Lamp", idleSpin: false);
 
@@ -152,15 +152,31 @@ namespace MuseXR.Interaction
         // ---- the exit: her arch, cobalt and gold, into Van Gogh's studio ------------------------
 
         /// <summary>
-        /// The capture's arch door (the grey inner door inside the cobalt-and-gold arch), on its
-        /// threshold, measured 3 Oct 2026: the recess triangulated from (-3, -9) and (2, -14) by the
-        /// collider (27.5 m deep along bearings 218.5 and 233.5, against ~21 m of wall either side),
-        /// the threshold height from the collider's floor (the terrace rises 1.2 -> 2.8 m over the last
-        /// 8 m), the door's size and centre from a capture against a 2.6 m marker. The layout's
-        /// "Exit Arch" marker stood 18 m away.
+        /// A brass stand on the floor at <paramref name="floorAt"/>: foot, column and tray, warm and
+        /// unlit like the splats around it. Returns the tray's top, where the lamp sits.
         /// </summary>
-        public static readonly Vector3 ArchThreshold = new Vector3(-20.85f, 2.65f, -29.95f);
-        public const float ArchYaw = 218f;   // +Z out through the door, into the next world
+        Vector3 BrassStand(Vector3 floorAt)
+        {
+            var brass = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            brass.SetColor("_BaseColor", new Color(0.72f, 0.55f, 0.27f));
+            var root = new GameObject("Brass Stand").transform;
+            root.SetParent(transform, false);
+            root.position = floorAt;
+            void Part(PrimitiveType t, string n, float y, Vector3 scale)
+            {
+                var g = GameObject.CreatePrimitive(t);
+                g.name = n;
+                DestroyImmediate(g.GetComponent<Collider>());
+                g.transform.SetParent(root, false);
+                g.transform.localPosition = new Vector3(0f, y, 0f);
+                g.transform.localScale = scale;
+                g.GetComponent<Renderer>().sharedMaterial = brass;
+            }
+            Part(PrimitiveType.Cylinder, "Foot", 0.02f, new Vector3(0.32f, 0.02f, 0.32f));
+            Part(PrimitiveType.Cylinder, "Column", StandHeight * 0.5f, new Vector3(0.05f, StandHeight * 0.5f, 0.05f));
+            Part(PrimitiveType.Cylinder, "Tray", StandHeight - 0.01f, new Vector3(0.22f, 0.01f, 0.22f));
+            return floorAt + Vector3.up * StandHeight;
+        }
 
         MuseXR.Worlds.CaptureProbe _probe;
 
