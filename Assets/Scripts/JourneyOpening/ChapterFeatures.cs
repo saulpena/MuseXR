@@ -586,7 +586,7 @@ namespace MuseXR.Journey
             var root = new GameObject("Time ring").transform;
             root.SetParent(transform, false);
             root.localPosition = new Vector3(at.x, 0f, at.z);
-            root.localRotation = Quaternion.LookRotation(Vector3.forward);   // face the visitor coming down the path (-Z)
+            root.localRotation = Quaternion.LookRotation(Vector3.back);   // +Z away from a visitor coming down the path toward -Z
             var stone = ChapterFeatures.Lit(new Color(0.88f, 0.86f, 0.82f), 0f, 0.3f);
             var brass = ChapterFeatures.Lit(new Color(0.83f, 0.66f, 0.32f), 0.85f, 0.65f);
             ChapterFeatures.Part(root, PrimitiveType.Cylinder, "Pedestal", new Vector3(0f, 0.45f, 0f), new Vector3(0.36f, 0.45f, 0.36f), stone);
@@ -757,6 +757,7 @@ namespace MuseXR.Journey
                     foreach (var id in company)
                         if (RosterId(id) == th.speakerId) lines.Add(new KeyValuePair<string, string>(id, th.text));
                 _draft = string.IsNullOrWhiteSpace(rt.synthesis) ? LocalDraft() : rt.synthesis;
+                if (!string.IsNullOrWhiteSpace(rt.worldTitle)) JourneyMemory.Record.WorldTitle = rt.worldTitle;   // the memento's title
             }
             if (lines.Count == 0) { lines = LocalThreads(); _draft = LocalDraft() + "   (local fallback)"; }
             if (_group != null) _group.SayInTurn(lines);
