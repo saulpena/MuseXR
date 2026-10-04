@@ -47,8 +47,9 @@ namespace MuseXR.Interaction
             if (gate == null || gate.IsOpen) return gate != null;
             var here = FindAnyObjectByType<GaussianSplatting.Runtime.GaussianSplatRenderer>();
             var props = new List<GameObject>();
+            // Its chapter's layout: the scene's roots, or - chained into one scene - its frame's children.
             foreach (var t in FindObjectsByType<Transform>(FindObjectsSortMode.None))
-                if (t.parent == null && t.name.StartsWith("Chapter ") && t != transform) props.Add(t.gameObject);   // not this: its floor stays
+                if (t.parent == transform.parent && t.name.StartsWith("Chapter ") && t != transform) props.Add(t.gameObject);   // not this: its floor stays
             if (_probe != null && _probe.Root != null) props.Add(_probe.Root.gameObject);
             return gate.Open(here, props, null, showNow: true);
         }

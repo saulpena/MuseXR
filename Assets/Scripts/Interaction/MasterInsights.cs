@@ -66,9 +66,14 @@ namespace MuseXR.Interaction
 
         CompanionGroup Group()
         {
-            if (_group == null) _group = FindAnyObjectByType<CompanionGroup>();
-            if (_group == null) _group = BuildGroup();
-            if (_group != null && _rule == null) _rule = new Insights(_group.Ids);
+            if (_group == null)
+            {
+                // A new chapter (in the chained journey the last one's companions went with its world):
+                // its companions, and the opening speakers rotate among them.
+                _group = FindAnyObjectByType<CompanionGroup>();
+                if (_group == null) _group = BuildGroup();
+                _rule = _group != null ? new Insights(_group.Ids) : null;
+            }
             return _group;
         }
 
@@ -109,7 +114,8 @@ namespace MuseXR.Interaction
                     if (t.name == "Mark " + id) { figures[id] = t; order.Add(id); break; }
             if (order.Count == 0) return null;
             var go = new GameObject("Companions");
-            go.transform.SetParent(transform, false);
+            // With the marks' chapter: it goes when that chapter does, and the next chapter gathers its own.
+            go.transform.SetParent(figures[order[0]].root, false);
             var g = go.AddComponent<CompanionGroup>();
             g.FollowVisitor = false;
             g.Crowd = true;   // Saul, 3 Oct: always a crowd beside the visitor

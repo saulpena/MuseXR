@@ -384,7 +384,10 @@ namespace MuseXR.Journey
             var at = _eye.position + fwd * 2.6f + right * 0.45f + Vector3.up * 0.6f;
             _card.transform.SetPositionAndRotation(at, Quaternion.LookRotation(at - new Vector3(_eye.position.x, at.y, _eye.position.z), Vector3.up));
             _lastEye = _eye.position;
+            _lastPlaced = Time.time;
         }
+
+        float _lastPlaced;
 
         /// <summary>Once the gate stands its card has said its piece; left up, it floated in the opening.</summary>
         IEnumerator RetireCard()
@@ -395,10 +398,19 @@ namespace MuseXR.Journey
 
         void LateUpdate()
         {
-            // A teleport moves the eye in one frame: bring the card to the new spot.
-            if (_card != null && _card.activeInHierarchy && _eye != null &&
-                Vector3.Distance(new Vector3(_eye.position.x, 0f, _eye.position.z), new Vector3(_lastEye.x, 0f, _lastEye.z)) > 0.5f)
-                PlaceCard();
+            // A teleport moves the eye in one frame: bring the card to the new spot. Walking (smooth
+            // locomotion) never jumps, so also when the visitor has walked up to it or past it - at most
+            // once per 1.5 s, so it does not jitter.
+            if (_card != null && _card.activeInHierarchy && _eye != null)
+            {
+                var eyeFlat = new Vector3(_eye.position.x, 0f, _eye.position.z);
+                var toCard = _card.transform.position - _eye.position; toCard.y = 0f;
+                var fwd = _eye.forward; fwd.y = 0f;
+                bool jumped = Vector3.Distance(eyeFlat, new Vector3(_lastEye.x, 0f, _lastEye.z)) > 0.5f;
+                bool tooClose = toCard.magnitude < 1.6f;
+                bool outOfView = fwd.sqrMagnitude > 1e-4f && toCard.sqrMagnitude > 1e-4f && Vector3.Dot(fwd.normalized, toCard.normalized) < 0.5f;
+                if (jumped || ((tooClose || outOfView) && Time.time - _lastPlaced > 1.5f)) PlaceCard();
+            }
             if (_eye != null) _lastEye = _eye.position;
         }
 
