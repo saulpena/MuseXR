@@ -1,5 +1,9 @@
 # MuseXR
 
+**START HERE: `HANDOFF.md`** (4 Oct 2026) — current state of the GateWorld journey, what is done, what is left
+against Skylar's design, the regression list of original features, and the two-agent split. It supersedes the
+status lines below and in `../chatplan.md`.
+
 **ACTIVE PLAN: `../chatplan.md`** — the ten-stage journey rebuild. Read it before starting work here.
 Phase 1 in progress; **327/327 EditMode tests green**. The scene is `Assets/Scenes/Museum.unity`,
 and it now RUNS: `MuseumJourneyRunner` walks all ten stages, loads a chapter world and enables
