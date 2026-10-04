@@ -470,35 +470,12 @@ namespace MuseXR.Journey
             palaceWorld.gameObject.SetActive(false);
             foreach (var c in palaceContent) if (c != null) c.SetActive(false);
             palaceFrame.gameObject.SetActive(true);
-            pivot.SetParent(palaceFrame, true);
-            CutPalaceFloaters(mg.transform, mg.NextWorld);
+            pivot.SetParent(palaceFrame, true);   // MoonGate.Open already cut the Palace's spawn floaters
 
             mg.Arrived += () => StartCoroutine(Arrive());
             StartCoroutine(RetireCard());
             _gate = mg;
             Debug.Log("[Curation] the moon gate stands; the Palace is behind it");
-        }
-
-        /// <summary>
-        /// The Palace capture has big blurred floaters round its spawn: from the spawn they are at your
-        /// feet, but seen from behind the gate they filled the lower two thirds of the opening with a
-        /// red-brown smear (headset test, 3 Oct; confirmed live in the Editor - the cut below cleared it).
-        /// An inverted box from the gate plane to just past the spawn, above the floor, removes them.
-        /// Parented to the Palace frame so it moves with the world on arrival.
-        /// </summary>
-        void CutPalaceFloaters(Transform gate, GaussianSplatRenderer palace)
-        {
-            if (palace == null) return;
-            var cut = new GameObject("Palace floaters (splat cutout)").AddComponent<GaussianCutout>();
-            cut.transform.SetParent(palaceFrame, false);
-            cut.transform.SetPositionAndRotation(gate.position + gate.forward * 0.8f + Vector3.up * (0.12f + 1.6f), gate.rotation);
-            cut.transform.localScale = new Vector3(2.0f, 1.6f, 0.85f);   // half extents: 4 m wide, 0.12-3.3 m up, 1.7 m deep
-            cut.m_Type = GaussianCutout.Type.Box;
-            cut.m_Invert = true;
-            var list = new List<GaussianCutout>();
-            if (palace.m_Cutouts != null) list.AddRange(palace.m_Cutouts);
-            list.Add(cut);
-            palace.m_Cutouts = list.ToArray();
         }
 
         /// <summary>
