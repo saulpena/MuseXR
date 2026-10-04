@@ -522,6 +522,53 @@ Transform:
   - {fileID: 1282488275}
   m_Father: {fileID: 1037321926}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &66041487
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 66041489}
+  - component: {fileID: 66041488}
+  m_Layer: 0
+  m_Name: Grotto Heroes
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &66041488
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 66041487}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f720ce831c043054a83b97ce41506826, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MuseXR.Interaction::MuseXR.Interaction.GrottoHeroes
+  seatedBuddha: {fileID: -1209548060638391340, guid: c454b997e99031746ae31917769290d2, type: 3}
+  fiveBuddhas: {fileID: -137202181586228256, guid: 2f523fa0f47a8a5498bb7dcf5fcf4c90, type: 3}
+  guanyinGroup: {fileID: -4808667170892550170, guid: ef28b8731b26f8047ba241752bcc4193, type: 3}
+--- !u!4 &66041489
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 66041487}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &93739285
 GameObject:
   m_ObjectHideFlags: 0
@@ -1971,6 +2018,8 @@ MonoBehaviour:
     facing: {x: 0.19611615, y: 0, z: 0.9805807}
     canvas: {x: 0.9, y: 1.4}
     frame: 1
+    fill: 0
+    focus: {x: 0.5, y: 0.5}
 --- !u!4 &330343529
 Transform:
   m_ObjectHideFlags: 0
@@ -12628,3 +12677,4 @@ SceneRoots:
   - {fileID: 1921432907}
   - {fileID: 576818549}
   - {fileID: 330343529}
+  - {fileID: 66041489}

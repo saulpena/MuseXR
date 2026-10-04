@@ -165,7 +165,7 @@ namespace MuseXR.Interaction
             if (subtitles != null) groupGo.AddComponent(subtitles);
 
             var rim = BuddhaRim(entry);
-            Label(whole.position + Vector3.up * 0.35f, entry, "Cliff Buddha: an AI rendition\nreferencing the Longmen Vairocana form", 0.22f);
+            Label(whole.position + Vector3.up * 0.35f, entry, "The cliff Buddha: an AI rendition,\nnot a real site", 0.22f);
 
             BoothLabel("Work Gandhara", "GANDHARA", "Kushan period · 1st-2nd century");
             // Her design doc (2 Oct 2026) names AIC 86380, the Tang Buddha, for the right booth (it was Met 42719, Northern Wei).
