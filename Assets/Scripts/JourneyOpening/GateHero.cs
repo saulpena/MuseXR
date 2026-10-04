@@ -65,8 +65,10 @@ namespace MuseXR.Journey
             t.fontSize = 1.1f; t.alignment = TextAlignmentOptions.Center; t.color = new Color(0.2f, 0.17f, 0.14f);
             t.rectTransform.sizeDelta = new Vector2(w + 1.4f, 0.5f);
             Debug.Log("[GateHero] Mona Lisa stands at " + root.position.ToString("F1"));
-            BuildVenus(from, toDoor, right);
+            _heroes.Add(root.gameObject);
             if (FindAnyObjectByType<ChapterFeatures>() == null) gameObject.AddComponent<ChapterFeatures>();
+            try { BuildVenus(from, toDoor, right); }
+            catch (System.Exception ex) { Debug.LogError("[GateHero] Venus: " + ex); }
         }
 
         [Tooltip("Assets/Art/Heroes/venus-de-milo.glb - SMK's CC0 scan of a plaster cast.")]
@@ -122,11 +124,24 @@ namespace MuseXR.Journey
             t.text = "<b>Venus de Milo</b>  ·  after the Greek original, c. 150–125 BCE\n<size=70%>3D scan of a plaster cast, SMK National Gallery of Denmark (CC0)</size>";
             t.fontSize = 0.7f; t.alignment = TextAlignmentOptions.Center; t.color = new Color(0.2f, 0.17f, 0.14f);
             t.rectTransform.sizeDelta = new Vector2(1.8f, 0.3f);
-            label.position = root.position + root.forward * 0.95f + Vector3.up * 0.35f;
-            label.rotation = Quaternion.LookRotation(-root.forward);
+            // AddComponent<TextMeshPro> swaps the Transform for a RectTransform: the old reference is dead.
+            t.transform.position = root.position + root.forward * 0.95f + Vector3.up * 0.35f;
+            t.transform.rotation = Quaternion.LookRotation(-root.forward);
+            _heroes.Add(root.gameObject);
         }
 
         public const float VenusAlong = 8.5f, VenusAside = 3.6f, VenusHeight = 2.05f;
+
+        readonly System.Collections.Generic.List<GameObject> _heroes = new System.Collections.Generic.List<GameObject>();
+
+        /// <summary>The Gate's works belong to the conservatory: when the Gate is cleared away on the way into
+        /// the Palace they go with it (they hang under Journey Opening, which lives on through every world).</summary>
+        void Update()
+        {
+            if (_heroes.Count == 0 || (gate != null && gate.isActiveAndEnabled)) return;
+            foreach (var h in _heroes) if (h != null) Destroy(h);
+            _heroes.Clear();
+        }
 
         static void Quad(Transform parent, string name, Vector3 local, Vector2 size, Color colour, Texture2D tex)
         {
