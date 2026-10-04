@@ -121,7 +121,7 @@ namespace MuseXR.Worlds
             Door.currentWorldProps = currentWorldProps != null ? new List<GameObject>(currentWorldProps).ToArray() : new GameObject[0];
             Door.triggerDistance = TriggerDistance;
             float top = centreHeight + radius;
-            Door.apertureSize = new Vector2(2f * radius, top);
+            Door.apertureSize = new Vector2(Mathf.Max(2f * radius, passageWidth), top);
             if (Door.aperture != null) Door.aperture.localPosition = new Vector3(0f, top * 0.5f, 0f);
             _mask = KeyholeMesh(radius, centreHeight, passageWidth);
             Door.maskMesh = _mask;
@@ -319,7 +319,8 @@ namespace MuseXR.Worlds
         /// </summary>
         public static void FillKeyhole(Mesh m, float r, float centre, float passage, float below)
         {
-            float w = 2f * r, h = centre + r;
+            // radius 0: a plain rectangle, passage wide and centre tall (a side door with a flat lintel)
+            float w = Mathf.Max(2f * r, passage), h = centre + r;
             Vector3 U(Vector2 p) => new Vector3(p.x / w, p.y / h - 0.5f, 0f);   // metres -> unit quad
             var v = new List<Vector3>(); var tris = new List<int>();
             void Add(List<Vector2> poly)
@@ -331,9 +332,12 @@ namespace MuseXR.Worlds
                 for (int i = 1; i < c.Count - 1; i++) { tris.Add(b); tris.Add(b + i + 1); tris.Add(b + i); }
             }
             const int n = 48;
-            var disc = new List<Vector2>();
-            for (int i = 0; i < n; i++) { var a = 2f * Mathf.PI * i / n; disc.Add(new Vector2(Mathf.Cos(a) * r, centre - below + Mathf.Sin(a) * r)); }
-            Add(disc);
+            if (r > 0f)
+            {
+                var disc = new List<Vector2>();
+                for (int i = 0; i < n; i++) { var a = 2f * Mathf.PI * i / n; disc.Add(new Vector2(Mathf.Cos(a) * r, centre - below + Mathf.Sin(a) * r)); }
+                Add(disc);
+            }
             float hw = Mathf.Min(passage, w) * 0.5f;
             if (hw > 0f)
                 Add(new List<Vector2> { new Vector2(-hw, -below), new Vector2(hw, -below), new Vector2(hw, centre - below), new Vector2(-hw, centre - below) });

@@ -190,6 +190,9 @@ namespace MuseXR.Interaction
 
         MuseXR.Worlds.CaptureProbe _probe;
 
+        /// <summary>Testing a journey: the chapter's interaction counts as done, and the arch rises.</summary>
+        public void CompleteChapter() => OpenArch(_floor, Camera.main != null ? Camera.main.transform.position : Vector3.zero);
+
         /// <summary>After A keeps: the arch opens onto Van Gogh's studio; walking through leaves the grotto.</summary>
         void OpenArch(GameObject teleportFloor, Vector3 eye)
         {

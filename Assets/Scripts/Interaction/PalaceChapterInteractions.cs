@@ -95,6 +95,9 @@ namespace MuseXR.Interaction
 
         void OnDestroy() => ConfirmInput.Pressed -= OnPressed;
 
+        /// <summary>Testing a journey: the chapter's interaction counts as done, and the moon gate opens.</summary>
+        public void CompleteChapter() => OpenMoonGate();
+
         // ---- the moon gate: her transition to chapter B ----------------------------------------
 
         [Tooltip("The Moon Gate prefab instance standing in the capture's own moon gate, next world: the grotto.")]
@@ -132,7 +135,7 @@ namespace MuseXR.Interaction
             foreach (var t in FindObjectsByType<Transform>(FindObjectsSortMode.None))
                 if (t.name.StartsWith("Exit Moon gate") && t.parent != null) props.Add(t.parent.gameObject);   // the layout root
             foreach (var n in new[] { "Court Table", "Interaction Visuals" }) { var g = GameObject.Find(n); if (g != null) props.Add(g); }
-            if (!moonGate.Open(here, props)) return;
+            if (!moonGate.Open(here, props, null, showNow: true)) return;
             moonGate.Crossed += () =>
             {
                 if (_afterKeep != null) Destroy(_afterKeep.gameObject);
