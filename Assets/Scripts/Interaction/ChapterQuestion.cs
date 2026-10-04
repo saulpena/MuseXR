@@ -25,6 +25,9 @@ namespace MuseXR.Interaction
             string.IsNullOrWhiteSpace(stop) ? question : stop.Trim() + "  ·  " + question;
 
         bool _shown;
+
+        /// <summary>Shown and faded away (what else waits for it, as Your world's memento does).</summary>
+        public bool Done => _shown && _group == null;
         CanvasGroup _group;
         float _t;
 

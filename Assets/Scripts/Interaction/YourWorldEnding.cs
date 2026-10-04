@@ -30,9 +30,18 @@ namespace MuseXR.Interaction
 
         public const float CopyHeight = 3f;
         public const float ChimeRange = 1.6f;
+        /// <summary>A plate's centre over the top of the piece it names (the lamp stood in front of its plate at 1.25 m).</summary>
+        public const float PlateClearance = 0.3f;
+        /// <summary>How far a plinth's plate stands out from the corridor's centre line, past its plinth.</summary>
+        public const float PlateOutward = 0.3f;
+        /// <summary>The stroke's width over the corridor: a brush stroke seen from 3 m, not a wire.</summary>
+        public const float StrokeWidth = 0.1f;
 
         readonly List<(Vector3 at, AudioClip chime, bool played)> _chimes = new List<(Vector3, AudioClip, bool)>();
         AudioSource _audio;
+        CanvasGroup _memento;
+        float _waited;
+        Transform _palacePiece;
 
         // ---- pure: what the record says, in her words ---------------------------------------------
 
@@ -118,6 +127,8 @@ namespace MuseXR.Interaction
 
         void Update()
         {
+            if (_memento != null && _memento.alpha < 1f && QuestionGone())
+                _memento.alpha = Mathf.MoveTowards(_memento.alpha, 1f, Time.deltaTime / 0.8f);
             var eye = Camera.main != null ? Camera.main.transform.position : (Vector3?)null;
             if (eye == null) return;
             for (var i = 0; i < _chimes.Count; i++)
@@ -151,6 +162,7 @@ namespace MuseXR.Interaction
             if (shown != null && model != null)
             {
                 var piece = Instantiate(model, shown.parent);
+                _palacePiece = piece.transform;
                 piece.name = rec.Palace.Object;
                 piece.transform.SetPositionAndRotation(shown.position, Quaternion.Euler(0f, rec.Palace.YawDeg, 0f));
                 piece.transform.localScale = shown.localScale;
@@ -158,7 +170,7 @@ namespace MuseXR.Interaction
             }
             if (plinth != null)
             {
-                Plate(plinth.position + Vector3.up * 1.25f, Cap(rec.Palace.Object) + "  ·  the Palace",
+                Plate(Above(plinth, _palacePiece != null ? _palacePiece : shown), Cap(rec.Palace.Object) + "  ·  the Palace",
                       string.IsNullOrWhiteSpace(rec.Palace.Reason) ? "facing " + Direction(rec.Palace.YawDeg) : "“" + rec.Palace.Reason.Trim() + "”");
                 _chimes.Add((plinth.position, ChapterChimes.Clip("palace"), false));   // a bronze bell
             }
@@ -180,7 +192,7 @@ namespace MuseXR.Interaction
             }
             if (plinth != null)
             {
-                Plate(plinth.position + Vector3.up * 1.25f, "The lamp  ·  the Grotto", "set on the " + (rec.Grotto.LampSlot == "detail" ? "detail" : "whole"));
+                Plate(Above(plinth, lamp), "The lamp  ·  the Grotto", "set on the " + (rec.Grotto.LampSlot == "detail" ? "detail" : "whole"));
                 _chimes.Add((plinth.position, ChapterChimes.Clip("grotto"), false));   // a stone chime
             }
         }
@@ -207,7 +219,16 @@ namespace MuseXR.Interaction
             for (var i = 0; i < pts.Count; i++)
                 line.SetPosition(i, at + (new Vector3(pts[i][0], pts[i][1], pts[i][2]) - centre) * 1.5f);
             if (ColorUtility.TryParseHtmlString(rec.VanGogh.Color, out var c)) { line.startColor = c; line.endColor = c; if (line.sharedMaterial != null) line.material.color = c; }
+            // A brush stroke, not a wire: at 6 cm wide with square ends it read as a stray line in the air
+            // (live run, 4 Oct). Her stroke is the visitor's own work, so it is labelled like the others.
+            line.widthMultiplier = StrokeWidth; line.numCapVertices = 6; line.numCornerVertices = 4;
             line.enabled = true;
+            // Its plate just under the stroke's lower end, so it hangs from the thing it names.
+            var a0 = at + (new Vector3(pts[0][0], pts[0][1], pts[0][2]) - centre) * 1.5f;
+            var a1 = at + (new Vector3(pts[pts.Count - 1][0], pts[pts.Count - 1][1], pts[pts.Count - 1][2]) - centre) * 1.5f;
+            var end = a0.y <= a1.y ? a0 : a1;
+            Plate(strokeT.TransformPoint(end + Vector3.down * 0.35f), "Your stroke  ·  the Van Gogh studio",
+                  PotName(rec.VanGogh.Color) + ", 1.5x, over the corridor");
             _chimes.Add((strokeT.TransformPoint(at), ChapterChimes.Clip("vangogh"), false));   // wood
         }
 
@@ -304,6 +325,9 @@ namespace MuseXR.Interaction
             card.SetParent(anchor, false);
             card.localPosition = Vector3.zero; card.localRotation = Quaternion.identity;   // the anchor faces the spawn: +Z away from the visitor reads
             var c = MuseUi.Canvas(card, "Memento", 3.5f, 420f);
+            // Shown once the chapter's question has gone: from the arrival the question hangs 3.2 m ahead
+            // and the memento 6 m ahead at nearly the same height, so both up at once overlapped (live run, 4 Oct).
+            _memento = c.gameObject.AddComponent<CanvasGroup>(); _memento.alpha = 0f;
             var glass = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 22f, padY: 18f, gap: 6f, name: "Card");
             MuseUi.Text(glass, "MUSE∞  ·  Memento" + (sample ? "  ·  sample" : ""), MuseUi.Face.Sans, 9f, MuseTheme.GoldInk, 0.24f, true, name: "Eyebrow");
             // No title when the roundtable failed: her rule, keep the generic ending rather than pretend.
@@ -336,6 +360,25 @@ namespace MuseXR.Interaction
             card.GetComponent<UnityEngine.UI.VerticalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;
             var a = MuseUi.Text(card, title, MuseUi.Face.SansSemi, 11f, MuseTheme.Ink, name: "Title"); a.alignment = TextAlignmentOptions.Center;
             if (!string.IsNullOrEmpty(sub)) { var b = MuseUi.Text(card, sub, MuseUi.Face.Sans, 9.5f, MuseTheme.Ink3, name: "Sub"); b.alignment = TextAlignmentOptions.Center; }
+        }
+
+        /// <summary>A plate's place over a piece on its plinth: clear of the piece's top, so the piece never stands in front of its own words.</summary>
+        static Vector3 Above(Transform plinth, Transform piece)
+        {
+            var top = plinth.position.y + 1.0f;
+            if (piece != null) { var b = Bounds(piece.gameObject); if (b.size.sqrMagnitude > 0f) top = Mathf.Max(top, b.max.y); }
+            // Out toward its wall: straight above, the lamp's plate ran into the memento's edge from the arrival (review, 4 Oct).
+            var x = plinth.position.x + Mathf.Sign(plinth.position.x == 0f ? 1f : plinth.position.x) * PlateOutward;
+            return new Vector3(x, top + PlateClearance, plinth.position.z);
+        }
+
+        bool QuestionGone()
+        {
+            _waited += Time.deltaTime;   // never held for good: a question that never shows must not keep the memento away
+            if (_waited > ChapterQuestion.ShowSeconds + ChapterQuestion.FadeSeconds + 4f) return true;
+            // Any question still up (a chapter's frame is gone by the time its visitor is here, so this is Your world's).
+            foreach (var q in FindObjectsByType<ChapterQuestion>(FindObjectsSortMode.None)) if (!q.Done) return false;
+            return true;
         }
 
         static void Hide(Transform t) { if (t != null) t.gameObject.SetActive(false); }
