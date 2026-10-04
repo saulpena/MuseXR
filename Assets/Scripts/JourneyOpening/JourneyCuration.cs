@@ -587,6 +587,9 @@ namespace MuseXR.Journey
             if (cc != null) cc.enabled = true;
             if (_gate != null) Destroy(_gate.gameObject);
 
+            // The walk's record, for the roundtable and Your world: the question asked at the Gate and who came.
+            if (gate != null) JourneyMemory.Record.SetQuestion(gate.Flow.Question);
+            if (opening != null && opening.Companions != null && opening.Companions.Count > 0) JourneyMemory.Record.SetCompanions(opening.Companions);
             // The visitor's companions stand on her three marks in the Palace, in their speaking order.
             if (opening != null && opening.Companions != null && opening.Companions.Count > 0)
             {

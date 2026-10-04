@@ -141,6 +141,8 @@ namespace MusePico.Dialogue
         public sealed class Answer { public string Draft = ""; public string Final = ""; public string RewrittenBy = ""; }
 
         public string Question { get; private set; } = string.Empty;
+        /// <summary>The roundtable's worldTitle, the name of Your world. Empty when the roundtable failed.</summary>
+        public string WorldTitle { get; set; } = string.Empty;
         public IReadOnlyList<string> Companions => _companions;
         public PalaceChoice Palace { get; private set; }
         public GrottoChoice Grotto { get; private set; }
@@ -205,7 +207,7 @@ namespace MusePico.Dialogue
         {
             Question = string.Empty;
             _companions.Clear(); _done.Clear(); _dwell.Clear();
-            Palace = null; Grotto = null; VanGogh = null; Monet = null;
+            Palace = null; Grotto = null; VanGogh = null; Monet = null; WorldTitle = string.Empty;
             FinalAnswer.Draft = FinalAnswer.Final = FinalAnswer.RewrittenBy = string.Empty;
         }
 
