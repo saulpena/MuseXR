@@ -48,6 +48,10 @@ namespace MuseXR.Interaction
             public Vector2 canvas = new Vector2(1.2f, 1.2f);
             [Tooltip("Her walnut / mat / gold frame round it: off when it hangs in a frame the capture already has.")]
             public bool frame;
+            [Tooltip("Fill the whole canvas, cropping the work to its shape (never stretching) round the focus point, instead of matting it.")]
+            public bool fill;
+            [Tooltip("With fill: the point of the work the crop keeps centred, 0-1 across and up (e.g. where the figure stands).")]
+            public Vector2 focus = new Vector2(0.5f, 0.5f);
         }
 
         [Tooltip("Her design doc's positions. Empty: the journey's automatic layout (WebGalleryLayout).")]
@@ -104,16 +108,36 @@ namespace MuseXR.Interaction
             {
                 if (!works.TryGetValue(p.id, out var record)) { Debug.LogError("[Paintings] '" + p.id + "' is not in collection '" + collectionId + "'"); continue; }
                 var tex = Image(p.id);
-                var size = Fit(tex, p.canvas);
+                var size = p.fill ? p.canvas : Fit(tex, p.canvas);
                 // In this object's space, not the world's: chained into GateWorld a chapter can wake while
                 // its frame still stands behind a gate, and its works must hang in its world, wherever that is.
                 Build(record, tex, transform.TransformPoint(p.centre),
                       transform.rotation * MuseXR.Worlds.WebGalleryLayout.QuadRotation(p.centre, p.centre + p.facing), size, p.frame);
                 // In a frame the capture already has: a mat over its whole canvas, so the capture's own
                 // painted canvas does not show round a work of other proportions.
-                if (!p.frame) Mat(Hung[Hung.Count - 1], size, p.canvas);
+                if (p.fill) Crop(Hung[Hung.Count - 1], tex, p.canvas, p.focus);
+                else if (!p.frame) Mat(Hung[Hung.Count - 1], size, p.canvas);
             }
             Debug.Log($"[Paintings] {worldKey}: {Hung.Count} works hung where her design doc puts them");
+        }
+
+        /// <summary>The part of the work, at its own proportions, that covers <paramref name="box"/> round <paramref name="focus"/>.</summary>
+        public static Rect CropRect(float workAspect, Vector2 box, Vector2 focus)
+        {
+            float boxAspect = box.x / box.y;
+            float w = 1f, h = 1f;
+            if (workAspect > boxAspect) w = boxAspect / workAspect; else h = workAspect / boxAspect;
+            float x = Mathf.Clamp(focus.x - w * 0.5f, 0f, 1f - w), y = Mathf.Clamp(focus.y - h * 0.5f, 0f, 1f - h);
+            return new Rect(x, y, w, h);
+        }
+
+        static void Crop(Transform canvas, Texture2D tex, Vector2 box, Vector2 focus)
+        {
+            if (tex == null || tex.height == 0) return;
+            var r = CropRect(tex.width / (float)tex.height, box, focus);
+            var m = canvas.GetComponent<MeshRenderer>().sharedMaterial;
+            m.SetTextureScale("_BaseMap", new Vector2(r.width, r.height));
+            m.SetTextureOffset("_BaseMap", new Vector2(r.x, r.y));
         }
 
         static void Mat(Transform canvas, Vector2 size, Vector2 box)
