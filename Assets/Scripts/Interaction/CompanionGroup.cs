@@ -297,7 +297,15 @@ namespace MuseXR.Interaction
             if (Head == null && Camera.main != null) Head = Camera.main.transform;
             if (Head == null || _ids.Count == 0) return;
 
-            if (Crowd) { CrowdStep(Time.deltaTime); _placedOnce = true; }
+            if (Crowd)
+            {
+                // A teleport or a chapter arrival: everyone is simply at their place beside the visitor on the
+                // next frame, never left standing where the old world put them (blind review, 4 Oct: a figure
+                // right in front of the eye after a teleport, blown white by the eye light).
+                if (_placedOnce && Vector3.Distance(Flat3(Head.position), Flat3(_lastPos)) > JumpDistance) { SnapCrowd(); Remarked?.Invoke(); }
+                CrowdStep(Time.deltaTime); _placedOnce = true;
+                _lastPos = Head.position;
+            }
             else if (!FollowVisitor) { _placedOnce = true; }
             else if (!_placedOnce) PlaceAll();
             else
@@ -362,6 +370,13 @@ namespace MuseXR.Interaction
                 // aside to whichever side they are already on (measured at a corner: 0.7 m ahead, 43 deg).
                 var bearingNow = Vector3.SignedAngle(body.Forward, rel, Vector3.up);
                 var inTheWay = Mathf.Abs(bearingNow) < InTheWayDegrees && rel.magnitude < InTheWayMetres;
+                if (inTheWay && rel.magnitude < 1.1f)
+                {
+                    // Close enough to fill the view: out of it at once, not a walk across the visitor's eyes.
+                    var aside = body.Feet + body.Bearing(place.Bearing) * place.Distance;
+                    f.position = new Vector3(aside.x, body.Feet.y, aside.z);
+                    continue;
+                }
                 if (inTheWay)
                 {
                     var out_ = Mathf.Abs(bearingNow) < 3f ? side : Mathf.Sign(bearingNow);
@@ -386,6 +401,22 @@ namespace MuseXR.Interaction
                     _walking = true;
                     f.rotation = Quaternion.RotateTowards(f.rotation, Quaternion.LookRotation(to / d, Vector3.up), 240f * dt);
                 }
+            }
+        }
+
+        /// <summary>Everyone straight to their crowd place round the body, facing the way the visitor faces.</summary>
+        void SnapCrowd()
+        {
+            var body = BodyFrame.Get();
+            if (body == null) return;
+            body.Step(0f);
+            for (var i = 0; i < _ids.Count; i++)
+            {
+                var f = _figures[_ids[i]];
+                if (f == null) continue;
+                var place = CrowdPlaces[Mathf.Min(i, CrowdPlaces.Length - 1)];
+                var at = body.Feet + body.Bearing(place.Bearing) * place.Distance;
+                f.SetPositionAndRotation(new Vector3(at.x, body.Feet.y, at.z), Quaternion.LookRotation(body.Forward, Vector3.up));
             }
         }
 

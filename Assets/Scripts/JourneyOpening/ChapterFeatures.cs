@@ -324,6 +324,7 @@ namespace MuseXR.Journey
             _skyMat.SetTextureOffset("_BaseMap", new Vector2(0f, 1f - band - 0.04f));
             var box = _sky.gameObject.AddComponent<BoxCollider>(); box.size = new Vector3(1f, 1f, 0.02f);
             var r = Replicable.Make(_sky.gameObject, "The Starry Night", "vangogh", StarDisc(tex));
+            Exhibit.Make(_sky.gameObject, "starry-night", "The Starry Night", "Vincent van Gogh");
             r.replicaName = "A small disc of slowly turning stars";
             CompassTarget.Add(_sky.gameObject, CompassTarget.Optional + 1, "The Starry Night", "Look up · hold the trigger to replicate");
             ChapterFeatures.Label(transform, new Vector3(-1.9f, 1.55f, -2.2f), Quaternion.LookRotation(Vector3.left),
@@ -392,6 +393,7 @@ namespace MuseXR.Journey
             var m = ChapterFeatures.Lit(Color.white, 0f, 0.35f);
             m.SetTexture("_BaseMap", tex);
             relief.gameObject.AddComponent<MeshRenderer>().sharedMaterial = m;
+            Exhibit.Make(relief.gameObject, "aic-28560", "The Bedroom", "Vincent van Gogh");   // the hung one's id: one painting, one record
             var lamp = new GameObject("Raking light").AddComponent<Light>();   // a light from the side brings the ridges out
             lamp.transform.SetParent(root, false); lamp.transform.localPosition = new Vector3(-BedroomWidth * 0.7f, h + 0.3f, -1.2f);
             lamp.type = LightType.Point; lamp.range = 7f; lamp.intensity = 2.2f; lamp.color = new Color(1f, 0.92f, 0.8f);
@@ -784,6 +786,7 @@ namespace MuseXR.Journey
             var canvas = ChapterFeatures.Quad(root, "Wave", new Vector3(0f, WaveHeight / 2f, 0f), Quaternion.identity, new Vector2(w, WaveHeight), ChapterFeatures.Unlit(Color.white, tex, true), collider: false);
             var box = canvas.gameObject.AddComponent<BoxCollider>(); box.size = new Vector3(1f, 1f, 0.05f);
             var r = Replicable.Make(canvas.gameObject, "The Great Wave", "monet", SmallWave(tex));
+            Exhibit.Make(canvas.gameObject, "great-wave", "The Great Wave off Kanagawa", "Katsushika Hokusai");
             r.replicaName = "A small wave";
             CompassTarget.Add(canvas.gameObject, CompassTarget.Optional + 1, "The Great Wave", "Hold the trigger to replicate");
             ChapterFeatures.Label(transform, new Vector3(3.2f, 1.3f, -11f), Quaternion.LookRotation(Vector3.left),
@@ -811,7 +814,8 @@ namespace MuseXR.Journey
             root.SetParent(transform, false);
             root.localPosition = LiliesAt;
             root.localRotation = Quaternion.LookRotation(Vector3.back);   // read by a visitor coming down the path from +Z
-            ChapterFeatures.Quad(root, "Canvas", new Vector3(0f, 0.15f + h / 2f, 0f), Quaternion.identity, new Vector2(LiliesWidth, h), ChapterFeatures.Unlit(Color.white, tex, true));
+            var lilies = ChapterFeatures.Quad(root, "Canvas", new Vector3(0f, 0.15f + h / 2f, 0f), Quaternion.identity, new Vector2(LiliesWidth, h), ChapterFeatures.Unlit(Color.white, tex, true));
+            Exhibit.Make(lilies.gameObject, "aic-16568", "Water Lilies", "Claude Monet");
             ChapterFeatures.Label(transform, LiliesAt + new Vector3(2.6f, 1.3f, 0f), Quaternion.LookRotation(Vector3.back),
                 "<b>Water Lilies</b>  ·  Claude Monet  ·  1906  ·  Art Institute of Chicago\n<size=70%>Standing on the water, enlarged only, nothing changed</size>", 2.2f, 0.6f);
         }

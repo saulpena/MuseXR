@@ -31,6 +31,7 @@ namespace MuseXR.Interaction
         {
             var r = go.GetComponent<Replicable>();
             if (r == null) r = go.AddComponent<Replicable>();
+            MasterInsights.Ensure();   // its sweep makes the piece an exhibit: masters on click and approach, tracked
             r.label = label; r.chapter = chapter; r.copySource = copySource;
             return r;
         }

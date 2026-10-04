@@ -23,6 +23,7 @@ namespace MuseXR.Interaction
         MusePico.Dialogue.MasterRosterData _roster;
         List<KeyValuePair<string, string>> _pending;
         int _asking;
+        float _nextSweep;
         bool _voicesOnly;   // our stand-in group, not a chapter's companions   // the latest insight's token: a reading for an older one is dropped (her dialogueToken)
 
         async void Start()
@@ -75,6 +76,13 @@ namespace MuseXR.Interaction
             // makes its companions. Kept, two groups drove the same three figures and talked over each
             // other (Grotto and Monet, full walk 4 Oct 2026). Adopted directly: cleared to null, the find
             // below met our own group again, since Destroy only lands at the end of the frame.
+            // A group switched off with its chapter's frame never ticks again: it stays "speaking" for good,
+            // Busy forever, and every approach after it went unanswered (walk-up test, 4 Oct). Let it go.
+            if (_group != null && !_group.isActiveAndEnabled)
+            {
+                if (_built) Destroy(_group.gameObject);
+                _group = null; _built = false;
+            }
             if (_group != null && _built && !_group.Busy)
             {
                 foreach (var g in FindObjectsByType<CompanionGroup>(FindObjectsSortMode.None))
@@ -112,6 +120,7 @@ namespace MuseXR.Interaction
         void Update()
         {
             UpdateReplies();
+            if (Time.time >= _nextSweep) { _nextSweep = Time.time + 1f; Exhibit.Sweep(); }   // every piece on show answers and is tracked
             // The round table is running: no gazing at a painting beside it starts a reading, and none
             // still in flight lands among the table's turns under their "Based on" lines.
             if (ArtworkCard.Hushed) { if (_pending != null) { _pending = null; _asking++; } return; }
@@ -126,7 +135,7 @@ namespace MuseXR.Interaction
                 var to = t.transform.position - head.position; var flat = new Vector3(to.x, 0f, to.z);
                 var g = head.forward; g.y = 0f;
                 var off = g.sqrMagnitude > 1e-6f && flat.sqrMagnitude > 1e-6f ? Vector3.Angle(g, flat) : 180f;
-                if (_rule.Approached(t.id, flat.magnitude, off)) { Speak(t); return; }
+                if (_rule.Approached(t.id, Mathf.Max(0f, flat.magnitude - t.reach), off)) { Speak(t); return; }
             }
         }
 

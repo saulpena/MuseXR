@@ -162,15 +162,15 @@ namespace MuseXR.Interaction
             Sockets.SeatGate = () => Preview.Ready;
             Sockets.Refused += _ => Preview.Nudge();
             Sockets.Cue += (s, e) => { if (e.Cue == SlotCue.Placed && Preview != null) Preview.Close(); };
-            foreach (var booth in new[] { ("Work Gandhara", "Buddha Worshipped by the Gods Indra and Brahma", "a Gandharan sculptor"),
-                                           ("Work Tang / N. Wei", "Buddha", "a Tang dynasty sculptor") })
+            foreach (var booth in new[] { ("Work Gandhara", "Buddha Worshipped by the Gods Indra and Brahma", "a Gandharan sculptor", "aic-142512"),
+                                           ("Work Tang / N. Wei", "Buddha", "a Tang dynasty sculptor", "aic-86380") })
             {
                 var w = Find(booth.Item1);
                 if (w == null) continue;
                 // The work itself (its Canvas), grabbable like every hung painting: tap to hear a master,
                 // hold to take it down, two hands to scale it.
                 var canvas = w.GetComponentInChildren<MeshRenderer>(true);
-                InsightTarget.AddGrabbable(canvas != null ? canvas.gameObject : w.gameObject, booth.Item2, booth.Item3);
+                InsightTarget.AddGrabbable(canvas != null ? canvas.gameObject : w.gameObject, booth.Item2, booth.Item3, booth.Item4);   // her AIC ids: not "Canvas" for both
             }
 
             // The companions where her diagram stands them.

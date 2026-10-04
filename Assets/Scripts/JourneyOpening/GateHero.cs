@@ -56,6 +56,7 @@ namespace MuseXR.Journey
             var box = picture.gameObject.AddComponent<BoxCollider>();
             box.size = new Vector3(w + 2 * f, h + 2 * f, 0.1f);
             Replicable.Make(picture.gameObject, "Mona Lisa", "gate").replicaName = "Palm-sized framed Mona Lisa";
+            Exhibit.Make(picture.gameObject, "mona-lisa", "Mona Lisa", "Leonardo da Vinci");
             CompassTarget.Add(picture.gameObject, CompassTarget.Optional + 1, "Mona Lisa", "Hold the trigger to replicate");
 
             // Her label, on the wall below the frame.
@@ -117,6 +118,7 @@ namespace MuseXR.Journey
             foreach (var r in rs) { lb.Encapsulate(figure.transform.InverseTransformPoint(r.bounds.min)); lb.Encapsulate(figure.transform.InverseTransformPoint(r.bounds.max)); }
             box.center = lb.center; box.size = lb.size;
             Replicable.Make(figure, "Venus de Milo", "gate-venus").replicaName = "A 30 cm white stone figurine";
+            Exhibit.Make(figure, "venus-de-milo", "Venus de Milo", "after the ancient Greek original");
             var label = new GameObject("Label").transform;
             label.SetParent(root, false);
             label.localPosition = new Vector3(0f, 0.35f, 0.92f);

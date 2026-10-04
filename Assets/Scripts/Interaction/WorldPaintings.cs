@@ -203,25 +203,6 @@ namespace MuseXR.Interaction
             go.AddComponent<DwellReporter>().Watcher = w;
         }
 
-        /// <summary>
-        /// Her "seen" counts once at 4 s, but Your world wants the works stayed with LONGEST: once seen,
-        /// the whole gaze total goes to the journey record and keeps growing while the visitor looks.
-        /// </summary>
-        sealed class DwellReporter : MonoBehaviour
-        {
-            public ArtworkWatcher Watcher;
-            float _reported;
-
-            void Update()
-            {
-                if (Watcher == null || Watcher.Attention == null || !Watcher.Attention.Seen) return;
-                var more = Watcher.GazeSeconds - _reported;
-                if (more < 0.5f) return;
-                JourneyMemory.Record.AddDwell(Watcher.ArtworkId, more);
-                _reported = Watcher.GazeSeconds;
-            }
-        }
-
         /// <summary>Her picture frame, as Museum.unity builds it (MuseumJourneyRunner.AddFrame).</summary>
         static void Layer(Transform canvas, PrimitiveType shape, string name, Color colour,
                           float w, float h, float margin, float depth, float behind)

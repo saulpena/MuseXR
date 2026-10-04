@@ -94,8 +94,9 @@ namespace MuseXR.UI
             _line.pageToDisplay = 1;
             _pageTimer = 0f;
             var tex = Portrait(masterId);
+            // The ring stays for a system note too (empty): the card keeps one size whoever is speaking.
             _portrait.texture = tex;
-            _portrait.transform.parent.gameObject.SetActive(tex != null);
+            _portrait.color = tex != null ? Color.white : new Color(1f, 1f, 1f, 0f);
             _lineCard.SetActive(true);
         }
 
@@ -184,11 +185,15 @@ namespace MuseXR.UI
             art.sizeDelta = new Vector2(22f, 22f);
             _arrow = arrow.transform;
             var copy = MuseUi.Column(row, 1f, "Copy");
-            copy.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+            // A fixed width: the pill must not grow and shrink with each target's name.
+            var cle = copy.gameObject.AddComponent<LayoutElement>(); cle.preferredWidth = cle.minWidth = 270f; cle.flexibleWidth = 0f;
             _stop = MuseUi.Text(copy, "", MuseUi.Face.Mono, 8f, Teal, 0.22f, true, name: "Stop");
             _target = Serif(copy, "", 17f, Cream, "Target");
             _target.enableWordWrapping = false;
+            _target.overflowMode = TextOverflowModes.Ellipsis;
             _detail = MuseUi.Text(copy, "", MuseUi.Face.Mono, 8f, Cream2, 0.16f, false, name: "Detail");
+            _stop.overflowMode = TextOverflowModes.Ellipsis; _stop.enableWordWrapping = false;
+            _detail.overflowMode = TextOverflowModes.Ellipsis; _detail.enableWordWrapping = false;
             _compassCard = cardC.gameObject;
         }
 
