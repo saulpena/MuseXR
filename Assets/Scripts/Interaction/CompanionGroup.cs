@@ -120,7 +120,10 @@ namespace MuseXR.Interaction
                 if (Blocked(new Vector3(eye.x, floor + 1f, eye.z), dir, m.Distance)) continue;   // a wall between
                 return p;
             }
+            // Every candidate blocked: the stage's own first mark, not her answer-time marks (that fallback
+            // put a companion near the middle of the view during the walk).
             var first = CompanionMarks.For(order);
+            foreach (var m in MarkCandidates(order)) { first = m; break; }
             return new Vector3(eye.x, floor, eye.z) + Quaternion.Euler(0f, first.Bearing, 0f) * fwd * first.Distance;
         }
 

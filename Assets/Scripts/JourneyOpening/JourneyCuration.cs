@@ -65,7 +65,8 @@ namespace MuseXR.Journey
         const float ModelOpeningCentre = 2.02f;   // measured on the generated model (Docs/Doors/moon-gate.measure.txt)
         const float ModelOpeningRadius = 1.275f;
         const float GateScale = 1.3f;
-        const float MorphSeconds = 2.2f;                                    // a wider opening to see the Palace through
+        const float MorphSeconds = 2.2f;
+        const float PortalOpenSeconds = 1.0f;   // the opening widens over the morph's last second                                    // a wider opening to see the Palace through
         const float GateCentre = ModelOpeningRadius * GateScale + 0.05f;   // the opening's foot just above the floor
 
         readonly string[] _lines = new string[4];
@@ -204,7 +205,11 @@ namespace MuseXR.Journey
                 light.transform.SetParent(lantern, false); light.transform.localPosition = new Vector3(0f, 1.42f, 0f);
                 light.type = LightType.Point; light.range = 3.5f; light.intensity = 0f; light.color = new Color(1f, 0.78f, 0.45f);
                 var box = lantern.gameObject.AddComponent<BoxCollider>();
-                box.center = new Vector3(0f, 1.1f, 0f); box.size = new Vector3(1.2f, 2.2f, 0.8f);   // the generated lantern hangs off its post
+                FitCollider(lantern, box);
+                // A trigger: the pointer still hits it, but CompanionGroup's "is the mark free" ray ignores
+                // it - a solid lantern box made every flank mark read blocked and dropped a companion right
+                // in front of the visitor (headset test).
+                box.isTrigger = true;
                 var index = i;
                 var p = Pointable.Make(lantern.gameObject, Keys[i]);
                 p.Selected += (_, __) => Hear(index);
@@ -231,6 +236,23 @@ namespace MuseXR.Journey
         }
 
         const float LanternHeight = 1.9f;
+
+        /// <summary>The box round what is drawn, in the lantern's own space: the old 1.2 x 2.2 m box
+        /// overlapped its neighbour from the visitor's eye, and the wrong lantern answered.</summary>
+        static void FitCollider(Transform lantern, BoxCollider box)
+        {
+            var rs = lantern.GetComponentsInChildren<Renderer>();
+            if (rs.Length == 0) { box.center = new Vector3(0f, 1.1f, 0f); box.size = new Vector3(0.5f, 2.2f, 0.5f); return; }
+            var b = new Bounds(lantern.InverseTransformPoint(rs[0].bounds.center), Vector3.zero);
+            foreach (var r in rs)
+            {
+                var rb = r.bounds;
+                for (var i = 0; i < 8; i++)
+                    b.Encapsulate(lantern.InverseTransformPoint(rb.center + Vector3.Scale(rb.extents,
+                        new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1))));
+            }
+            box.center = b.center; box.size = b.size;
+        }
 
         static void FitHeight(Transform model, float metres)
         {
@@ -462,8 +484,18 @@ namespace MuseXR.Journey
             // and a teleport made in that time landed beyond the gate in the old world.
             var sequence = mg.Door.Sequence;
             sequence.AppearSeconds = 0.01f;
-            sequence.OpenSeconds = MorphSeconds;
-            sequence.RequestOpen();
+            sequence.OpenSeconds = PortalOpenSeconds;
+            sequence.CloseSeconds = 0.6f;   // arrival follows the crossing closely
+            // Only the morph opens it: left on, its own "near and looking" trigger opened the circle while
+            // the gate was still growing (measured: 43% open with the frame at 63%).
+            sequence.TriggerDistance = 0f;
+
+            // What the Palace holds is there before the visitor arrives: its layout and props stand in the
+            // world seen through the gate. The companions' figures on its marks wait for the crossing (the
+            // companions are walking beside the visitor); the interactions wake on arrival, at the origin.
+            foreach (var c in palaceContent) if (c != null && c.name.StartsWith("Chapter")) c.SetActive(true);
+            ShowMarks(false);
+            mg.Crossed += () => { ShowMarks(true); if (opening != null && opening.Companions.Count > 0) SwapFigures(opening.Companions); };
 
 
             // The morph: the Palace lantern drifts to the gate and rises into the opening, glowing brighter
@@ -472,16 +504,20 @@ namespace MuseXR.Journey
             Vector3 p0 = first.position, p1 = at + Vector3.up * (GateCentre - 1.42f);
             var s0 = first.localScale;
             const float duration = MorphSeconds;
+            var requested = false;
             for (float t = 0f; t < duration; t += Time.deltaTime)
             {
+                // The opening shows the Palace only once the gate stands round it, never a bare circle first.
+                if (!requested && t >= duration - PortalOpenSeconds * 0.5f) { sequence.RequestOpen(); requested = true; }
                 var k = Mathf.SmoothStep(0f, 1f, t / duration);
                 first.position = Vector3.Lerp(p0, p1, k);
                 first.localScale = s0 * Mathf.Lerp(1f, 0.25f, Mathf.SmoothStep(0f, 1f, (t / duration - 0.5f) * 2f));
                 if (glow != null) { glow.intensity = Mathf.Lerp(1.6f, 6f, k); glow.range = Mathf.Lerp(3.5f, 6f, k); }
-                if (frame != null) frame.localScale = Vector3.one * GateScale * Mathf.SmoothStep(0f, 1f, (t / duration - 0.3f) / 0.7f);
+                if (frame != null) frame.localScale = Vector3.one * GateScale * Mathf.SmoothStep(0f, 1f, t / (duration * 0.65f));
                 yield return null;
             }
             if (frame != null) frame.localScale = Vector3.one * GateScale;
+            if (!requested) sequence.RequestOpen();
             first.gameObject.SetActive(false);
             mg.Arrived += () => StartCoroutine(Arrive());
             StartCoroutine(RetireCard());
@@ -546,8 +582,23 @@ namespace MuseXR.Journey
             Debug.Log("[Curation] through the moon gate: the Palace chapter begins with " + string.Join(", ", Masters.Company));
         }
 
+        /// <summary>The figures standing on the Palace's three marks, shown or hidden.</summary>
+        void ShowMarks(bool on)
+        {
+            for (var i = 0; i < Masters.DefaultTrio.Count; i++)
+            {
+                var mark = FindDeep(palaceFrame, "Mark " + Masters.DefaultTrio[i]);
+                if (mark == null) continue;
+                foreach (var r in mark.GetComponentsInChildren<Renderer>(true)) r.enabled = on;
+            }
+        }
+
+        bool _swapped;
+
         void SwapFigures(IReadOnlyList<string> company)
         {
+            if (_swapped) return;
+            _swapped = true;
             for (var i = 0; i < Masters.DefaultTrio.Count && i < company.Count; i++)
             {
                 var mark = FindDeep(palaceFrame, "Mark " + Masters.DefaultTrio[i]);
