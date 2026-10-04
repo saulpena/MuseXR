@@ -282,6 +282,8 @@ namespace MuseXR.Journey
             var mg = Instantiate(moonGatePrefab, at, Quaternion.LookRotation(toDoor, Vector3.up), transform);
             mg.nextWorldAsset = palaceWorld.m_Asset;
             mg.nextWorldKey = def != null ? def.key : "palace-court-of-keeping-500k";
+            // Her generated gate's own round opening, no passage: the keyhole is exactly the hole in the frame.
+            mg.radius = ModelOpeningRadius; mg.centreHeight = ModelOpeningCentre; mg.passageWidth = 0f;
             var props = new List<GameObject>();
             foreach (var g in gateLeftovers) if (g != null) props.Add(g);
             foreach (var l in _lanterns) if (l != null) props.Add(l.gameObject);
@@ -298,17 +300,13 @@ namespace MuseXR.Journey
             palaceFrame.gameObject.SetActive(true);
             pivot.SetParent(palaceFrame, true);
 
-            // The conservatory has no stone ring of its own, so her generated moon gate is the frame, scaled
-            // so its round opening is the keyhole's circle.
+            // The conservatory has no stone ring of its own, so her generated moon gate is the frame.
             if (moonGateModel != null)
             {
-                var k = MoonGate.Radius / ModelOpeningRadius;
                 var frame = Instantiate(moonGateModel, mg.transform);
                 frame.name = "Moon Gate Frame";
-                frame.transform.localPosition = new Vector3(0f, MoonGate.CentreHeight - ModelOpeningCentre * k, -0.05f);
+                frame.transform.localPosition = new Vector3(0f, 0f, -0.05f);   // on the visitor's side of the opening
                 frame.transform.localRotation = Quaternion.identity;
-                frame.transform.localScale = Vector3.one * k;
-                props.Add(frame);
             }
             mg.Arrived += () => StartCoroutine(Arrive());
             _gate = mg;
