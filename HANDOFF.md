@@ -150,7 +150,7 @@ In priority order:
      - the Gate trio steps out of the line-up in an arc (`CompanyStage.StepOut`), not a straight line across the view.
      - Sheets: `Assets/Screenshots/review-1004/sheet-v3-*.png`. **Not yet in a headset.**
    - **Fixed this session:** the "Five golden Buddhas" label stood on the arrival spot at knee height (labels are now never nearer than 2.5 m). Van Gogh's 21 m ceiling stuck out of the Grotto arch, and Monet's labels showed through Van Gogh's wall: a chapter waiting behind a gate now shows a mesh only while it is seen through the opening (`ChapterLink.HoldBack`). The Venus stood behind the Pissarro, so only her drum showed (`GateHero.VenusAside` 2.6).
-   - **Still open:** a dark smear of loose splats near Monet's arrival point shows at the bottom right of the Van Gogh side door. On arrival in the Grotto three UI panels stack mid-view (choice card, guide, answer). The answer panel is large and tilted in most frames. The live round table was not run, because it is billed.
+   - **Still open:** a dark smear of loose splats near Monet's arrival point shows at the bottom right of the Van Gogh side door. On arrival in the Grotto three UI panels stack mid-view (choice card, guide, answer). The answer panel is large and tilted in most frames. The live round table WAS run on 4 Oct (musexr-bb): three threads, the one-sentence draft, see below.
    - **At the very end, the companions go with Your world**, so the conservatory is empty of them. Decide whether that is the ending wanted.
    - **The Palace card is beside the court now.** Seen from the court it reads well; from the arrival spot it sits at the edge of the view.
    - **Grotto `Step.Hear` and the moved card: looked at, not yet in a headset.**
@@ -163,6 +163,24 @@ In priority order:
 6. **Four failing `ArtworkCatalogTests`** (pre-existing): `sunset-frames` lists a fifth work, `picasso-multiple-realities`, which has no image or source URL. Either stage an image or drop it from that collection.
 7. **Three other failing tests** are local content gaps in this clone, not code: `grand-conservatory-garden-path-500k` is not converted, and the `elegant-floral-palace-interior` collider is missing. Reconvert, or confirm they exist in the other clone.
 8. **Update the worklist page** from this file.
+
+### Spec gaps closed on 4 Oct (musexr-bb, Saul: "do all of the things missing")
+
+All looked at in Play, in the Editor; none yet in a headset.
+
+- **Gate: the question engraved over the arch.** It was there, but at the name cards' height 50 m away, cut into fragments by them. Saul chose "far arch, bigger and higher": `GateStage.letteringHeight` 15, cap 1.6 m, width 24 m; the company panel is 0.6 m higher. Both lines now read between the name cards and the panel.
+- **Grotto: the stele's depth under the lamp.** Already worked (`LampLight`, niche). Looked at: flat grey with the lamp low, warm gold relief with it raised beside the stele. No change.
+- **Round table, staged to her spec.**
+  - The table is a stone top on a pedestal with a gilt band.
+  - A warm light and floor glow come up once the garden's choice is kept, and the sign brightens.
+  - The Stacks of Wheat moved 1.6 m along its wall, off the table.
+  - The draft is now the visitor's answer in ONE sentence, asked live while the masters speak (`DraftLive`). Measured: "Of what I inherited, I will keep slow persistence, attentive looking, bold beginnings, and changing light."
+  - Saul chose that the masters **stand** at the table (the models are standing poses).
+- **Masters speak on approach only for a chapter's choice pieces.** `InsightTarget.onApproach`, set by `ChoicePreview`. Everything else answers a click. Measured in the Palace: the scrolls stay quiet, while the crane and the turtle start a take.
+- **Every piece is tracked** for Your world (`Exhibit` sweep): heroes, statues and props get look-time into the record, like hung works.
+- **Your world:** the four Redons hang on the corridor walls, and the kept pieces (the crane, the stroke ribbon) are there. Looked at.
+- **Left for a human:** spoken input ("hold X and say your own") inside the journey; everything in a headset.
+
 
 ---
 
