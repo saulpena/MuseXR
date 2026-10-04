@@ -26,8 +26,8 @@ namespace MuseXR.Journey
         public GameObject[] masterPrefabs = new GameObject[6];
 
         [Tooltip("How far down the walk from the Gate spawn the row stands. A Marble capture is sharp only within ~15 m of its centre; the doors are ~50 m out, in its fog.")]
-        [System.NonSerialized] public float rowFromSpawn = 7f;   // not serialized: a scene copy silently beat the code default
-        [System.NonSerialized] public float rowSpacing = 1.45f;   // room for each master's name card, read from the spawn
+        [System.NonSerialized] public float rowFromSpawn = 4.5f;   // inside the pointer's 8 m reach for every master; not serialized (a scene copy beat the code default)
+        [System.NonSerialized] public float rowSpacing = 1.2f;   // room for each master's name card, read from the spawn
 
         public CompanyStage Company { get; private set; }
         public IReadOnlyList<string> Companions { get; private set; } = new string[0];
@@ -40,7 +40,16 @@ namespace MuseXR.Journey
         // Who is who, and who is invited: a fixed name over each master and a ring at their feet.
         readonly Dictionary<string, (MeshRenderer ring, TextMeshProUGUI state)> _marks =
             new Dictionary<string, (MeshRenderer, TextMeshProUGUI)>();
-        Material _ringIdle, _ringChosen;
+        Material _ringIdle, _ringChosen, _ringHover;
+        readonly HashSet<string> _hovered = new HashSet<string>();
+
+        // Her four sample questions are answered ahead of time and shipped (Resources/OpeningAnswers.json),
+        // so the masters speak at once; any other question is asked the moment the doors open, for all
+        // six, while the visitor walks up and chooses - not after A.
+        [System.Serializable] public class BakedLine { public string id, line; }
+        [System.Serializable] public class BakedQuestion { public string question; public List<BakedLine> lines = new List<BakedLine>(); }
+        [System.Serializable] public class BakedAnswers { public List<BakedQuestion> items = new List<BakedQuestion>(); }
+        bool _asking;
 
         void Start()
         {
@@ -107,8 +116,17 @@ namespace MuseXR.Journey
             // (headset test). Her demo preset is for the 3-minute demo route, not this walk.
             Company.Group.FollowVisitor = false;   // placed once beside the visitor, then they stand still
             AddFill(eye);
+            if (!UseBaked(Company.Question)) _ = AskAll(Company.Question);
             gate.HidePrompt();   // the Gate is answered; its "hold X to speak" must not linger
             BuildPrompt(centre, facing, toVisitor);
+            foreach (var kv in standees)
+            {
+                var pointable = kv.Value.GetComponent<Pointable>();
+                if (pointable == null) continue;
+                var id = kv.Key;
+                pointable.Hovering += _ => { _hovered.Add(id); RefreshMarks(); };
+                pointable.Unhovered += _ => { _hovered.Remove(id); RefreshMarks(); };
+            }
             Company.Toggled += (id, r) =>
             {
                 RefreshMarks();
@@ -124,7 +142,8 @@ namespace MuseXR.Journey
             {
                 _ringIdle = new Material(Shader.Find("Universal Render Pipeline/Unlit")); _ringIdle.SetColor("_BaseColor", MuseTheme.Ink3);
                 _ringChosen = new Material(Shader.Find("Universal Render Pipeline/Unlit")); _ringChosen.SetColor("_BaseColor", MuseTheme.Gold);
-                _ringIdle.SetFloat("_Cull", 0f); _ringChosen.SetFloat("_Cull", 0f);   // reads from above whatever the winding
+                _ringHover = new Material(Shader.Find("Universal Render Pipeline/Unlit")); _ringHover.SetColor("_BaseColor", MuseTheme.Rose);
+                _ringIdle.SetFloat("_Cull", 0f); _ringChosen.SetFloat("_Cull", 0f); _ringHover.SetFloat("_Cull", 0f);   // reads from above whatever the winding
             }
             // The ring on the floor: thin grey while waiting, wide gold once invited (shape and colour).
             var ringGo = new GameObject("Ring");
@@ -156,10 +175,12 @@ namespace MuseXR.Journey
             foreach (var kv in _marks)
             {
                 bool chosen = Company.Invitation.IsChosen(kv.Key);
-                kv.Value.ring.sharedMaterial = chosen ? _ringChosen : _ringIdle;
-                kv.Value.ring.GetComponent<MeshFilter>().sharedMesh = chosen ? Annulus(0.3f, 0.44f) : Annulus(0.36f, 0.42f);
-                kv.Value.state.text = chosen ? "Invited" : "Point to invite";
-                kv.Value.state.color = chosen ? MuseTheme.GoldInk : MuseTheme.Ink3;
+                bool hover = _hovered.Contains(kv.Key);
+                // Hover: her rose (the "aligned" colour) and a thicker ring; chosen: gold and wide.
+                kv.Value.ring.sharedMaterial = hover ? _ringHover : chosen ? _ringChosen : _ringIdle;
+                kv.Value.ring.GetComponent<MeshFilter>().sharedMesh = chosen ? Annulus(0.3f, 0.44f) : hover ? Annulus(0.33f, 0.44f) : Annulus(0.36f, 0.42f);
+                kv.Value.state.text = hover ? (chosen ? "Pull the trigger to release" : "Pull the trigger to invite") : chosen ? "Invited" : "Point to invite";
+                kv.Value.state.color = hover ? MuseTheme.Rose : chosen ? MuseTheme.GoldInk : MuseTheme.Ink3;
                 kv.Value.state.fontStyle = chosen ? FontStyles.Bold : FontStyles.Normal;
             }
         }
@@ -240,25 +261,10 @@ namespace MuseXR.Journey
                 foreach (var kv in _marks) { kv.Value.ring.gameObject.SetActive(false); kv.Value.state.transform.parent.parent.parent.gameObject.SetActive(false); }
             if (phase != CompanyStage.Phase.Stepping || _asked) return;
             _asked = true;
-            var chosen = Company.Invitation.SpeakingOrder();
-            if (dialogue == null) { _answersReady = true; return; }
-
-            dialogue.invitedMasterIds = new List<string>();
-            foreach (var id in chosen) dialogue.invitedMasterIds.Add(RosterId(id));
-            dialogue.exactlyInvited = true;
-            dialogue.speakReplies = false;   // the turns are paced by the Company; the subtitle carries each line
-            var question = string.IsNullOrWhiteSpace(Company.Question) ? "What is worth keeping?" : Company.Question;
-            Debug.Log("[Opening] asking " + string.Join(", ", dialogue.invitedMasterIds) + ": " + question);
-            DialogueResult result = null;
-            try { result = await dialogue.AskAsync(question); }
-            catch (System.Exception ex) { Debug.LogWarning("[Opening] the masters could not be asked: " + ex.Message); }
-
-            if (result != null)
-                foreach (var p in result.Perspectives)
-                    foreach (var id in chosen)
-                        if (RosterId(id) == p.speakerId) _lines[id] = OneLine(p.text);
-            Debug.Log("[Opening] answers ready (" + _lines.Count + " of " + chosen.Count + ", live " + (result != null && result.Live) + ")");
-            _answersReady = true;
+            // Asked when the doors opened (or baked): usually ready already. If a chosen master's line is
+            // missing (the call failed), the stock line stands in rather than leaving the visitor waiting.
+            if (!_asking) _answersReady = true;
+            await System.Threading.Tasks.Task.Yield();
             RefreshPrompt();
         }
 
@@ -272,15 +278,78 @@ namespace MuseXR.Journey
             l.type = LightType.Point; l.intensity = 2.0f; l.range = 9f; l.color = Color.white; l.shadows = LightShadows.None;
         }
 
+        bool UseBaked(string question)
+        {
+            var file = Resources.Load<TextAsset>("OpeningAnswers");
+            if (file == null || string.IsNullOrWhiteSpace(question)) return false;
+            var baked = JsonUtility.FromJson<BakedAnswers>(file.text);
+            foreach (var q in baked.items)
+                if (string.Equals(q.question.Trim(), question.Trim(), System.StringComparison.OrdinalIgnoreCase))
+                {
+                    foreach (var l in q.lines) _lines[l.id] = l.line;
+                    _answersReady = true;
+                    Debug.Log("[Opening] baked answers for: " + question);
+                    return true;
+                }
+            return false;
+        }
+
+        /// <summary>Ask all six masters at once, one line each; returns their lines by Company id.</summary>
+        public async System.Threading.Tasks.Task<Dictionary<string, string>> AskAll(string question)
+        {
+            var found = new Dictionary<string, string>();
+            if (dialogue == null) { _answersReady = true; return found; }
+            _asking = true;
+            dialogue.invitedMasterIds = new List<string>();
+            foreach (var id in Masters.Row) dialogue.invitedMasterIds.Add(RosterId(id));
+            dialogue.exactlyInvited = true;
+            dialogue.speakReplies = false;   // the turns are paced by the Company; the subtitle carries each line
+            if (string.IsNullOrWhiteSpace(question)) question = "What is worth keeping?";
+            Debug.Log("[Opening] asking all six: " + question);
+            // The perspective prompt grounds every reading in a named work; at the Gate there is no painting,
+            // so the context is the place itself (otherwise its default, Water Lilies, coloured every answer).
+            var (t, a, d) = (dialogue.artworkTitle, dialogue.artworkArtist, dialogue.artworkDate);
+            dialogue.artworkTitle = GateContextTitle; dialogue.artworkArtist = "the visitor, at the start of the journey"; dialogue.artworkDate = "now";
+            DialogueResult result = null;
+            try { result = await dialogue.AskAsync(question); }
+            catch (System.Exception ex) { Debug.LogWarning("[Opening] the masters could not be asked: " + ex.Message); }
+            finally { dialogue.artworkTitle = t; dialogue.artworkArtist = a; dialogue.artworkDate = d; }
+            if (result != null)
+                foreach (var p in result.Perspectives)
+                    foreach (var id in Masters.Row)
+                        if (RosterId(id) == p.speakerId) { _lines[id] = OneLine(p.text, question); found[id] = _lines[id]; }
+            Debug.Log("[Opening] answers ready (" + found.Count + " of 6, live " + (result != null && result.Live) + ")");
+            _asking = false;
+            _answersReady = true;
+            RefreshPrompt();
+            return found;
+        }
+
+        public const string GateContextTitle =
+            "the Gate of the museum: a glasshouse garden walk between still pools, the visitor's question lettered " +
+            "like an exhibition title above the pavilion arch, its doors just opened";
+
         /// <summary>Her "one line": the first sentence of the master's reading.</summary>
-        public static string OneLine(string text)
+        public static string OneLine(string text) => OneLine(text, null);
+
+        /// <summary>
+        /// Her "one line": the reading's opening sentence - skipping one that only repeats the visitor's
+        /// question (Socrates opens that way) and taking a second when the first is too short to say much.
+        /// </summary>
+        public static string OneLine(string text, string question)
         {
             if (string.IsNullOrWhiteSpace(text)) return text;
-            text = text.Trim();
-            for (var i = 20; i < text.Length; i++)
+            var sentences = new List<string>();
+            int start = 0; text = text.Trim();
+            for (var i = 0; i < text.Length; i++)
                 if ((text[i] == '.' || text[i] == '?' || text[i] == '!') && (i + 1 == text.Length || text[i + 1] == ' '))
-                    return text.Substring(0, i + 1);
-            return text;
+                { sentences.Add(text.Substring(start, i + 1 - start).Trim()); start = i + 1; }
+            if (start < text.Length) sentences.Add(text.Substring(start).Trim());
+            string Bare(string x) => new string(System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Where((x ?? "").ToLowerInvariant(), char.IsLetterOrDigit)));
+            if (question != null && sentences.Count > 1 && Bare(sentences[0]) == Bare(question)) sentences.RemoveAt(0);
+            var line = sentences.Count > 0 ? sentences[0] : text;
+            if (line.Length < 40 && sentences.Count > 1) line += " " + sentences[1];
+            return line;
         }
 
         /// <summary>The Company's ids are the Slots spellings; masters.json uses short ones.</summary>

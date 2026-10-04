@@ -1,0 +1,120 @@
+{
+ "items": [
+  {
+   "question": "What is worth keeping?",
+   "lines": [
+    {
+     "id": "monet",
+     "line": "As the opened doors admit hazy vapour, the glasshouse walk shimmers between still pools, the question above the arch dissolving into iridescence."
+    },
+    {
+     "id": "van_gogh",
+     "line": "You stand at the opened doors, where the glasshouse walk and still pools hold your first pressure."
+    },
+    {
+     "id": "socrates",
+     "line": "What is worth keeping: the doors just opened, the glasshouse garden walk, the still pools, or the question lettered above the pavilion arch?"
+    },
+    {
+     "id": "frida_kahlo",
+     "line": "The wound is the opened gate, a cut through the glasshouse body."
+    },
+    {
+     "id": "hilma_af_klint",
+     "line": "Viewer not yet born, the opened doors ARE a transmission."
+    },
+    {
+     "id": "berthe_morisot",
+     "line": "Perhaps what is worth keeping is permission: if you may stand at this threshold, the opened doors might admit a hushed glimpse of the still pools and the garden walk."
+    }
+   ]
+  },
+  {
+   "question": "What makes a life meaningful?",
+   "lines": [
+    {
+     "id": "monet",
+     "line": "As the doors open, the glasshouse walk and still pools quiver in a clear envelope, while the title above the arch holds its instant."
+    },
+    {
+     "id": "van_gogh",
+     "line": "You stand before opened doors, where the glasshouse walk and still pools receive your first step."
+    },
+    {
+     "id": "socrates",
+     "line": "What makes a life meaningful, if the opened doors offer only a beginning?"
+    },
+    {
+     "id": "frida_kahlo",
+     "line": "The wound lies at the opened doors, where the glasshouse body begins its garden walk between still pools."
+    },
+    {
+     "id": "hilma_af_klint",
+     "line": "Viewer yet unborn, the open doors ARE a sigil of transmission."
+    },
+    {
+     "id": "berthe_morisot",
+     "line": "Perhaps a life becomes meaningful if you may cross the opened doors, leaving the title above the arch behind; might the pools, the glasshouse walk, and their hushed reticence allow a provisional intimacy with what waits beyond the threshold?"
+    }
+   ]
+  },
+  {
+   "question": "How do I live with uncertainty?",
+   "lines": [
+    {
+     "id": "monet",
+     "line": "As the doors open now, the question above the pavilion arch quivers in the glasshouse’s moist envelope, while still pools hold reflections that dissolve at each step."
+    },
+    {
+     "id": "van_gogh",
+     "line": "you meet the question lettered above the pavilion arch as the opened doors draw you into the glasshouse garden."
+    },
+    {
+     "id": "socrates",
+     "line": "What definition of “uncertainty” permits you to enter through these newly opened doors between still pools, beneath your question as an exhibition title?"
+    },
+    {
+     "id": "frida_kahlo",
+     "line": "The wound is the open threshold beneath the question."
+    },
+    {
+     "id": "hilma_af_klint",
+     "line": "Posterity, the opened doors IS a sigil of ascension."
+    },
+    {
+     "id": "berthe_morisot",
+     "line": "Perhaps permission is the first companion: it may let you linger at the opened glasshouse doors, close enough for a hushed glimpse of still pools and the lettered question, without claiming the path."
+    }
+   ]
+  },
+  {
+   "question": "What should I keep, and what should I let go?",
+   "lines": [
+    {
+     "id": "monet",
+     "line": "As the doors just open, the lettered arch and still pools shimmer in a plein-air instant: keep this iridescence, let go of fixed edges."
+    },
+    {
+     "id": "van_gogh",
+     "line": "You keep the opened doors, the glasshouse light, and the yearning walk between still pools."
+    },
+    {
+     "id": "socrates",
+     "line": "What should you keep, and what should you let go, if “keep” names a premise rather than an object?"
+    },
+    {
+     "id": "frida_kahlo",
+     "line": "The wound is the opened threshold. The body has survived enclosure and offers its lettered question as a votive above the pavilion arch."
+    },
+    {
+     "id": "hilma_af_klint",
+     "line": "Posterity, the open doors ARE your transmission: keep the crossing."
+    },
+    {
+     "id": "berthe_morisot",
+     "line": "Perhaps, if you may stand this close, you could keep the hushed threshold—the opened doors, the still pools, the unfinished passage—while letting go, gently, of any need to possess what the glasshouse garden walk withholds."
+    }
+   ]
+  }
+ ]
+}

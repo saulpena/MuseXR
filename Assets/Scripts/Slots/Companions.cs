@@ -96,7 +96,9 @@ namespace MuseXR.Slots
 
         // The third at 22° / 2.15 m, not 26° / 2.1: a blind review saw the second and third boards
         // nearly coplanar and touching from the visitor's eye (about 1° apart at their edges); now ~5°.
-        static readonly Mark[] Slots = { new Mark(-48f, 1.7f), new Mark(46f, 1.6f), new Mark(22f, 2.15f) };
+        // All three inside the visitor's view at once (headset test, 3 Oct: at -48/+46 he had to turn his
+        // head to see who was speaking). Still her limits: 1.5-2.2 m, off the path (>20 degrees), <60 degrees.
+        static readonly Mark[] Slots = { new Mark(-24f, 1.7f), new Mark(24f, 1.7f), new Mark(38f, 2.2f) };
 
         /// <summary>The mark for the companion who speaks <paramref name="order"/>th (0-based).</summary>
         public static Mark For(int order) => Slots[Math.Max(0, Math.Min(Slots.Length - 1, order))];
