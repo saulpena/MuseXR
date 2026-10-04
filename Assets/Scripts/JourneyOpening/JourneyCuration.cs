@@ -222,7 +222,7 @@ namespace MuseXR.Journey
                 p.Selected += (_, __) => Hear(index);
                 p.Hovering += _ => light.intensity = 3.2f;     // brightens under the laser
                 p.Unhovered += _ => light.intensity = 1.6f;
-                Tag(lantern, Chapters[i], Subtitles[i]);
+                Tag(lantern, Chapters[i], Subtitles[i], i < 2 ? 2.05f : 2.75f);   // the far pair's names above the near pair's, as seen from the spawn
                 _lanterns.Add(lantern); _lights.Add(light);
                 // It lights: the paper warms and its glow comes up.
                 for (float t = 0f; t < 0.7f; t += Time.deltaTime)
@@ -330,11 +330,11 @@ namespace MuseXR.Journey
             return go.transform;
         }
 
-        void Tag(Transform lantern, string chapter, string subtitle)
+        void Tag(Transform lantern, string chapter, string subtitle, float height = 2.05f)
         {
             var anchor = new GameObject("Name").transform;
             anchor.SetParent(lantern, false);
-            anchor.position = lantern.position + Vector3.up * 2.05f;
+            anchor.position = lantern.position + Vector3.up * height;
             var toEye = gate.spawn.position - anchor.position; toEye.y = 0f;
             anchor.rotation = Quaternion.LookRotation(-toEye.normalized, Vector3.up);   // +Z away from the viewer reads
             var c = MuseUi.Canvas(anchor, "Lantern", 6f, 120f);
@@ -387,7 +387,7 @@ namespace MuseXR.Journey
             var fwd = _eye.forward; fwd.y = 0f; fwd = fwd.sqrMagnitude > 1e-4f ? fwd.normalized : _toDoor;
             var right = Vector3.Cross(Vector3.up, fwd).normalized;
             // High and a little to the right: at eye height it sat across the companions' heads (headset test).
-            var at = _eye.position + fwd * 2.6f + right * 0.45f + Vector3.up * 0.6f;
+            var at = _eye.position + fwd * 2.6f + Vector3.up * 1.15f;   // above the lanterns and their names, not across them (4 Oct)
             _card.transform.SetPositionAndRotation(at, Quaternion.LookRotation(at - new Vector3(_eye.position.x, at.y, _eye.position.z), Vector3.up));
             _lastEye = _eye.position;
             _lastPlaced = Time.time;

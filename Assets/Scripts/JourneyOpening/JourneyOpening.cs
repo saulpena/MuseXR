@@ -269,7 +269,7 @@ namespace MuseXR.Journey
             var visitorRight = Vector3.Cross(Vector3.up, toRow).normalized;
             // Centred over the row, above the name cards and above eye level: instructions stand above the
             // view (Saul, 3 Oct). At 40 degrees right it hung half off the edge of the view (4 Oct).
-            var at = spawn + toRow * rowFromSpawn + Vector3.up * 2.85f;
+            var at = spawn + toRow * rowFromSpawn + Vector3.up * 3.3f;   // clear of the name cards, which now stand at two heights
             var toEye = spawn - at; toEye.y = 0f;
             anchor.SetPositionAndRotation(at, Quaternion.LookRotation(-toEye.normalized, Vector3.up));
             // Her web dark glass (as the Gate's question panel): cream ink, lavender eyebrow, Gilda title.
