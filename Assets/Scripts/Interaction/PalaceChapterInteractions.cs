@@ -91,115 +91,48 @@ namespace MuseXR.Interaction
 
         // ---- the moon gate: her transition to chapter B ----------------------------------------
 
-        [Tooltip("Assets/Prefabs/Portal Door.prefab: the door that opens in the moon gate.")]
-        public GameObject doorPrefab;
-
-        [Tooltip("The next chapter's world, seen and walked into through the moon gate (grotto-hall-of-time-500k).")]
-        public GaussianSplatting.Runtime.GaussianSplatAsset nextWorldAsset;
-
-        /// <summary>Her transition: "through the moon gate the courtyard vista becomes grotto cliffs".</summary>
-        public const string NextWorldKey = "grotto-hall-of-time" + MuseXR.Worlds.WorldCatalog.SmallSuffix;
-
-        /// <summary>How far past the doorway the grotto's spawn lies (JourneyDoors' value).</summary>
-        public const float ArrivalPastDoor = 1.2f;
+        [Tooltip("The Moon Gate prefab instance standing in the capture's own moon gate, next world: the grotto.")]
+        public MuseXR.Worlds.MoonGate moonGate;
 
         /// <summary>
-        /// The capture's own moon gate, on the floor at the threshold, in the palace's frame (the
-        /// world stands at the origin). Measured 3 Oct 2026 by triangulating two Editor captures of
-        /// the right-hand wall (eye 1.6 m, from (-2, 0.6) and (-2, 3.0), both facing -X): both put
-        /// the threshold 5.5 m deep at (-7.5, 0.0). The layout's "Exit Moon gate" marker, placed from
-        /// the schematic, stands 3.5 m away in front of a column - a door there opened in the wrong
-        /// place. The collider cannot locate it: above 1.4 m it reports a sloping surface across the
-        /// opening.
+        /// Where the scene's Moon Gate stands: the capture's own moon gate, on the floor at the
+        /// threshold, in the palace's frame. Measured 3 Oct 2026 by triangulating two Editor captures
+        /// of the right-hand wall (eye 1.6 m, from (-2, 0.6) and (-2, 3.0), both facing -X): both put
+        /// the threshold 5.5 m deep at (-7.5, 0.0), opening along -X. The layout's "Exit Moon gate"
+        /// marker, placed from the schematic, stands 3.5 m away in front of a column. The collider
+        /// cannot locate it: above 1.4 m it reports a sloping surface across the opening.
         /// </summary>
         public static readonly Vector3 MoonGateFloor = new Vector3(-7.5f, 0f, 0f);
 
-        /// <summary>The gate opens out of the hall along -X (the right-hand wall from the entry).</summary>
-        public static readonly Vector3 MoonGateOutward = Vector3.left;
-
-        /// <summary>
-        /// Its keyhole, metres, from the same captures: a round opening ~3.4 m across centred
-        /// ~2.3 m up, over a passage ~2.2 m wide down to the floor. Set a little inside the gold ring
-        /// so the capture's own frame surrounds what shows through.
-        /// </summary>
-        public const float GateRadius = 1.6f, GateCentreHeight = 2.3f, GatePassageWidth = 2.1f;
-
-        /// <summary>The door at the moon gate once the choice is kept, else null.</summary>
-        public MuseXR.Worlds.SplatPortalDoor Door { get; private set; }
+        public MuseXR.Worlds.SplatPortalDoor Door => moonGate != null ? moonGate.Door : null;
 
         Vector3 _courtTop;
         TMPro.TextMeshPro _afterKeep;
-        bool _arrived;
 
         /// <summary>
-        /// After A keeps the choice: the portal door stands in her moon-gate exit (the right-hand
-        /// doorway in diagram A) with the grotto behind it, placed so walking or teleporting through
-        /// lands the visitor at the grotto's spawn. The door rises when the visitor looks toward it
-        /// and opens with the grotto showing through (SplatPortalDoor, the journey's door unchanged).
-        /// Crossing it destroys the palace; the companions come along.
+        /// After A keeps the choice: her transition, "through the moon gate the courtyard vista
+        /// becomes grotto cliffs". The palace's layout goes with the palace; the companions come along.
         /// </summary>
         void OpenMoonGate()
         {
-            Transform exit = null;   // the layout's marker: only its parent (the layout root) is used
-            foreach (var t in FindObjectsByType<Transform>(FindObjectsSortMode.None)) if (t.name.StartsWith("Exit Moon gate")) exit = t;
-            MuseXR.Worlds.WorldDefinition next = null;
-            foreach (var w in MuseXR.Worlds.WorldCatalog.Small) if (w.key == NextWorldKey) next = w;
+            if (moonGate == null) { Debug.LogError("[Palace] no Moon Gate in the scene"); return; }
+            if (Vector3.Distance(moonGate.transform.position, MoonGateFloor) > 0.5f)
+                Debug.LogWarning("[Palace] the Moon Gate stands at " + moonGate.transform.position + ", not in the capture's gate at " + MoonGateFloor);
             var here = FindAnyObjectByType<GaussianSplatting.Runtime.GaussianSplatRenderer>();
-            if (exit == null || next == null || doorPrefab == null || nextWorldAsset == null || here == null)
-            {
-                Debug.LogError("[Palace] cannot open the moon gate: exit " + (exit != null) + ", world " + (next != null) +
-                               ", door prefab " + (doorPrefab != null) + ", grotto asset " + (nextWorldAsset != null) + ", palace " + (here != null));
-                return;
-            }
-
-            // In the capture's own moon gate; the door's +Z points out through it, into the grotto.
-            var pose = new MuseXR.Worlds.DoorPose { position = MoonGateFloor,
-                                                    rotation = Quaternion.LookRotation(MoonGateOutward, Vector3.up) };
-            var spawn = next.ScaledSpawn; spawn.y = 0f;
-            MuseXR.Worlds.WorldDoorLayout.NextWorldFrame(pose, spawn, next.SpawnRotation, ArrivalPastDoor, 0f, out var framePos, out var frameRot);
-            var pivot = new GameObject("Next World (behind the moon gate): " + next.key).transform;
-            pivot.SetPositionAndRotation(framePos, frameRot);
-
-            var world = new GameObject("World_" + next.key);
-            world.transform.SetParent(pivot, false);
-            world.transform.localScale = next.SplatScale;
-            var r = world.AddComponent<GaussianSplatting.Runtime.GaussianSplatRenderer>();
-            r.m_Asset = nextWorldAsset;
-            r.m_ShaderSplats = here.m_ShaderSplats; r.m_ShaderComposite = here.m_ShaderComposite;
-            r.m_ShaderDebugPoints = here.m_ShaderDebugPoints; r.m_ShaderDebugBoxes = here.m_ShaderDebugBoxes;
-            r.m_CSSplatUtilities = here.m_CSSplatUtilities;
-            MuseXR.Worlds.SplatRenderTuning.Apply(r);
-            r.enabled = false; r.enabled = true;   // resources are built in OnEnable
 
             // The companions leave the palace's layout before it is destroyed with the old world.
             foreach (var f in Companions.Figures.Values) f.SetParent(Companions.transform, true);
             var props = new List<GameObject>();
-            if (exit.parent != null) props.Add(exit.parent.gameObject);   // court, plinths, pieces, the chips on the court
+            foreach (var t in FindObjectsByType<Transform>(FindObjectsSortMode.None))
+                if (t.name.StartsWith("Exit Moon gate") && t.parent != null) props.Add(t.parent.gameObject);   // the layout root
             foreach (var n in new[] { "Court Table", "Interaction Visuals" }) { var g = GameObject.Find(n); if (g != null) props.Add(g); }
-
-            var go = Instantiate(doorPrefab);
-            go.name = "Moon Gate to " + next.displayName;
-            go.transform.SetPositionAndRotation(pose.position, pose.rotation);
-            Door = go.GetComponent<MuseXR.Worlds.SplatPortalDoor>();
-            Door.currentWorld = here;
-            Door.nextWorld = r;
-            Door.currentWorldProps = props.ToArray();
-            Door.triggerDistance = 10f;   // from the court the gate is ~7.5 m away: it opens as the visitor turns to it
-            // Her moon gate is round (Q2: "Curate/Palace = moon gate (round mask mesh)"), and the
-            // capture already has one: no door leaves, the capture's stone ring is the frame, and the
-            // grotto shows only through its keyhole.
-            float top = GateCentreHeight + GateRadius;
-            Door.apertureSize = new Vector2(2f * GateRadius, top);
-            if (Door.aperture != null) Door.aperture.localPosition = new Vector3(0f, top * 0.5f, 0f);
-            Door.maskMesh = KeyholeMesh(GateRadius, GateCentreHeight, GatePassageWidth);
-            if (Door.doorVisual != null) Door.doorVisual.gameObject.SetActive(false);
-            Door.doorVisual = null; Door.leftLeaf = null; Door.rightLeaf = null;
-            if (Camera.main != null)
+            if (!moonGate.Open(here, props)) return;
+            moonGate.Crossed += () =>
             {
-                Door.head = Camera.main.transform;
-                Camera.main.farClipPlane = Mathf.Max(Camera.main.farClipPlane, next.cameraFar);
-            }
-            Door.enabled = true;
+                if (_afterKeep != null) Destroy(_afterKeep.gameObject);
+                Companions.PlaceAll();   // round the visitor in the grotto
+                Debug.Log("[Palace] through the moon gate: in the grotto");
+            };
 
             // The chapter is over: the companions walk with the visitor again (§3.4), re-marked off the
             // path at the next teleport or turn. Left on her diagram's V mark, Van Gogh stood in the
@@ -208,38 +141,6 @@ namespace MuseXR.Interaction
             Companions.FollowVisitor = true;
 
             AfterKeep("Kept.  The moon gate is open, on your right.\nWalk through it.");
-            Debug.Log("[Palace] moon gate at " + pose.position.ToString("F2") + " opens onto " + next.displayName);
-        }
-
-        /// <summary>
-        /// The moon gate's keyhole as a mask mesh in the portal's unit quad (-0.5..0.5 in XY, scaled by
-        /// the aperture: width 2r, height centre + r, origin at mid-height): a disc of radius
-        /// <paramref name="r"/> centred <paramref name="centre"/> metres up, on a passage
-        /// <paramref name="passage"/> wide down to the floor.
-        /// </summary>
-        public static Mesh KeyholeMesh(float r, float centre, float passage)
-        {
-            float w = 2f * r, h = centre + r;
-            Vector3 U(float x, float y) => new Vector3(x / w, y / h - 0.5f, 0f);   // metres (x from the axis, y from the floor) -> unit quad
-            var v = new List<Vector3>(); var tris = new List<int>();
-            const int n = 48;
-            v.Add(U(0f, centre));
-            for (var i = 0; i <= n; i++) { var a = 2f * Mathf.PI * i / n; v.Add(U(Mathf.Cos(a) * r, centre + Mathf.Sin(a) * r)); }
-            for (var i = 1; i <= n; i++) { tris.Add(0); tris.Add(i + 1); tris.Add(i); }
-            int q = v.Count;
-            float hw = Mathf.Min(passage, w) * 0.5f;
-            v.Add(U(-hw, 0f)); v.Add(U(hw, 0f)); v.Add(U(hw, centre)); v.Add(U(-hw, centre));
-            tris.AddRange(new[] { q, q + 2, q + 1, q, q + 3, q + 2 });
-            var m = new Mesh { name = "Moon Gate Keyhole" };
-            m.SetVertices(v); m.SetTriangles(tris, 0); m.RecalculateBounds();
-            return m;
-        }
-
-        /// <summary>True when a point (metres: x from the gate's axis, y up from the floor) is in the keyhole.</summary>
-        public static bool InKeyhole(float x, float y, float r, float centre, float passage)
-        {
-            var dy = y - centre;
-            return x * x + dy * dy <= r * r || (Mathf.Abs(x) <= passage * 0.5f && y >= 0f && y <= centre);
         }
 
         /// <summary>One line over the court once the choice is kept: what to do next.</summary>
@@ -258,17 +159,6 @@ namespace MuseXR.Interaction
             _afterKeep.outlineWidth = 0.2f;
             _afterKeep.outlineColor = new Color32(40, 28, 16, 255);
             _afterKeep.text = line;
-        }
-
-        void Update()
-        {
-            if (Door == null || _arrived || !Door.HasCrossed) return;
-            // Through the gate: the palace and its layout go with the door; the companions stand
-            // round the visitor in the grotto.
-            _arrived = true;
-            if (_afterKeep != null) Destroy(_afterKeep.gameObject);
-            Companions.PlaceAll();
-            Debug.Log("[Palace] through the moon gate: in the grotto");
         }
 
         /// <summary>An invisible floor at the layout's ground, teleportable everywhere in the court.</summary>
