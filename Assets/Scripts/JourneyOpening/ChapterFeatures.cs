@@ -520,6 +520,7 @@ namespace MuseXR.Journey
                 else _prompt.text = Pots[index].name + "  ·  touch each pot and hear the companions  ·  " + heard + " / 3";
                 return;
             }
+            if (_group != null && _group.Busy) _group.StopTurns();   // chosen: the remaining takes are moot
             _colour = index;
             for (var i = 0; i < _potRenderers.Count; i++)
                 _potRenderers[i].transform.localScale = i == index ? new Vector3(0.11f, 0.07f, 0.11f) : new Vector3(0.09f, 0.05f, 0.09f);
@@ -946,6 +947,7 @@ namespace MuseXR.Journey
         {
             if (_picked) return;
             _picked = true; _pickedWork = i;
+            if (_group != null && _group.Busy) _group.StopTurns();   // chosen: the takes on the others are moot (they ran on into the round table)
             JourneyMemory.Record.SetMonet(new JourneyRecord.MonetChoice { Preset = _time.ToString().ToLowerInvariant(), ArtworkId = WorkIds[i], Reason = Works[i] });
             if (_chips != null) _chips.SetActive(false);
             // Her water chime comes from ChapterChimes when the choice reaches the record.
