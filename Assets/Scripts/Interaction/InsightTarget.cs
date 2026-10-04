@@ -18,17 +18,38 @@ namespace MuseXR.Interaction
         public static readonly List<InsightTarget> All = new List<InsightTarget>();
 
         /// <summary>Mark <paramref name="go"/> as something the masters talk about. Click and approach both work.</summary>
-        public static InsightTarget Add(GameObject go, string title, string artist = null, string id = null)
+        public static InsightTarget Add(GameObject go, string title, string artist = null, string id = null, bool pointToSpeak = true)
         {
             var t = go.GetComponent<InsightTarget>();
             if (t == null) t = go.AddComponent<InsightTarget>();   // not ??: Unity's fake null defeats it
             t.id = string.IsNullOrEmpty(id) ? go.name : id;
             t.title = title; t.artist = artist;
-            // Clickable: a Pointable on the object (or reuse one already there).
-            var p = go.GetComponent<Pointable>();
-            if (p == null) p = Pointable.Make(go, t.id);
-            p.Selected += (_, __) => MasterInsights.Ensure().Clicked(t);
+            // Clickable: a Pointable on the object (or reuse one already there). A grabbable work
+            // passes pointToSpeak false and calls Speak from its tap instead: a Pointable answers the
+            // trigger going DOWN, so a hold meant to pick the work up would also have spoken.
+            if (pointToSpeak)
+            {
+                var p = go.GetComponent<Pointable>();
+                if (p == null) p = Pointable.Make(go, t.id);
+                p.Selected += (_, __) => MasterInsights.Ensure().Clicked(t);
+            }
             MasterInsights.Ensure();   // walking close needs the watcher running before any click
+            return t;
+        }
+
+        /// <summary>A click on it: the next master gives an insight (when the companions are free).</summary>
+        public void Speak() => MasterInsights.Ensure().Clicked(this);
+
+        /// <summary>
+        /// A work the visitor can take in hand: a tap has a master speak about it (and counts it as
+        /// seen), a hold takes it off the wall, a second hand scales it (MusePico.Grab.Grabbable).
+        /// </summary>
+        public static InsightTarget AddGrabbable(GameObject go, string title, string artist = null, string id = null, System.Action alsoOnTap = null)
+        {
+            var t = Add(go, title, artist, id, pointToSpeak: false);
+            var col = go.GetComponent<Collider>();
+            if (col == null) { var b = go.AddComponent<BoxCollider>(); b.size = new Vector3(1f, 1f, 0.02f); col = b; }
+            MusePico.Grab.Grabbable.Make(go, () => { alsoOnTap?.Invoke(); t.Speak(); }, MusePico.Grab.GrabReach.AtRayEnd, col);
             return t;
         }
 

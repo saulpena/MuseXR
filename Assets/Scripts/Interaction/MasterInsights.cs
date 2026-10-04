@@ -20,7 +20,8 @@ namespace MuseXR.Interaction
         MusePico.Dialogue.DialogueClient _client;
         MusePico.Dialogue.MasterRosterData _roster;
         List<KeyValuePair<string, string>> _pending;
-        int _asking;   // the latest insight's token: a reading for an older one is dropped (her dialogueToken)
+        int _asking;
+        bool _voicesOnly;   // our stand-in group, not a chapter's companions   // the latest insight's token: a reading for an older one is dropped (her dialogueToken)
 
         async void Start()
         {
@@ -66,6 +67,12 @@ namespace MuseXR.Interaction
 
         CompanionGroup Group()
         {
+            // Our stand-in voices give way to the real companions the moment there are some.
+            if (_group != null && _voicesOnly)
+            {
+                foreach (var g in FindObjectsByType<CompanionGroup>(FindObjectsSortMode.None))
+                    if (g != _group && !g.Busy) { Destroy(_group.gameObject); _group = null; _voicesOnly = false; break; }
+            }
             if (_group == null)
             {
                 // A new chapter (in the chained journey the last one's companions went with its world):
@@ -112,10 +119,23 @@ namespace MuseXR.Interaction
             foreach (var id in Masters.Row)
                 foreach (var t in FindObjectsByType<Transform>(FindObjectsSortMode.None))
                     if (t.name == "Mark " + id) { figures[id] = t; order.Add(id); break; }
-            if (order.Count == 0) return null;
             var go = new GameObject("Companions");
+            if (order.Count == 0)
+            {
+                // No masters stand here yet (the Gate, before they are chosen): her default three as
+                // voices on the panel, standing just behind the visitor, so a work is never left unanswered.
+                _voicesOnly = true;
+                go.name = "Companions (voices)";
+                go.transform.SetParent(transform, false);
+                foreach (var id in Masters.DefaultTrio)
+                {
+                    var stand = new GameObject("Voice " + id).transform;
+                    stand.SetParent(go.transform, false);
+                    figures[id] = stand; order.Add(id);
+                }
+            }
             // With the marks' chapter: it goes when that chapter does, and the next chapter gathers its own.
-            go.transform.SetParent(figures[order[0]].root, false);
+            else go.transform.SetParent(figures[order[0]].root, false);
             var g = go.AddComponent<CompanionGroup>();
             g.FollowVisitor = false;
             g.Crowd = true;   // Saul, 3 Oct: always a crowd beside the visitor

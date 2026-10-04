@@ -14,7 +14,8 @@
         "MusePico.Dialogue",
         "GaussianSplatting",
         "MusePico.Tripo",
-        "MusePico.Generation"
+        "MusePico.Generation",
+        "MusePico.Grab"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

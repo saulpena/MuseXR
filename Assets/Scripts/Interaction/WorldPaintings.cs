@@ -179,9 +179,9 @@ namespace MuseXR.Interaction
             }
             else Layer(go.transform, PrimitiveType.Cube, "Fillet (gold)", new Color32(0xc9, 0xaa, 0x72, 0xff), canvas.x, canvas.y, 0.03f, 0.012f, 0.008f);   // a hairline against the capture's canvas
             var target = CompassTarget.Add(go, CompassOrder, record.title);
-            var p = Pointable.Make(go, record.id);
-            p.Selected += (_, __) => target.MarkDone();
-            InsightTarget.Add(go, record.title, record.artist, record.id);   // click or walk up: a master's insight
+            // Tap: a master speaks about it (and the compass moves on); hold: take it off the wall;
+            // two hands: scale it. Walking up to it also has a master speak (MasterInsights).
+            InsightTarget.AddGrabbable(go, record.title, record.artist, record.id, target.MarkDone);
             Hung.Add(go.transform);
         }
 

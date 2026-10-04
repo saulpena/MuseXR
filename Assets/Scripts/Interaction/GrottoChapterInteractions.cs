@@ -143,7 +143,11 @@ namespace MuseXR.Interaction
                                            ("Work Tang / N. Wei", "Buddha", "a Tang dynasty sculptor") })
             {
                 var w = Find(booth.Item1);
-                if (w != null) InsightTarget.Add(w.gameObject, booth.Item2, booth.Item3);
+                if (w == null) continue;
+                // The work itself (its Canvas), grabbable like every hung painting: tap to hear a master,
+                // hold to take it down, two hands to scale it.
+                var canvas = w.GetComponentInChildren<MeshRenderer>(true);
+                InsightTarget.AddGrabbable(canvas != null ? canvas.gameObject : w.gameObject, booth.Item2, booth.Item3);
             }
 
             // The companions where her diagram stands them.
