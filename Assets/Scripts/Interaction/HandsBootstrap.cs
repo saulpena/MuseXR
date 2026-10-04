@@ -23,8 +23,14 @@ namespace MuseXR.Interaction
         public readonly List<Pointer> Pointers = new List<Pointer>();
         public DesktopHand Desktop { get; private set; }
 
+        static HandsBootstrap _first;
+
         void Start()
         {
+            // One per rig: a second bootstrap (say, baked into a chapter prefab) would give every
+            // controller a second grip and pointer, and the desk a second mouse hand.
+            if (_first != null && _first != this) { enabled = false; return; }
+            _first = this;
             // Inactive included: the rig's modality manager keeps a controller switched off until it is
             // tracked, which on a headset can be after Start. A GripHand on it simply waits.
             foreach (var nf in FindObjectsByType<NearFarInteractor>(FindObjectsInactive.Include, FindObjectsSortMode.None))

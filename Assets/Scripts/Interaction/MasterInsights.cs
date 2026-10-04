@@ -80,6 +80,8 @@ namespace MuseXR.Interaction
             {
                 // A new chapter (in the chained journey the last one's companions went with its world):
                 // its companions, and the opening speakers rotate among them.
+                // Readings still pending or in flight were about the last chapter's works: drop them.
+                _pending = null; _asking++;
                 _group = FindAnyObjectByType<CompanionGroup>();
                 if (_group == null) _group = BuildGroup();
                 _rule = _group != null ? new Insights(_group.Ids) : null;
