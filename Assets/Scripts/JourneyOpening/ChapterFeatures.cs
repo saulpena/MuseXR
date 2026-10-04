@@ -695,7 +695,8 @@ namespace MuseXR.Journey
             _rotunda.SetParent(transform, false);
             _rotunda.localPosition = new Vector3(_rotundaLocal.x, 0f, _rotundaLocal.z);
             // A warm glow on the floor and a low round table: her "the rotunda glows warm".
-            var glow = ChapterFeatures.Quad(_rotunda, "Warm glow", new Vector3(0f, 0.03f, 0f), Quaternion.Euler(90f, 0f, 0f), new Vector2(4.5f, 4.5f), ChapterFeatures.Glow(new Color(0.55f, 0.36f, 0.16f)));
+            // Soft: a full-strength additive square washed the whole view brown (Editor capture, 4 Oct).
+            var glow = ChapterFeatures.Quad(_rotunda, "Warm glow", new Vector3(0f, 0.03f, 0f), Quaternion.Euler(90f, 0f, 0f), new Vector2(3.4f, 3.4f), ChapterFeatures.Glow(new Color(0.16f, 0.1f, 0.04f)));
             ChapterFeatures.Part(_rotunda, PrimitiveType.Cylinder, "Table", new Vector3(0f, 0.38f, 0f), new Vector3(1.1f, 0.38f, 1.1f), ChapterFeatures.Lit(new Color(0.9f, 0.87f, 0.8f), 0f, 0.4f));
             var sign = new GameObject("Sign").transform;
             sign.SetParent(_rotunda, false);
@@ -750,6 +751,9 @@ namespace MuseXR.Journey
             for (float t = 0f; !result.IsCompleted && t < 45f; t += Time.deltaTime) yield return null;
             var lines = new List<KeyValuePair<string, string>>();
             var rt = result.IsCompleted && !result.IsFaulted ? result.Result : null;
+            if (result.IsFaulted) Debug.LogWarning("[Roundtable] failed: " + result.Exception);
+            else if (rt == null) Debug.LogWarning("[Roundtable] no result (no dialogue, roster or key)");
+            else Debug.Log("[Roundtable] live " + rt.Live + " success " + rt.Success + " threads " + (rt.threads != null ? rt.threads.Count : 0) + " error " + rt.Error);
             var company = Masters.Company;
             if (rt != null && rt.Success)
             {
@@ -760,6 +764,8 @@ namespace MuseXR.Journey
                 if (!string.IsNullOrWhiteSpace(rt.worldTitle)) JourneyMemory.Record.WorldTitle = rt.worldTitle;   // the memento's title
             }
             if (lines.Count == 0) { lines = LocalThreads(); _draft = LocalDraft() + "   (local fallback)"; }
+            // A line still running (the time ring's) would make the round refuse to start: wait it out.
+            while (_group != null && _group.Busy) yield return null;
             if (_group != null) _group.SayInTurn(lines);
             foreach (var kv in lines) ChapterFeatures.Voice(this, kv.Key, kv.Value);
             while (_group != null && _group.Busy) yield return null;
