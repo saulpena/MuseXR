@@ -23,6 +23,7 @@ namespace MuseXR.Interaction
         /// <summary>The entry the visitor walks in from; she faces it, so "her gaze lands exactly where you are".</summary>
         public static readonly Vector3 EntryAt = new Vector3(0f, 0f, 2.4f);
         public const float GoddessHeight = 7f;
+        static readonly Color HallGold = new Color(1f, 0.8f, 0.42f);
 
         public GameObject Goddess { get; private set; }
 
@@ -40,6 +41,11 @@ namespace MuseXR.Interaction
             if (b.size.y > 1e-4f) go.transform.localScale = Vector3.one * (GoddessHeight / b.size.y);
             b = Bounds(go);
             go.transform.position += new Vector3(floor.x - b.center.x, floor.y - b.min.y, floor.z - b.center.z);
+            // The generated texture is a pale champagne beside the capture's saturated gilt: warm it to the hall's gold.
+            foreach (var r in go.GetComponentsInChildren<Renderer>())
+                foreach (var m in r.materials)
+                    if (m.HasProperty("baseColorFactor")) m.SetColor("baseColorFactor", HallGold);
+                    else if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", HallGold);
 
             // A solid box: she is on the dais, which is not walkable anyway (her diagram: "non-walkable").
             b = Bounds(go);
