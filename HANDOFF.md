@@ -105,7 +105,10 @@ The epistemic state of each claim is marked:
 - **Not checked:**
   - **Palace:** the full unlock after the second option is heard, now that taps queue. Also the card's new position beside the court, moved because it covered the goddess.
   - **Grotto:** none of it has been seen running, neither the card nor the gating.
-- **Peer owns** the same rule for Van Gogh and Monet.
+- **Van Gogh and Monet** (`ChapterFeatures.Take`, not `ChoicePreview`): the companions take each option in turn, voiced as each turn starts.
+  - **Van Gogh:** after the reply lights the easel, touching each pot gives its take, with nothing on the brush yet. The prompt counts n / 3, then "Now choose"; the next touch picks.
+  - **Monet:** the time ring speaks on each moment the first time it is reached. The painting chips appear only after all three. The first tap on each chip gives its take, and after all four a tap chooses (3 s undo).
+  - **Measured and looked at, 4 Oct:** real pointer clicks and a grip-and-twist on the ring, in Play.
 
 ### Transitions — new 4 Oct, Saul's request
 
@@ -135,7 +138,7 @@ In priority order:
 1. **Finish and see the choice flow.**
    - Palace: unlock after both are heard; the card's position.
    - Grotto: the card, the seat gate, and floating home when set down too early.
-   - Peer: Van Gogh and Monet.
+   - Van Gogh and Monet: done (see above); not yet blind-reviewed.
    - Then a blind review of each card.
 2. **Walk every transition and look back after each.** Gate→Palace was done; still to do are Palace→Grotto, Grotto→Van Gogh, Van Gogh→Monet, Monet→Your world and Your world→conservatory. Check for holes, for anything blocking the opening, and for how long until the chapter wakes.
 3. **Pre-wake chapters when the gate opens**, if Saul still sees a delay (see Transitions above).
