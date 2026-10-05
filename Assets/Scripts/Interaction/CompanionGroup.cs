@@ -363,7 +363,7 @@ namespace MuseXR.Interaction
             body.Step(dt);
             _walking = false;
             var bodyYaw = Yaw(body.Forward);
-            var gaze = GazeYaw(bodyYaw);
+            var gaze = WalkYaw(bodyYaw);
             for (var i = 0; i < _ids.Count; i++)
             {
                 var f = _figures[_ids[i]];
@@ -399,6 +399,22 @@ namespace MuseXR.Interaction
         static float Yaw(Vector3 v) => Mathf.Atan2(v.x, v.z) * Mathf.Rad2Deg;
 
         /// <summary>Where the head looks, flat (the body's way when the head looks straight up or down).</summary>
+        /// <summary>
+        /// The way the visitor is walking (kept when they stop): the cone the crowd keeps clear. Saul, 4 Oct: keyed to
+        /// the head, they fled every time he turned to look at them and were "never in my field of view".
+        /// </summary>
+        float WalkYaw(float fallback)
+        {
+            var body = BodyFrame.Get();
+            if (body != null)
+            {
+                var v = body.Velocity; v.y = 0f;
+                if (v.sqrMagnitude > 0.09f) _walkYaw = Yaw(v);   // above ~0.3 m/s: walking
+            }
+            return float.IsNaN(_walkYaw) ? fallback : _walkYaw;
+        }
+        float _walkYaw = float.NaN;
+
         float GazeYaw(float fallback)
         {
             if (Head == null) return fallback;
@@ -413,7 +429,7 @@ namespace MuseXR.Interaction
             if (body == null) return;
             body.Step(0f);
             var bodyYaw = Yaw(body.Forward);
-            var gaze = GazeYaw(bodyYaw);
+            var gaze = WalkYaw(bodyYaw);
             for (var i = 0; i < _ids.Count; i++)
             {
                 var f = _figures[_ids[i]];

@@ -20,7 +20,7 @@ namespace MuseXR.Slots
     {
         /// <summary>No companion's centre within this of the gaze (with a body's width it clears the 25 degree
         /// in-the-way cone of <see cref="CompanionClearance"/> from 1.4 m out).</summary>
-        public const float GazeHalfAngle = 42f;
+        public const float GazeHalfAngle = 25f;   // the walking path only (Saul, 4 Oct: at 42 about the head they were never in view)
         /// <summary>Nearer than this a companion fills the view.</summary>
         public const float MinRadius = 1.4f;
         /// <summary>How fast a companion slips out of the gaze: a quick step aside, degrees per second.</summary>

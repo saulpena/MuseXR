@@ -211,18 +211,30 @@ namespace MuseXR.Interaction
             Transform left = null;
             foreach (var p in Pointer.All) if (p.Source != null && p.Source.Hand == Hand.Left && p.Source.Aim != null) left = p.Source.Aim;
             _desk = left == null || !UnityEngine.XR.XRSettings.isDeviceActive;
+            var cam = Camera.main;
             if (!_desk)
             {
+                // Saul, 4 Oct: a giant gold ring through his head. Until the left controller is tracked its pose sits
+                // at the rig origin - the head - so the wrist only shows on a tracked hand clear of the face.
+                var tracked = UnityEngine.XR.InputDevices.GetDeviceAtXRNode(UnityEngine.XR.XRNode.LeftHand)
+                    .TryGetFeatureValue(UnityEngine.XR.CommonUsages.isTracked, out var t0) && t0;
+                var clear = cam == null || Vector3.Distance(left.position, cam.transform.position) > 0.25f;
+                Show(tracked && clear);
                 // The ring round the wrist: its axis along the forearm (the controller's forward).
                 _wrist.SetPositionAndRotation(left.position - left.forward * 0.07f, left.rotation * Quaternion.Euler(90f, 0f, 0f));
                 return;
             }
-            var cam = Camera.main;
+            Show(Open);   // at a desk there is no wrist to look at: it shows only while the satchel is open (I)
             if (cam == null) return;
             var t = cam.transform;
             // Lower left, clear of the waist panel's compass in the middle (they overlapped at 0.2 m left).
             _wrist.SetPositionAndRotation(t.position + t.forward * 0.45f - t.right * 0.34f - t.up * 0.16f,
                                           Quaternion.LookRotation(t.forward, t.up) * Quaternion.Euler(-35f, 0f, 0f));
+        }
+
+        void Show(bool on)
+        {
+            if (_wrist != null && _wrist.gameObject.activeSelf != on) _wrist.gameObject.SetActive(on);
         }
 
         void Layout()
