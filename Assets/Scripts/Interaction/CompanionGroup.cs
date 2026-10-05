@@ -133,7 +133,7 @@ namespace MuseXR.Interaction
             var place = CrowdPlaces[SlotOf(i)];
             var yaw = _heading + place.Bearing;
             var at = body.Feet + Quaternion.Euler(0f, yaw, 0f) * Vector3.forward * Clear(body.Feet, yaw, place.Distance);
-            return new Vector3(at.x, body.Feet.y, at.z);
+            return new Vector3(at.x, GroundAt(at, body.Feet.y), at.z);
         }
 
         public string ActiveSpeaker
@@ -241,6 +241,32 @@ namespace MuseXR.Interaction
         /// surface below the eye that is not a CharacterController: measured in the Editor, a plain
         /// downward ray struck the rig's own capsule and stood every companion at y 1.31.
         /// </summary>
+        /// <summary>
+        /// The floor under a companion standing at <paramref name="at"/>, within <see cref="GroundReach"/> of the visitor's
+        /// own feet (<paramref name="feetY"/>). They used to stand at exactly the visitor's foot height, so whenever that
+        /// was not the floor - the rig dipping below it, a step, a ramp - all three stood waist-deep in it (Saul, 5 Oct:
+        /// "why are the masters half body underground?"). The reach keeps a table top or a gap from lifting or dropping
+        /// one far; with nothing found they keep the visitor's height, as before.
+        /// </summary>
+        float GroundAt(Vector3 at, float feetY)
+        {
+            var top = new Vector3(at.x, feetY + GroundReach + 0.2f, at.z);
+            var n = Physics.RaycastNonAlloc(top, Vector3.down, _hits, GroundReach * 2f + 0.4f, ~0, QueryTriggerInteraction.Ignore);
+            var best = float.MaxValue; var y = feetY;
+            for (var i = 0; i < n; i++)
+            {
+                var h = _hits[i];
+                if (h.collider is CharacterController || h.normal.y < 0.7f) continue;
+                if (Mathf.Abs(h.point.y - feetY) > GroundReach) continue;
+                // The nearest floor to the visitor's own level, so a shelf just above it does not win over the floor.
+                var d = Mathf.Abs(h.point.y - feetY);
+                if (d < best) { best = d; y = h.point.y; }
+            }
+            return y;
+        }
+
+        public const float GroundReach = 1.0f;
+
         float FloorBelow(Vector3 eye)
         {
             var origin = Head != null ? Head.GetComponentInParent<Unity.XR.CoreUtils.XROrigin>() : null;
@@ -498,7 +524,7 @@ namespace MuseXR.Interaction
                 var nr = Mathf.Max(CrowdMinRadius, Mathf.MoveTowards(Mathf.Max(r, CrowdMinRadius), targetR, step));
                 var next = feet + Quaternion.Euler(0f, na, 0f) * Vector3.forward * nr;
                 var moved = new Vector3(next.x - f.position.x, 0f, next.z - f.position.z);
-                f.position = new Vector3(next.x, feet.y, next.z);
+                f.position = new Vector3(next.x, GroundAt(next, feet.y), next.z);
                 _speeds[_ids[i]] = moved.magnitude / Mathf.Max(dt, 1e-5f);
                 if (moved.magnitude / Mathf.Max(dt, 1e-5f) > 0.25f)
                 {
@@ -632,7 +658,7 @@ namespace MuseXR.Interaction
                 var place = CrowdPlaces[SlotOf(i)];
                 var yaw = _heading + place.Bearing;
                 var at = body.Feet + Quaternion.Euler(0f, yaw, 0f) * Vector3.forward * Clear(body.Feet, yaw, place.Distance);
-                f.SetPositionAndRotation(new Vector3(at.x, body.Feet.y, at.z), Quaternion.LookRotation(-(Quaternion.Euler(0f, yaw, 0f) * Vector3.forward), Vector3.up));
+                f.SetPositionAndRotation(new Vector3(at.x, GroundAt(at, body.Feet.y), at.z), Quaternion.LookRotation(-(Quaternion.Euler(0f, yaw, 0f) * Vector3.forward), Vector3.up));
             }
         }
 

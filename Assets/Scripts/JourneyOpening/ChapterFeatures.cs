@@ -297,7 +297,13 @@ namespace MuseXR.Journey
         // Her rule: the easel lights once a painting has been looked at and the companions heard.
         bool _unlocked;
         int _repliesAtArrival = -1;
-        string _artworkId = "aic-28560";
+        public const string BedroomId = "aic-28560";
+        string _artworkId = BedroomId;
+        bool _bedroomSeen;
+
+        void OnEnable() => MasterInsights.Spoke += OnSpoke;
+        void OnDisable() => MasterInsights.Spoke -= OnSpoke;
+        void OnSpoke(InsightTarget t) { if (t != null && t.id == BedroomId && Arrived) _bedroomSeen = true; }
         TextMeshPro _prompt;
         CompanionGroup _group;
         Vector3 _exit = new Vector3(3.1f, 0f, -5.3f);
@@ -351,18 +357,16 @@ namespace MuseXR.Journey
                 _skyMat.SetTextureOffset("_BaseMap", o);
             }
             if (_group == null && _layout != null && Arrived) _group = ChapterFeatures.Crowd(_layout, transform);
-            // Her reply to a work ("What is this painting to you?") is asked by the shared insights
-            // (MasterInsights) after every master's opening; answering one here lights the easel.
+            // Her rule (chapter C): "After viewing The Bedroom the easel lights up". Viewing is the companions speaking
+            // on it (a click or walking up, OnSpoke); a reply recorded for it counts too. Any other work no longer does
+            // (Saul, 5 Oct: it lit after any painting).
             if (!_unlocked && Arrived)
             {
                 var replies = JourneyMemory.Record.Replies;
                 if (_repliesAtArrival < 0) _repliesAtArrival = replies.Count;
-                else if (replies.Count > _repliesAtArrival)
-                {
-                    var last = replies[replies.Count - 1].artworkId;
-                    if (!string.IsNullOrEmpty(last)) _artworkId = last;
-                    Unlock();
-                }
+                else for (var i = _repliesAtArrival; i < replies.Count; i++)
+                    if (replies[i].artworkId == BedroomId) { _bedroomSeen = true; break; }
+                if (_bedroomSeen) { _artworkId = BedroomId; Unlock(); }
             }
             if (_easel == null || _kept || !_unlocked) return;
             UpdatePots();
@@ -399,7 +403,9 @@ namespace MuseXR.Journey
             var m = ChapterFeatures.Lit(Color.white, 0f, 0.35f);
             m.SetTexture("_BaseMap", tex);
             relief.gameObject.AddComponent<MeshRenderer>().sharedMaterial = m;
-            Exhibit.Make(relief.gameObject, "aic-28560", "The Bedroom", "Vincent van Gogh");   // the hung one's id: one painting, one record
+            Exhibit.Make(relief.gameObject, BedroomId, "The Bedroom", "Vincent van Gogh");   // the hung one's id: one painting, one record
+            // Her rule: viewing The Bedroom is what lights the easel, so the compass leads there first.
+            CompassTarget.Add(relief.gameObject, 24, "The Bedroom", "Walk up to it and hear your companions");
             var lamp = new GameObject("Raking light").AddComponent<Light>();   // a light from the side brings the ridges out
             lamp.transform.SetParent(root, false); lamp.transform.localPosition = new Vector3(-BedroomWidth * 0.7f, h + 0.3f, -1.2f);
             lamp.type = LightType.Point; lamp.range = 7f; lamp.intensity = 2.2f; lamp.color = new Color(1f, 0.92f, 0.8f);
@@ -484,7 +490,7 @@ namespace MuseXR.Journey
             _prompt = promptAt.gameObject.AddComponent<TextMeshPro>();
             _prompt.fontSize = 0.9f; _prompt.alignment = TextAlignmentOptions.Center; _prompt.color = new Color(0.98f, 0.95f, 0.86f);
             _prompt.rectTransform.sizeDelta = new Vector2(1.8f, 0.4f);
-            _prompt.text = "Look at a painting and hear the companions first";
+            _prompt.text = "Look at The Bedroom and hear the companions first";
             _prompt.color = new Color(0.8f, 0.78f, 0.72f);
             // Until then the compass leads to the paintings (each hung work is already a target).
 
