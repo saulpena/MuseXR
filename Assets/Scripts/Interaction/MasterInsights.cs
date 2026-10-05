@@ -198,14 +198,13 @@ namespace MuseXR.Interaction
             _lastClicked = t; _lastClickAt = Time.time;
             // The Gate's opening (company chosen, stepping out, answering): a tap waits for it (other agent, 5 Oct).
             if (OpeningUnderway) { _queued = t; return; }
-            // A tap on the SAME piece while they are speaking is kept and answered when they finish (ignored, it read as
-            // a broken pointer: the turtle tapped during the crane's reading, 4 Oct). A DIFFERENT piece cuts the old
-            // round off - its voices, its lines still to come, its readings on their way (Saul, 5 Oct: two lines on the
-            // woman washing her feet played before the Mona Lisa's).
+            // Saul, 5 Oct: one round per piece at a time. The SAME piece again while its round is still going does nothing
+            // (it used to queue and play the whole round a second time - the Buddha, clicked twice). A DIFFERENT piece
+            // cuts the old round off - its voices, its lines still to come, its readings on their way.
             if (_group.Busy || _pending != null || _thinkingAbout != null)
             {
-                if (_lastTarget != null && _lastTarget != t) Interrupt();
-                else if (_group.Busy) { _queued = t; return; }
+                if (_lastTarget == t) return;
+                Interrupt();
             }
             _rule.Clicked(t.id);
             Speak(t);

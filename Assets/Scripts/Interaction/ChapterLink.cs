@@ -51,6 +51,7 @@ namespace MuseXR.Interaction
                 c.gameObject.SetActive(!world && c.name.StartsWith("Chapter ") && c.GetComponent<ChapterExit>() == null);
             }
             nextFrame.gameObject.SetActive(true);
+            WorldReveal.Begin(nextFrame);   // its pieces come up one by one from now, not at the crossing (Saul, 5 Oct)
             pivot.SetParent(nextFrame, true);
             Debug.Log("[Journey] " + gate.name + " open: " + nextFrame.name + " stands behind it");
         }
@@ -154,7 +155,8 @@ namespace MuseXR.Interaction
             if (cc != null) cc.enabled = true;
             yield return null;   // A's floors and colliders are gone before B's are made
             foreach (Transform c in nextFrame)
-                if (c.GetComponent<GaussianSplatting.Runtime.GaussianSplatRenderer>() == null && !c.gameObject.activeSelf) Appear.In(c.gameObject, ArriveFade);   // nothing pops (Saul, 5 Oct)
+                if (c.GetComponent<GaussianSplatting.Runtime.GaussianSplatRenderer>() == null && !c.gameObject.activeSelf) c.gameObject.SetActive(true);
+            WorldReveal.Begin(nextFrame);   // the rest of its pieces join the same one-by-one fade (Saul, 5 Oct)
             yield return null;
             yield return new WaitForFixedUpdate();
             if (gravity != null) gravity.enabled = true;

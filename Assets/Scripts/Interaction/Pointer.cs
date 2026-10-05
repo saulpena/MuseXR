@@ -33,6 +33,9 @@ namespace MuseXR.Interaction
         public event Action<Pointable, Pointer> Selected;
 
         /// <summary>Make <paramref name="go"/> pointable. Adds a collider fitted to its renderers if it has none.</summary>
+        /// <summary>Wider than this (m) a piece is pointed at by its own surfaces, not one box round it.</summary>
+        public const float LargePiece = 3f;
+
         public static Pointable Make(GameObject go, string id)
         {
             var p = go.GetComponent<Pointable>();
@@ -41,6 +44,20 @@ namespace MuseXR.Interaction
             if (go.GetComponentInChildren<Collider>() == null)
             {
                 var rs = go.GetComponentsInChildren<Renderer>();
+                // A piece big enough to stand inside (the five Buddhas: one mesh 10 m across) gets colliders on its own
+                // surfaces. One box round it all contained the visitor, and a ray that starts inside a box never hits it:
+                // the group answered a click only from behind (Saul, 5 Oct).
+                if (rs.Length > 0)
+                {
+                    var all = rs[0].bounds; foreach (var r in rs) all.Encapsulate(r.bounds);
+                    if (Mathf.Max(all.size.x, all.size.z) > LargePiece)
+                    {
+                        var any = false;
+                        foreach (var mf in go.GetComponentsInChildren<MeshFilter>())
+                            if (mf.sharedMesh != null) { mf.gameObject.AddComponent<MeshCollider>().sharedMesh = mf.sharedMesh; any = true; }
+                        if (any) return p;
+                    }
+                }
                 var box = go.AddComponent<BoxCollider>();
                 if (rs.Length > 0)
                 {

@@ -21,7 +21,7 @@ namespace MuseXR.UI
         // About 29 deg below the eye line for the card and 43 deg for the compass: a natural glance down
         // (15-25 deg) brings the card into view; looking ahead it stays below the view. At 45 deg the
         // card needed a deliberate stare down and sat cut off at the frame's lower edge (review, 4 Oct).
-        public const float LineAhead = 0.62f, LineDrop = 0.62f, CompassAhead = 0.52f, CompassDrop = 1.0f;   // Saul, 4 Oct: half a metre lower
+        public const float LineAhead = 0.62f, LineDrop = 0.62f, CompassAhead = 0.52f, CompassDrop = 1.1f;   // Saul, 4 Oct: half a metre lower; 5 Oct: 10 cm more, it touched the card
         /// <summary>The panel re-centres on the view direction once the head is this far off it, easing over -
         /// following the body alone (40 deg dead zone) left it at the lower left of the view.</summary>
         public const float RecentreDegrees = 20f, RecentreDegreesPerSecond = 110f;
@@ -188,7 +188,7 @@ namespace MuseXR.UI
             // Her dialogue card.
             _lineAnchor = new GameObject("Line").transform; _lineAnchor.SetParent(transform, false);
             var lc = MuseUi.Canvas(_lineAnchor, "Line Canvas", 1.15f, 560f);   // sized as if 1.15 m away: legible at a glance down
-            var card = MuseUi.Card(lc, Paper, 0f, PaperEdge, 1f, padX: 18f, padY: 14f, gap: 8f, name: "Line Card");
+            var card = MuseUi.Card(lc, Paper, MuseTheme.PanelRadius, PaperEdge, 1f, padX: 18f, padY: 14f, gap: 8f, name: "Line Card");
             // Saul, 5 Oct: a title saying what they are talking about - "On Mona Lisa" - at the top of the card. It keeps
             // its height when empty, so the card never changes size.
             _topic = Serif(card, "", 13f, NameInk, "Topic");
