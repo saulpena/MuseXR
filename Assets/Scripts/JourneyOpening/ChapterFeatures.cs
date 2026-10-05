@@ -287,8 +287,12 @@ namespace MuseXR.Journey
         /// "the highest surface" found the canvas's edge and floated the pots in front of it.
         /// </summary>
         static readonly Vector3 EaselShelf = new Vector3(0f, 0.84f, -0.31f);
-        LineRenderer _stroke;
-        readonly List<Vector3> _points = new List<Vector3>();
+        // The stroke: smoothed, at most 256 points, drawn as a flat ribbon turned with the brush (StrokeBrush).
+        GameObject _stroke;
+        Mesh _strokeMesh;
+        readonly StrokeBrush _brush = new StrokeBrush();
+        IReadOnlyList<Vector3> _points => _brush.Points;
+        int _reacted;
         bool _drawing, _awaitingKeep, _kept;
         // Her rule: the easel lights once a painting has been looked at and the companions heard.
         bool _unlocked;
@@ -571,12 +575,7 @@ namespace MuseXR.Journey
             {
                 if (source.Trigger)
                 {
-                    var p = Tip(aim);
-                    if (_points.Count == 0 || Vector3.Distance(p, _points[_points.Count - 1]) > 0.015f)
-                    {
-                        if (_points.Count < JourneyRecord.MaxStrokePoints) _points.Add(p);
-                        _stroke.positionCount = _points.Count; _stroke.SetPositions(_points.ToArray());
-                    }
+                    if (_brush.Add(Tip(aim), aim.up)) RedrawRibbon();
                 }
                 else EndStroke();
             }
@@ -585,21 +584,33 @@ namespace MuseXR.Journey
         void BeginStroke()
         {
             _drawing = true;
-            _points.Clear();
-            if (_stroke != null) Destroy(_stroke.gameObject);
-            var go = new GameObject("Stroke line");
-            go.transform.SetParent(_strokeRoot, false);
-            _stroke = go.AddComponent<LineRenderer>();
-            _stroke.useWorldSpace = true;
-            _stroke.widthCurve = new AnimationCurve(new Keyframe(0f, 0.035f), new Keyframe(1f, 0.018f));
-            _stroke.numCapVertices = 6; _stroke.numCornerVertices = 4;
-            _stroke.material = ChapterFeatures.Unlit(Pots[_colour].colour);
+            _brush.Clear();
+            if (_stroke != null) Destroy(_stroke);
+            // A ribbon in world space, lit so the band reads its turns, both faces painted (wet paint: a little gloss).
+            _stroke = new GameObject("Stroke ribbon", typeof(MeshFilter), typeof(MeshRenderer));
+            _stroke.transform.SetParent(_strokeRoot, false);   // it belongs to the studio, and leaves with it
+            _strokeMesh = new Mesh { name = "stroke" };
+            _strokeMesh.MarkDynamic();
+            _stroke.GetComponent<MeshFilter>().sharedMesh = _strokeMesh;
+            var mat = ChapterFeatures.Lit(Pots[_colour].colour, 0f, 0.55f);
+            mat.SetFloat("_Cull", 0f);
+            var mr = _stroke.GetComponent<MeshRenderer>();
+            mr.sharedMaterial = mat; mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        /// <summary>The ribbon in the stroke root's own space, so it moves and goes with the chapter.</summary>
+        void RedrawRibbon()
+        {
+            var t = _stroke.transform;
+            var pts = new List<Vector3>(_brush.Count); var ups = new List<Vector3>(_brush.Count);
+            for (var i = 0; i < _brush.Count; i++) { pts.Add(t.InverseTransformPoint(_brush.Points[i])); ups.Add(t.InverseTransformDirection(_brush.Ups[i])); }
+            StrokeBrush.BuildRibbon(_strokeMesh, pts, ups);
         }
 
         void EndStroke()
         {
             _drawing = false;
-            if (_points.Count < 4) { _prompt.text = "A longer stroke - hold the trigger and draw"; return; }
+            if (_points.Count < 4) { if (_stroke != null) Destroy(_stroke); _prompt.text = "A longer stroke - hold the trigger and draw"; return; }
             _awaitingKeep = true;
             _prompt.text = "A  Keep this stroke      B  Redraw";
             ConfirmInput.Take(this);
@@ -617,10 +628,7 @@ namespace MuseXR.Journey
             JourneyMemory.Record.MarkChapterDone(VrStage.VanGogh);
             _prompt.text = "Saved  ·  " + Pots[_colour].name + " stroke  ·  linked to " + ArtworkTitle(_artworkId);
             StartCoroutine(GrowToDoor());
-            var vg = Masters.VanGogh;
-            var line = "You pressed hardest at the very start and lighter as you went. Whatever is on your mind was heaviest at the beginning";
-            if (_group != null) _group.Say(vg, line);
-            ChapterFeatures.Voice(this, vg, line);
+            React(StrokeBrush.Describe(_points), Pots[_colour].name);
             return true;
         }
 
@@ -629,10 +637,48 @@ namespace MuseXR.Journey
             if (!_awaitingKeep) return false;
             _awaitingKeep = false;
             ConfirmInput.Drop(this);
-            if (_stroke != null) Destroy(_stroke.gameObject);
-            _points.Clear();
+            if (_stroke != null) Destroy(_stroke);
+            _brush.Clear();
             _prompt.text = Pots[_colour].name + ".  Hold the trigger and paint one stroke in the air";
             return true;
+        }
+
+        /// <summary>
+        /// Van Gogh answers the stroke the visitor actually made - its colour, its length, which way it went, how it
+        /// wandered - live; his fallback line is built from the same reading, so even offline it is about this stroke.
+        /// </summary>
+        async void React(string stroke, string colour)
+        {
+            var token = ++_reacted;
+            var vg = Masters.VanGogh;
+            var asked = JourneyMemory.Record != null ? JourneyMemory.Record.Question : "";
+            var question = "In Van Gogh's studio the room asks: 'What does your hand say that words cannot?' "
+                         + "The visitor dipped the brush in " + colour.ToLowerInvariant() + " and painted one stroke in the air: " + stroke + ". "
+                         + (string.IsNullOrWhiteSpace(asked) ? "" : "They came into the museum asking: \"" + asked.Trim() + "\". ")
+                         + "As Van Gogh, tell them what you read in that stroke, to them, in one or two short sentences, under 35 words. No numbers.";
+            DialogueContext.Set("You painted one stroke in " + colour.ToLowerInvariant());
+            string line = null;
+            try
+            {
+                var live = await MasterInsights.Ensure().AskMasters(question, new[] { vg }, "your stroke", "one stroke of " + colour.ToLowerInvariant() + " paint in the air");
+                if (live != null) live.TryGetValue(vg, out line);
+            }
+            catch (System.Exception ex) { Debug.LogWarning("[VanGogh] live reaction: " + ex.Message); }
+            if (this == null || token != _reacted) return;
+            if (string.IsNullOrWhiteSpace(line)) line = CannedReading(stroke, colour);
+            Debug.Log("[VanGogh] on the stroke (" + stroke + "): " + line);
+            if (_group != null) _group.Say(vg, line);
+            ChapterFeatures.Voice(this, vg, line);
+        }
+
+        /// <summary>Offline only: his reading built from the stroke itself, never one fixed sentence for every stroke.</summary>
+        internal static string CannedReading(string stroke, string colour)
+        {
+            var shape = stroke.Contains("rising") ? "It climbs, like a cypress reaching for the stars."
+                      : stroke.Contains("falling") ? "It comes down, the way rain falls on a field: something set down, not lost."
+                      : "It goes across, the way a horizon holds a whole field together.";
+            var path = stroke.Contains("curling") || stroke.Contains("winding") ? " And it turns; you did not want to go straight." : stroke.Contains("nearly straight") ? " And it does not hesitate." : "";
+            return "In " + colour.ToLowerInvariant() + ". " + shape + path;
         }
 
         static string ArtworkTitle(string id)
