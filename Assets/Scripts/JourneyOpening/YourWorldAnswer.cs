@@ -70,7 +70,7 @@ namespace MuseXR.Journey
         {
             _stage = 1;
             var panel = TorsoPanel.Get();
-            if (panel != null) panel.ShowLine(null, "Your answer  ·  at the stone", "\"" + _draft + "\"", "A keep  ·  X rewrite via Socrates  ·  Y say my own", "Your answer");
+            if (panel != null) panel.ShowLine(null, "Your answer  ·  at the stone", "\"" + _draft + "\"", "A keep  ·  X rewrite via " + Masters.Name(ChapterFeatures.Challenger()) + "  ·  Y say my own", "Your answer");
             ConfirmInput.Take(this);
         }
 
@@ -80,7 +80,7 @@ namespace MuseXR.Journey
             var final = _stage == 2 ? _rewrite : _draft;
             var rec = JourneyMemory.Record;
             if (_stage == 1 && string.IsNullOrWhiteSpace(rec.FinalAnswer.Draft)) rec.FinalAnswer.Draft = _draft;
-            rec.FinalAnswer.Final = final; rec.FinalAnswer.RewrittenBy = _stage == 2 ? "socrates" : "self";
+            rec.FinalAnswer.Final = final; rec.FinalAnswer.RewrittenBy = _stage == 2 ? ChapterFeatures.Challenger() : "self";
             _stage = 0;
             if (_ending != null) _ending.SetAnswer(final);
             var panel = TorsoPanel.Get(); if (panel != null) panel.ClearLine();
@@ -104,7 +104,7 @@ namespace MuseXR.Journey
             if (_rewriting) return;
             _rewriting = true;
             var panel = TorsoPanel.Get();
-            if (panel != null) panel.ShowLine(Masters.Socrates, "Rewrite  ·  through Socrates' question", "Socrates is turning your answer over…", null, "Your answer");
+            if (panel != null) panel.ShowLine(ChapterFeatures.Challenger(), "Rewrite  ·  through " + Masters.Name(ChapterFeatures.Challenger()) + "'s question", Masters.Name(ChapterFeatures.Challenger()) + " is turning your answer over…", null, "Your answer");
             string live = null;
             try { live = await MonetFeatures.RewriteLive(JourneyMemory.Record, _draft); }
             catch (System.Exception ex) { Debug.LogWarning("[YourWorld] rewrite failed: " + ex.Message); }
@@ -112,7 +112,7 @@ namespace MuseXR.Journey
             if (this == null || _stage == 0) return;
             _rewrite = !string.IsNullOrWhiteSpace(live) ? live.Trim().Trim('"') : "What I carry back is what I would still choose if nobody handed it to me";
             _stage = 2;
-            if (panel != null) panel.ShowLine(Masters.Socrates, "Rewrite  ·  through Socrates' question", "\"" + _rewrite + "\"" + (live == null ? "   (local fallback)" : ""), "A use this one  ·  B back to the first", "Your answer");
+            if (panel != null) panel.ShowLine(ChapterFeatures.Challenger(), "Rewrite  ·  through " + Masters.Name(ChapterFeatures.Challenger()) + "'s question", "\"" + _rewrite + "\"" + (live == null ? "   (local fallback)" : ""), "A use this one  ·  B back to the first", "Your answer");
         }
 
         void SayOwn()
