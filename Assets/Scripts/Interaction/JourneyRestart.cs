@@ -29,6 +29,7 @@ namespace MuseXR.Interaction
             JourneyMemory.Reset();
             CompassBrief.Reset();
             ArtworkCard.Hushed = false;
+            ConfirmInput.Clear();
         }
 
         IEnumerator Run()

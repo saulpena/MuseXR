@@ -63,6 +63,10 @@ namespace MuseXR.Interaction
         /// <summary>Stop routing to <paramref name="target"/>: A goes back to whoever held it before.</summary>
         public static void Drop(IConfirmable target) => Held.Remove(target);
 
+        /// <summary>Nobody holds A or B: a fresh journey (Start again reloads the scene, and the old scene's holders -
+        /// the Gate's company among them - stayed in the list beneath whatever the new one took).</summary>
+        public static void Clear() => Held.Clear();
+
         /// <summary>Press A or B from code: the test harness.</summary>
         public static bool PressA() => Press("A", f => f.Confirm());
         public static bool PressB() => Press("B", f => f.Redo());
