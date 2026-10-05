@@ -153,7 +153,8 @@ namespace MuseXR.Interaction
         void Update()
         {
             UpdateReplies();
-            if (Time.time >= _nextSweep) { _nextSweep = Time.time + 1f; Exhibit.Sweep(); }   // every piece on show answers and is tracked
+            if (Time.time >= _nextSweep) { _nextSweep = Time.time + 1f; Exhibit.Sweep(); MakeAskable(); }
+            UpdateAskTalk();   // every piece on show answers and is tracked
             // The round table is running: no gazing at a painting beside it starts a reading, and none
             // still in flight lands among the table's turns under their "Based on" lines.
             if (ArtworkCard.Hushed) { if (_pending != null) { _pending = null; _asking++; } return; }
@@ -220,6 +221,7 @@ namespace MuseXR.Interaction
 
         void Speak(InsightTarget t)
         {
+            _lastTarget = t;
             var speaker = _rule.NextSpeaker();
             if (speaker == null) return;
             DialogueContext.On(t.title);
@@ -305,8 +307,7 @@ namespace MuseXR.Interaction
             xb.center = (xlo + xhi) * 0.5f; xb.size = new Vector3(Mathf.Abs(xhi.x - xlo.x) + 0.02f, Mathf.Abs(xhi.y - xlo.y) + 0.02f, 0.02f);
             Pointable.Make(xh.gameObject, "replies close").Selected += (_, __) => CloseReplies();
             _replies = anchor.gameObject;
-            _replyEyeY = eye.position.y; _replyYaw = Mathf.Atan2(fwd.x, fwd.z) * Mathf.Rad2Deg; _replyXZ = new Vector3(eye.position.x, 0f, eye.position.z);
-            FollowReplies(true);
+            FollowVisitor.Attach(_replies);   // follows you like the masters' card (Saul, 5 Oct)
             Appear.In(_replies, 0.3f);   // eased, never popped (Saul, 5 Oct)
         }
 
@@ -333,38 +334,158 @@ namespace MuseXR.Interaction
             if (_replies == null) return;
             _replyAge += Time.deltaTime;
             if (ArtworkCard.Hushed) { CloseReplies(); return; }   // only the round table takes it away; no timer, no distance
-            FollowReplies(false);
         }
 
         RectTransform _closeChip;
-        float _replyEyeY, _replyYaw; Vector3 _replyXZ;
 
-        /// <summary>
-        /// Saul, 5 Oct: the replies follow the visitor like the masters' card - a fixed height, turning with them past
-        /// 20 degrees, still for small head movements - just above that card, so they never stay behind at the work.
-        /// </summary>
-        void FollowReplies(bool snap)
+        // ---- ask the masters (her web openAskDialogue; her VR doc: point at a companion for 3 short options, hold X to speak) ----
+
+        InsightTarget _lastTarget;
+        bool _askOpen;
+        UnityEngine.InputSystem.InputAction _askTalk;
+        MusePico.Dialogue.MuseumDialogue _askDialogue;
+
+        /// <summary>Each companion walking with the visitor can be pointed at to ask a question; not while they are still
+        /// being chosen at the Gate, where pointing invites them.</summary>
+        void MakeAskable()
         {
-            var cam = Camera.main != null ? Camera.main.transform : null;
-            if (cam == null || _replies == null) return;
-            var hf = cam.forward; hf.y = 0f;
-            var headYaw = hf.sqrMagnitude > 1e-6f ? Mathf.Atan2(hf.x, hf.z) * Mathf.Rad2Deg : _replyYaw;
-            if (snap) _replyYaw = headYaw;
-            else if (Mathf.Abs(Mathf.DeltaAngle(_replyYaw, headYaw)) > 20f)
-                _replyYaw = Mathf.MoveTowardsAngle(_replyYaw, headYaw, 110f * Time.deltaTime);
-            var flat = new Vector3(cam.position.x, 0f, cam.position.z);
-            var off = flat - _replyXZ;
-            if (off.magnitude > 0.3f) _replyXZ = flat - off.normalized * 0.3f;
-            var fwd = Quaternion.Euler(0f, _replyYaw, 0f) * Vector3.forward;
-            var at = new Vector3(_replyXZ.x, _replyEyeY - 0.22f, _replyXZ.z) + fwd * 1.1f;   // clear above the masters' card
-            var eye = new Vector3(_replyXZ.x, _replyEyeY, _replyXZ.z);
-            _replies.transform.SetPositionAndRotation(at, Quaternion.LookRotation(at - eye, Vector3.up));
+            if (_group == null || _voicesOnly) return;
+            var company = FindAnyObjectByType<CompanyStage>();
+            if (company != null && company.Current == CompanyStage.Phase.Choosing) return;
+            foreach (var id in _group.Ids)
+            {
+                if (!_group.Figures.TryGetValue(id, out var f) || f == null) continue;
+                var existing = f.Find("Ask hit");
+                if (existing != null)
+                {
+                    // The lanterns switch every collider on the masters off so the laser reaches past them; the slim
+                    // ask target stays live - they walk at the visitor's sides now, never between them and a lantern.
+                    var col = existing.GetComponent<Collider>(); if (col != null && !col.enabled) col.enabled = true;
+                    var pt = existing.GetComponent<Pointable>(); if (pt != null && !pt.enabled) pt.enabled = true;
+                    continue;
+                }
+                var hit = new GameObject("Ask hit");
+                hit.transform.SetParent(f, false);
+                var cap = hit.AddComponent<CapsuleCollider>();
+                cap.isTrigger = true; cap.center = new Vector3(0f, 0.9f, 0f); cap.height = 1.8f; cap.radius = 0.3f;
+                var who = id;
+                Pointable.Make(hit, "ask " + id).Selected += (_, __) => OpenAsk(who);
+            }
+        }
+
+        static string[] Suggestions(InsightTarget t) => t != null
+            ? new[] { "What do you see in " + t.title + "?", "What would you change in " + t.title + "?", "How does " + t.title + " answer my question?" }
+            : new[] { "What should I look at here?", "How would you answer my question?", "What have you noticed about me so far?" };
+
+        /// <summary>The ask panel: her "ASK - ALL THREE MASTERS ANSWER", three short questions, hold X to say your own, an x.</summary>
+        public void OpenAsk(string masterId)
+        {
+            if (Group() == null || ArtworkCard.Hushed) return;
+            CloseReplies();
+            var eye = Camera.main != null ? Camera.main.transform : null;
+            if (eye == null) return;
+            var anchor = new GameObject("Replies \u00b7 ask").transform;   // shares the replies slot: one question panel at a time
+            anchor.SetParent(transform, false);
+            var c = MuseUi.Canvas(anchor, "Replies", 1.5f, 300f);
+            var glass = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 12f, padY: 10f, gap: 6f, name: "Replies");
+            var top = MuseUi.Row(glass, 6f, TextAnchor.MiddleLeft, "Top");
+            var head = MuseUi.Text(top, "ASK  \u00b7  ALL THREE MASTERS ANSWER", MuseUi.Face.Sans, 8f, MuseTheme.Ink3, 0.16f, true, name: "Kicker");
+            head.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
+            var x = MuseUi.Card(top, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 7f, padY: 2f, gap: 0f, name: "Close");
+            MuseUi.Text(x, "\u00d7", MuseUi.Face.Sans, 13f, MuseTheme.Ink3, name: "X").enableWordWrapping = false;
+            x.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 0f;
+            var who = Masters.Name(masterId);
+            MuseUi.Text(glass, _lastTarget != null ? who + " turns toward " + _lastTarget.title + "." : who + " turns toward you.", MuseUi.Face.Serif, 12f, MuseTheme.Ink, name: "Prompt");
+            var asks = Suggestions(_lastTarget);
+            var chips = new List<(RectTransform rect, string q)>();
+            for (var i = 0; i < asks.Length; i++)
+            {
+                var chip = MuseUi.Card(glass, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Gold, 1f, padX: 9f, padY: 6f, gap: 6f, name: "Ask " + i);
+                var row = MuseUi.Row(chip, 7f, TextAnchor.MiddleLeft, "Row");
+                var n = MuseUi.Text(row, "0" + (i + 1), MuseUi.Face.Mono, 9f, MuseTheme.Ink3, name: "Number"); n.enableWordWrapping = false;
+                n.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 0f;
+                var l = MuseUi.Text(row, asks[i], MuseUi.Face.Sans, 10f, MuseTheme.Ink, name: "Label");
+                l.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
+                chips.Add((chip, asks[i]));
+            }
+            MuseUi.Text(glass, "Hold X and say your own question", MuseUi.Face.Sans, 8f, MuseTheme.Ink3, 0.12f, true, name: "Hint");
+            Canvas.ForceUpdateCanvases();
+            var corners = new Vector3[4];
+            foreach (var (rect, q) in chips)
+            {
+                rect.GetWorldCorners(corners);
+                var h = new GameObject("Hit ask").transform; h.SetParent(anchor, false);
+                var lo = anchor.InverseTransformPoint(corners[0]); var hi = anchor.InverseTransformPoint(corners[2]);
+                var box = h.gameObject.AddComponent<BoxCollider>();
+                box.center = (lo + hi) * 0.5f; box.size = new Vector3(Mathf.Abs(hi.x - lo.x), Mathf.Abs(hi.y - lo.y), 0.02f);
+                var question = q;
+                Pointable.Make(h.gameObject, "ask question").Selected += (_, __) => AskQuestion(question);
+            }
+            x.GetWorldCorners(corners);
+            var xh = new GameObject("Hit close").transform; xh.SetParent(anchor, false);
+            var xlo = anchor.InverseTransformPoint(corners[0]); var xhi = anchor.InverseTransformPoint(corners[2]);
+            var xb = xh.gameObject.AddComponent<BoxCollider>();
+            xb.center = (xlo + xhi) * 0.5f; xb.size = new Vector3(Mathf.Abs(xhi.x - xlo.x) + 0.02f, Mathf.Abs(xhi.y - xlo.y) + 0.02f, 0.02f);
+            Pointable.Make(xh.gameObject, "ask close").Selected += (_, __) => CloseReplies();
+            _replies = anchor.gameObject; _askOpen = true;
+            FollowVisitor.Attach(_replies);
+            Appear.In(_replies, 0.3f);
+        }
+
+        /// <summary>Hold X while the ask panel is open: the visitor's own question, transcribed.</summary>
+        void UpdateAskTalk()
+        {
+            if (_askTalk == null)
+            {
+                _askTalk = new UnityEngine.InputSystem.InputAction("ask-talk", UnityEngine.InputSystem.InputActionType.Button);
+                UnityEngine.InputSystem.InputActionSetupExtensions.AddBinding(_askTalk, "<XRController>{LeftHand}/primaryButton");
+                UnityEngine.InputSystem.InputActionSetupExtensions.AddBinding(_askTalk, "<Keyboard>/x");
+                _askTalk.Enable();
+            }
+            if (!_askOpen) return;
+            if (_askTalk.WasPressedThisFrame())
+            {
+                _askDialogue = FindAnyObjectByType<MusePico.Dialogue.MuseumDialogue>();
+                if (_askDialogue == null) return;
+                _askDialogue.TextDictated -= OnAskDictated; _askDialogue.TextDictated += OnAskDictated;
+                _askDialogue.ListenForText();
+            }
+            if (_askTalk.WasReleasedThisFrame() && _askDialogue != null) _askDialogue.FinishListening();
+        }
+
+        void OnAskDictated(string text)
+        {
+            if (_askDialogue != null) _askDialogue.TextDictated -= OnAskDictated;
+            if (!string.IsNullOrWhiteSpace(text)) AskQuestion(text.Trim());
+        }
+
+        /// <summary>The visitor's question to all three: kept for the round table, answered live in turn.</summary>
+        public async void AskQuestion(string question)
+        {
+            CloseReplies();
+            if (Group() == null || string.IsNullOrWhiteSpace(question)) return;
+            JourneyMemory.AddAsked(question);
+            DialogueContext.Set("You asked  \u00b7  " + question);
+            if (_client == null) { Debug.LogWarning("[Insight] no live dialogue: the question goes unanswered"); return; }
+            var token = ++_asking;
+            var ids = new List<string>(); foreach (var id in _group.Ids) ids.Add(ToRoster(id));
+            var lenses = MusePico.Dialogue.MasterRoster.Select(_roster, ids);
+            var art = _lastTarget != null ? new MusePico.Dialogue.ArtworkContext { Title = _lastTarget.title, Artist = _lastTarget.artist } : default(MusePico.Dialogue.ArtworkContext);
+            var result = await _client.AskAsync(question, lenses, art);
+            if (this == null || token != _asking) return;
+            if (!result.Live) { Debug.LogWarning("[Insight] asked question failed: " + result.Error); return; }
+            var lines = new List<KeyValuePair<string, string>>();
+            foreach (var p in result.Perspectives) lines.Add(new KeyValuePair<string, string>(FromRoster(p.speakerId), p.text));
+            DialogueContext.Set("You asked  \u00b7  " + question);
+            if (_group.Busy) _group.StopTurns();
+            _pending = lines;
+            Debug.Log("[Insight] asked: " + question + " -> " + lines.Count + " answers in " + result.Seconds.ToString("F1") + " s");
         }
 
         void CloseReplies()
         {
             if (_replies != null) Appear.Out(_replies, 0.25f, destroy: true);
-            _replies = null; _replyTo = null;
+            _replies = null; _replyTo = null; _askOpen = false;
         }
     }
 }

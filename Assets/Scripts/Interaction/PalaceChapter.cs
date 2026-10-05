@@ -301,6 +301,9 @@ namespace MuseXR.Interaction
                 _chipRoot.SetPositionAndRotation(_courtChipsAt,
                     away.sqrMagnitude > 1e-6f ? Quaternion.LookRotation(away.normalized, Vector3.up) : _courtChipsRot);
             }
+            // Saul, 5 Oct: the reasons follow the visitor like the masters' card, at a reading size for 1.3 m.
+            _chipRoot.localScale = Vector3.one * 0.6f;
+            FollowVisitor.Attach(_chipRoot.gameObject, 1.3f, 0.15f);
             var reasons = PalaceFlow.ReasonsFor(Flow.Piece);
             for (var i = 0; i < _chipText.Count; i++)
             {

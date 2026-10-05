@@ -233,8 +233,8 @@ namespace MuseXR.Journey
     {
         // Corridor in the chapter's space (probe captures, 4 Oct): the walk runs along -Z from the origin,
         // the hung works on the +x wall, a gold-draped ceiling about 3.5 m up, the side door at (3.1, -5.3).
-        public static readonly Vector3 CeilingCentre = new Vector3(0.7f, 3.25f, -7.5f);
-        public static readonly Vector2 CeilingSize = new Vector2(20f, 6.5f);   // along the corridor, across it
+        public static readonly Vector3 CeilingCentre = new Vector3(0.4f, 3.25f, -7.5f);
+        public static readonly Vector2 CeilingSize = new Vector2(20f, 5f);   // along the corridor, across it
         // Right of the end wall's centre: the AI study "Emotional Sky" hangs at the corridor's end too (her works plan).
         public static readonly Vector3 BedroomAt = new Vector3(2.0f, 0f, -17.3f);
         // Her 6 m does not fit under the 3.25 m ceiling: 3.6 m wide keeps the whole picture on the end wall.
@@ -737,6 +737,7 @@ namespace MuseXR.Journey
         readonly bool[] _workHeard = new bool[4];
         readonly List<Renderer> _chipBacks = new List<Renderer>();
         TextMeshPro _chipQuestion;
+        Component _ringPlate;
         bool AllWorksHeard => _workHeard[0] && _workHeard[1] && _workHeard[2] && _workHeard[3];
 
         Transform _layout, _rotunda;
@@ -863,7 +864,7 @@ namespace MuseXR.Journey
                 t.rectTransform.sizeDelta = new Vector2(0.3f, 0.08f);
             }
             var box = dial.AddComponent<BoxCollider>(); box.size = new Vector3(0.45f, 0.45f, 0.1f); box.isTrigger = true;
-            ChapterFeatures.Label(root, new Vector3(0f, 1.62f, 0f), Quaternion.identity, "Grip the time ring and turn  ·  Mist  ·  Afternoon  ·  Dusk", 1.4f, 0.55f);
+            _ringPlate = ChapterFeatures.Label(root, new Vector3(0f, 1.62f, 0f), Quaternion.identity, "Grip the time ring and turn  ·  Mist  ·  Afternoon  ·  Dusk", 1.4f, 0.55f);
 
             _driver = new GameObject("Time Ring Driver").AddComponent<TimeRingDriver>();
             _driver.transform.SetParent(root, false);
@@ -891,6 +892,7 @@ namespace MuseXR.Journey
             {
                 _turned = true;
                 StartCoroutine(ShowChips());
+                if (_ringPlate != null) Appear.Out(_ringPlate.gameObject, 0.4f);   // done with: it stood over the painting question
             }
             else if (!_turned)
                 Note(t + "  ·  " + _seen.Count + " / 3 moments\nTurn the ring to each moment and hear the companions");
@@ -912,7 +914,7 @@ namespace MuseXR.Journey
             {
                 var chip = new GameObject("Chip " + Works[i]).transform;
                 chip.SetParent(_chips.transform, false);
-                chip.localPosition = new Vector3((i - 1.5f) * 0.78f, -0.32f, 0f);
+                chip.localPosition = new Vector3((i % 2 - 0.5f) * 0.78f, -0.32f - (i / 2) * 0.27f, 0f);   // two by two: readable close up
                 _chipBacks.Add(ChapterFeatures.Quad(chip, "Back", new Vector3(0f, 0f, 0.004f), Quaternion.identity, new Vector2(0.72f, 0.22f), ChapterFeatures.Unlit(new Color(0.08f, 0.07f, 0.09f, 1f))).GetComponent<Renderer>());
                 var textGo = new GameObject("Text"); textGo.transform.SetParent(chip, false);   // not on the chip: adding TMP swaps its Transform and kills `chip`
                 var t = textGo.AddComponent<TextMeshPro>();
@@ -923,6 +925,9 @@ namespace MuseXR.Journey
                 Pointable.Make(chip.gameObject, "monet work " + i).Selected += (_, __) => TapWork(index);
             }
             Appear.In(_chips, 0.5f);   // eased, never popped (Saul, 5 Oct)
+            // Saul, 5 Oct: the question follows the visitor like the masters' card, not left at the ring.
+            _chips.transform.localScale = Vector3.one * 0.6f;
+            FollowVisitor.Attach(_chips, 1.3f, 0.12f);
             Note("Turn back to the moment you stop at, if you like\nTap each painting and hear the companions on it");
         }
 
@@ -1169,6 +1174,7 @@ namespace MuseXR.Journey
             var session = new VisitSession();
             var rec = JourneyMemory.Record;
             if (!string.IsNullOrEmpty(rec.Question)) session.RecordQuestion(rec.Question);
+            foreach (var q in JourneyMemory.Asked) session.RecordQuestion(q);   // what the visitor asked the masters on the way
             if (rec.Palace != null) session.RecordAnswer("the Palace", "kept the " + rec.Palace.Object + (rec.Palace.Reason.Length > 0 ? ", because " + rec.Palace.Reason : ""), "visitor");
             if (rec.Grotto != null) session.RecordAnswer("the Grotto", "set the lamp on the " + rec.Grotto.LampSlot, "visitor");
             if (rec.VanGogh != null) session.RecordAnswer("The Bedroom", "painted one " + rec.VanGogh.Color + " stroke toward the door", "visitor");
