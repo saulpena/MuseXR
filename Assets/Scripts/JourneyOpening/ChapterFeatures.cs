@@ -692,8 +692,9 @@ namespace MuseXR.Journey
         // side of the curved stone path; the rotunda ("Form my answer") stands near the start at (6.8, -3).
         public static readonly Vector3 WaveAt = new Vector3(0.2f, -0.35f, -11f);
         public const float WaveHeight = 4.6f;
-        public static readonly Vector3 LiliesAt = new Vector3(0.6f, 0f, -21f);
-        public const float LiliesWidth = 4.4f;
+        public static readonly Vector3 LiliesAt = new Vector3(-0.9f, 0f, -21f);   // centred on the pond: at 0.6 its right 1.6 m stood over the stone path
+        // Her spec: behind the wave, 8 m wide, standing on the water, a thin dark edge, its reflection below.
+        public const float LiliesWidth = 8f, LiliesWaterline = 0.15f, LiliesEdge = 0.06f, ReflectionDepth = 0.6f;
 
         static readonly string[] Works = { "Water Lilies", "Arrival of the Normandy Train, Gare Saint-Lazare", "Stacks of Wheat (End of Summer)", "Cliff Walk at Pourville" };
         static readonly string[] WorkIds = { "aic-16568", "aic-16571", "aic-64818", "aic-14620" };
@@ -815,10 +816,48 @@ namespace MuseXR.Journey
             root.SetParent(transform, false);
             root.localPosition = LiliesAt;
             root.localRotation = Quaternion.LookRotation(Vector3.back);   // read by a visitor coming down the path from +Z
-            var lilies = ChapterFeatures.Quad(root, "Canvas", new Vector3(0f, 0.15f + h / 2f, 0f), Quaternion.identity, new Vector2(LiliesWidth, h), ChapterFeatures.Unlit(Color.white, tex, true));
+            var lilies = ChapterFeatures.Quad(root, "Canvas", new Vector3(0f, LiliesWaterline + h / 2f, 0f), Quaternion.identity, new Vector2(LiliesWidth, h), ChapterFeatures.Unlit(Color.white, tex, true));
             Exhibit.Make(lilies.gameObject, "aic-16568", "Water Lilies", "Claude Monet");
-            ChapterFeatures.Label(transform, LiliesAt + new Vector3(2.6f, 1.3f, 0f), Quaternion.LookRotation(Vector3.back),
+            // Her thin dark edge: one dark sheet just behind the canvas (+Z is away from the viewer).
+            ChapterFeatures.Quad(root, "Edge", new Vector3(0f, LiliesWaterline + h / 2f, 0.02f), Quaternion.identity, new Vector2(LiliesWidth + 2f * LiliesEdge, h + 2f * LiliesEdge), ChapterFeatures.Unlit(new Color(0.06f, 0.05f, 0.04f), null, true));
+            Reflection(root, tex, h);
+            ChapterFeatures.Label(transform, LiliesAt + new Vector3(LiliesWidth / 2f + 1.4f, 1.3f, 0.3f), Quaternion.LookRotation(Vector3.back),
                 "<b>Water Lilies</b>  ·  Claude Monet  ·  1906  ·  Art Institute of Chicago\n<size=70%>Standing on the water, enlarged only, nothing changed</size>", 2.2f, 0.6f);
+        }
+
+        /// <summary>
+        /// Her spec: "with its reflection it reads as one 16-metre picture". The canvas mirrored below the waterline,
+        /// fading to nothing over <see cref="ReflectionDepth"/> of its height. URP/Unlit has no gradient, so the fade is
+        /// a stack of thin bands, each showing its strip of the image upside down at a lower alpha.
+        /// </summary>
+        void Reflection(Transform root, Texture2D tex, float h)
+        {
+            const int bands = 20;
+            var b = ReflectionDepth / bands;          // each band's share of the image height
+            var bandH = h * b;
+            for (var i = 0; i < bands; i++)
+            {
+                var m = ChapterFeatures.Unlit(Color.white, tex, true);
+                Transparent(m);
+                var k = 1f - (i + 0.5f) / bands;
+                // Strong at the waterline: fainter (0.55, cooler) it vanished against the capture's bright teal water.
+                m.SetColor("_BaseColor", new Color(0.86f, 0.9f, 0.95f, 0.85f * Mathf.Pow(k, 1.5f)));
+                // The band nearest the water shows the canvas's bottom strip, flipped: image v runs (i+1)b -> ib top to bottom.
+                m.SetTextureScale("_BaseMap", new Vector2(1f, -b));
+                m.SetTextureOffset("_BaseMap", new Vector2(0f, (i + 1) * b));
+                ChapterFeatures.Quad(root, "Reflection " + i, new Vector3(0f, LiliesWaterline - (i + 0.5f) * bandH, 0f), Quaternion.identity, new Vector2(LiliesWidth, bandH), m);
+            }
+        }
+
+        static void Transparent(Material m)
+        {
+            m.SetOverrideTag("RenderType", "Transparent");
+            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            m.SetFloat("_Surface", 1f); m.SetFloat("_Blend", 0f);
+            m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            m.SetFloat("_ZWrite", 0f);
+            m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
         }
 
         // ---- the time ring ---------------------------------------------------------------------------------
