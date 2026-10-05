@@ -215,7 +215,8 @@ namespace MuseXR.Journey
             // No preset: with Monet, Van Gogh and Socrates preselected a single A chose for the visitor
             // (headset test). Her demo preset is for the 3-minute demo route, not this walk.
             Company.Group.FollowVisitor = false;
-            Company.JoinCrowd = true;   // straight to their places beside the visitor, at a walk (Saul, 5 Oct)   // placed once beside the visitor, then they stand still
+            Company.JoinCrowd = true;
+            Company.Group.VoicedByOwner = true;   // SpeakTurn voices its lines; MasterInsights must not voice them again   // straight to their places beside the visitor, at a walk (Saul, 5 Oct)   // placed once beside the visitor, then they stand still
             // With a voice the clip times each turn; without one, reading time does (EstimateSeconds).
             Company.Group.TimeLinesByLength = dialogue == null || !dialogue.HasVoice;
             Company.Group.LineStarted += (id, line) => StartCoroutine(SpeakTurn(id, line));
@@ -466,7 +467,7 @@ namespace MuseXR.Journey
                     source.spatialBlend = 0.85f; source.minDistance = 2f; source.maxDistance = 25f;
                     source.rolloffMode = AudioRolloffMode.Linear; source.playOnAwake = false;
                 }
-                source.clip = clip; source.Play();
+                MusePico.Dialogue.VoiceGate.Play(source, clip);   // one master's voice at a time
                 _speaking = source;
                 for (float t = 0f; t < clip.length + 0.3f && source != null && source.isPlaying; t += Time.deltaTime) yield return null;
             }

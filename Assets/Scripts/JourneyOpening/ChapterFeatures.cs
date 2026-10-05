@@ -255,7 +255,7 @@ namespace MuseXR.Journey
             if (clip == null) yield break;
             var cam = Camera.main;
             if (cam == null) yield break;
-            AudioSource.PlayClipAtPoint(clip, cam.transform.position + cam.transform.right * 0.6f, 0.9f);
+            MusePico.Dialogue.VoiceGate.Play(clip, 0.9f);   // stoppable, and never over another master (was a one-shot)
         }
     }
 
@@ -1081,7 +1081,9 @@ namespace MuseXR.Journey
             var r = go.GetComponent<ParticleSystemRenderer>();
             r.renderMode = ParticleSystemRenderMode.Billboard;
             r.maxParticleSize = 0.012f;   // a mote passing the eye stays a fleck
-            var m = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+            // Particles/Unlit ships only because Resources/Materials/ParticlesUnlit.mat uses it: from code alone, Shader.Find
+            // found nothing in a build and the throw stopped the Grotto's setup cold (no rim, no keep, no arch - Quest, 5 Oct).
+            var m = new Material((Resources.Load<Material>("Materials/ParticlesUnlit") is Material pmat && pmat != null ? pmat.shader : (Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Universal Render Pipeline/Unlit"))));
             m.SetFloat("_Surface", 1f); m.SetFloat("_Blend", 2f);
             m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
             m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);

@@ -44,7 +44,9 @@ namespace MuseXR.Interaction
 
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
-            var m = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit")) { name = name + " (sparks)" };
+            // Particles/Unlit ships only because Resources/Materials/ParticlesUnlit.mat uses it: from code alone, Shader.Find
+            // found nothing in a build and the throw stopped the Grotto's setup cold (no rim, no keep, no arch - Quest, 5 Oct).
+            var m = new Material((Resources.Load<Material>("Materials/ParticlesUnlit") is Material pmat && pmat != null ? pmat.shader : (Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Universal Render Pipeline/Unlit")))) { name = name + " (sparks)" };
             m.SetFloat("_Surface", 1f); m.SetFloat("_Blend", 0f);   // drawn gold, not added: additive vanished on the sky
             m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
             m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);

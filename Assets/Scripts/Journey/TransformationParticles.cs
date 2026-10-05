@@ -187,7 +187,9 @@ namespace MusePico.Journey
                 }
             tex.Apply();
 
-            var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            // Particles/Unlit ships only because Resources/Materials/ParticlesUnlit.mat uses it: from code alone, Shader.Find
+            // found nothing in a build and the throw stopped the Grotto's setup cold (no rim, no keep, no arch - Quest, 5 Oct).
+            var shader = (Resources.Load<Material>("Materials/ParticlesUnlit") is Material pmat && pmat != null ? pmat.shader : (Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Universal Render Pipeline/Unlit")));
             var m = new Material(shader);
             m.SetTexture("_BaseMap", tex);
             m.SetFloat("_Surface", 1f);                                   // transparent
