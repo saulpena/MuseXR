@@ -218,6 +218,7 @@ namespace MuseXR.Journey
                 p.Unhovered += _ => light.intensity = 1.6f;
                 Tag(lantern, Chapters[i], Subtitles[i], i < 2 ? 2.05f : 2.75f);   // the far pair's names above the near pair's, as seen from the spawn
                 _lanterns.Add(lantern); _lights.Add(light);
+                Appear.In(lantern.gameObject, 0.7f);   // the lantern and its name come up with its glow
                 // It lights: its glow comes up.
                 for (float t = 0f; t < 0.7f; t += Time.deltaTime)
                 {
@@ -342,6 +343,7 @@ namespace MuseXR.Journey
                 _cardLine = MuseUi.Title(glass, "", 20f);
                 _cardNote = MuseUi.Body(glass, "");
                 _card = anchor.gameObject;
+                Appear.In(_card, 0.5f);   // eased in, never popped (Saul, 5 Oct)
             }
             PlaceCard();
             if (index < 0)
@@ -381,7 +383,7 @@ namespace MuseXR.Journey
         IEnumerator RetireCard()
         {
             yield return new WaitForSeconds(5f);
-            if (_card != null) _card.SetActive(false);
+            if (_card != null) Appear.Out(_card, 0.6f);
         }
 
         void LateUpdate()
@@ -399,7 +401,7 @@ namespace MuseXR.Journey
                     var toCard = _card.transform.position - _eye.position; var toTag = tag.position - _eye.position;
                     hide = toTag.magnitude < toCard.magnitude + 0.5f && Vector3.Angle(toCard, toTag) < 24f;
                 }
-                if (tag.gameObject.activeSelf == hide) tag.gameObject.SetActive(!hide);
+                Appear.Set(tag.gameObject, !hide, 0.25f);
             }
             // A teleport moves the eye in one frame: bring the card to the new spot. Walking (smooth
             // locomotion) never jumps, so also when the visitor has walked up to it or past it - at most
@@ -537,7 +539,7 @@ namespace MuseXR.Journey
             }
             if (frame != null) frame.localScale = Vector3.one * GateScale;
             if (!requested) sequence.RequestOpen();
-            first.gameObject.SetActive(false);
+            Appear.Out(first.gameObject, 0.3f);
             mg.Arrived += () => StartCoroutine(Arrive());
             foreach (var l in _lanterns) if (l != null) { var lt = l.GetComponent<CompassTarget>(); if (lt != null) lt.MarkDone(); }
             CompassTarget.Add(mg.gameObject, 20, "The moon gate", "Walk through to the Palace");
@@ -599,7 +601,7 @@ namespace MuseXR.Journey
                 SwapFigures(opening.Companions);
             }
             yield return null;
-            foreach (var c in palaceContent) if (c != null) c.SetActive(true);
+            foreach (var c in palaceContent) if (c != null && !c.activeSelf) Appear.In(c, ChapterLink.ArriveFade);   // nothing pops (Saul, 5 Oct)
             for (var i = 0; i < 30 && GameObject.Find("Teleport Floor") == null; i++) yield return null;
             yield return new WaitForFixedUpdate();
             if (gravity != null) gravity.enabled = true;

@@ -282,7 +282,7 @@ namespace MuseXR.Interaction
 
         void ShowChips(bool on)
         {
-            _chipRoot.gameObject.SetActive(on);
+            Appear.Set(_chipRoot.gameObject, on, 0.3f);   // eased, never popped (Saul, 5 Oct)
             if (!on) return;
             // Beside whichever was chosen: under the cards for the fallback, before the court otherwise.
             if (Flow.Kind == PalaceFlow.Mode.Card && Cards != null && Cards.Cards.Length > 0)

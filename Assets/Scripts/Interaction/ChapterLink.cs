@@ -106,6 +106,9 @@ namespace MuseXR.Interaction
             }
         }
 
+        /// <summary>The chapter's paintings, props and heroes come up over this once the visitor is through.</summary>
+        public const float ArriveFade = 0.8f;
+
         IEnumerator Arrive()
         {
             if (_arrived) yield break;
@@ -145,7 +148,7 @@ namespace MuseXR.Interaction
             if (cc != null) cc.enabled = true;
             yield return null;   // A's floors and colliders are gone before B's are made
             foreach (Transform c in nextFrame)
-                if (c.GetComponent<GaussianSplatting.Runtime.GaussianSplatRenderer>() == null) c.gameObject.SetActive(true);
+                if (c.GetComponent<GaussianSplatting.Runtime.GaussianSplatRenderer>() == null && !c.gameObject.activeSelf) Appear.In(c.gameObject, ArriveFade);   // nothing pops (Saul, 5 Oct)
             yield return null;
             yield return new WaitForFixedUpdate();
             if (gravity != null) gravity.enabled = true;

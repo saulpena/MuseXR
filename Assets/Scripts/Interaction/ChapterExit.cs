@@ -72,7 +72,7 @@ namespace MuseXR.Interaction
             if (transform.parent != null)
                 foreach (var t in transform.parent.GetComponentsInChildren<Transform>())
                     if (t.name.StartsWith("Exit ") && !t.IsChildOf(gate.transform) && !gate.transform.IsChildOf(t) && t.GetComponent<Renderer>() != null)
-                        t.gameObject.SetActive(false);
+                        Appear.Out(t.gameObject, 0.6f);
             var props = new List<GameObject>();
             // Its chapter's layout: the scene's roots, or - chained into one scene - its frame's children.
             foreach (var t in FindObjectsByType<Transform>(FindObjectsSortMode.None))

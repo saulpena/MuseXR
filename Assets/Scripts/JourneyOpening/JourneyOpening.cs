@@ -242,6 +242,9 @@ namespace MuseXR.Journey
                 RefreshPrompt(r == Invitation.Result.Refused ? "Three is the most. Point at one you have invited to release them first." : null);
             };
             RefreshPrompt();
+            // The row, its rings and name cards, and the prompt come up together rather than popping in (Saul, 5 Oct).
+            Appear.In(root.gameObject, 0.8f);
+            if (_prompt != null) Appear.In(_prompt, 0.8f);
             Debug.Log("[Opening] the Company stands on the walk; the question is: " + Company.Question);
         }
 
@@ -371,7 +374,7 @@ namespace MuseXR.Journey
             if (_prompt == null || Company == null) return;
             bool hidden = Company.Current == CompanyStage.Phase.Done
                           || (Company.Current == CompanyStage.Phase.Answering && _answersReady);
-            if (_prompt.activeSelf == hidden) _prompt.SetActive(!hidden);
+            Appear.Set(_prompt, !hidden, 0.3f);
         }
 
         async void OnCompanyPhase(CompanyStage.Phase phase)
@@ -382,7 +385,7 @@ namespace MuseXR.Journey
             if (phase == CompanyStage.Phase.Stepping || phase == CompanyStage.Phase.Answering) DialogueContext.Set("Your question  ·  " + Company.Question);   // the card's heading
             if (phase != CompanyStage.Phase.Choosing) RevealGateWorks();   // the company is confirmed: walking and the works
             if (phase == CompanyStage.Phase.Stepping)
-                foreach (var kv in _marks) { kv.Value.ring.gameObject.SetActive(false); kv.Value.state.transform.parent.parent.parent.gameObject.SetActive(false); }
+                foreach (var kv in _marks) { Appear.Out(kv.Value.ring.gameObject, 0.5f); Appear.Out(kv.Value.state.transform.parent.parent.parent.gameObject, 0.5f); }
             if (phase != CompanyStage.Phase.Stepping || _asked) return;
             _asked = true;
             // Asked when the doors opened (or baked): usually ready already. If a chosen master's line is

@@ -98,7 +98,13 @@ namespace MuseXR.UI
             // the chosen reason), and a strip built once kept showing the old line.
             if (phase != v.ShownPhase || (phase == ChoiceConfirm.Phase.Pending && st.Board.Choice.Summary != v.ShownSummary))
             {
-                if (v.Strip != null) Destroy(v.Strip.gameObject);
+                // Coming or going it eases (Saul, 5 Oct: nothing pops); a retitle in place just swaps.
+                var phaseChanged = phase != v.ShownPhase;
+                if (v.Strip != null)
+                {
+                    if (phaseChanged) MuseXR.Interaction.Appear.Out(v.Strip.parent.gameObject, 0.3f, destroy: true);
+                    else Destroy(v.Strip.parent.gameObject);
+                }
                 v.Strip = null; v.Undo = null;
                 if (phase == ChoiceConfirm.Phase.Pending)
                 {
@@ -112,6 +118,7 @@ namespace MuseXR.UI
                     v.Strip = MuseScreens.ConfirmStrip(anchor, detail, NearDistance,
                                                        () => st.Confirm(), () => st.Undo(), st.Board.Choice.UndoFraction);
                     v.Undo = FindText(v.Strip, "Undo");
+                    if (phaseChanged) MuseXR.Interaction.Appear.In(anchor.gameObject, 0.3f);
                 }
                 v.ShownPhase = phase;
                 v.ShownSummary = st.Board.Choice.Summary;

@@ -73,11 +73,11 @@ namespace MusePico.Journey
         public void HidePrompt()
         {
             _promptHidden = true;
-            if (_promptRoot != null) _promptRoot.SetActive(false);
+            if (_promptRoot != null) MuseXR.Interaction.Appear.Set(_promptRoot, false, 0.4f);
             // The faded question cards still took the trigger, so pointing at a master behind them
             // re-chose the question and shut the doors (headset test). They go with the prompt.
-            foreach (var a in _plateAnchors) if (a != null) a.gameObject.SetActive(false);
-            if (_undoPill != null) _undoPill.SetActive(false);
+            foreach (var a in _plateAnchors) if (a != null) { foreach (var p in a.GetComponentsInChildren<Collider>()) p.enabled = false; MuseXR.Interaction.Appear.Set(a.gameObject, false, 0.4f); }
+            if (_undoPill != null) MuseXR.Interaction.Appear.Set(_undoPill, false, 0.3f);
         }
         bool _promptHidden;
 
@@ -584,8 +584,14 @@ namespace MusePico.Journey
         {
             if (_entered) return;
             _entered = true;
-            if (_landing != null) _landing.SetActive(false);
             Buzz(0.2f, 0.05f);
+            StartCoroutine(LandingToQuestion());
+        }
+
+        /// <summary>The landing fades out, then the question fades in where it stood: overlapping, the two read as one muddle (5 Oct).</summary>
+        System.Collections.IEnumerator LandingToQuestion()
+        {
+            if (_landing != null) { MuseXR.Interaction.Appear.Out(_landing, 0.3f); yield return new WaitForSeconds(0.3f); }
             RefreshPrompt();
         }
 
@@ -741,7 +747,7 @@ namespace MusePico.Journey
                 _ => string.Empty,
             };
             _promptHint.text = note ?? hint;
-            if (_promptRoot != null) _promptRoot.SetActive(_entered && !_promptHidden && Flow.Current != GateFlow.Phase.Entered);
+            if (_promptRoot != null) MuseXR.Interaction.Appear.Set(_promptRoot, _entered && !_promptHidden && Flow.Current != GateFlow.Phase.Entered, 0.45f);
         }
 
         static void Buzz(float amplitude, float seconds)

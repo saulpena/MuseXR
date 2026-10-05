@@ -316,7 +316,7 @@ namespace MuseXR.Interaction
             if (_guide == null) return;
             var step = CurrentStep();
             if (step != _step) { _step = step; ShowStep(step); }
-            else if (_guide.gameObject.activeSelf && GuideInTheWay()) Seat(_step);
+            else if (!_reseating && _guide.gameObject.activeSelf && GuideInTheWay()) StartCoroutine(Reseat());
             // the rings pulse in brightness only: nothing moves
             var k = 0.55f + 0.45f * Mathf.Sin(Time.time * 3f);
             _ringMat.SetColor("_BaseColor", new Color(1f, 0.74f, 0.3f) * k);
@@ -324,7 +324,7 @@ namespace MuseXR.Interaction
 
         void ShowStep(Step step)
         {
-            foreach (var r in _rings) if (r != null) Destroy(r.gameObject);
+            foreach (var r in _rings) if (r != null) Appear.Out(r.gameObject, 0.4f, destroy: true);
             _rings.Clear();
             string text = null;
             switch (step)
@@ -353,10 +353,33 @@ namespace MuseXR.Interaction
                     if (arch != null) Ring(arch.transform.position - arch.transform.forward * (MuseXR.Worlds.MoonGate.StepDepth * 0.5f));
                     break;
             }
-            _guide.gameObject.SetActive(text != null);
-            if (text == null) return;
+            if (text == null) { Appear.Set(_guide.gameObject, false, 0.3f); return; }
+            StartCoroutine(Swap(text, step));
+        }
+
+        bool _reseating;
+
+        /// <summary>A new instruction: the old one fades, the plate is seated where the visitor now looks, the new one fades up.</summary>
+        IEnumerator Swap(string text, Step step)
+        {
+            _reseating = true;
+            if (_guide.gameObject.activeSelf) { Appear.Out(_guide.gameObject, 0.25f); yield return new WaitForSeconds(0.27f); }
+            if (_step != step) { _reseating = false; yield break; }   // overtaken by a newer step
             _guideText.text = text;
             Seat(step);
+            Appear.In(_guide.gameObject, 0.35f);
+            _reseating = false;
+        }
+
+        /// <summary>Walked into or left behind: it fades, moves, and fades up again rather than jumping.</summary>
+        IEnumerator Reseat()
+        {
+            _reseating = true;
+            Appear.Out(_guide.gameObject, 0.25f);
+            yield return new WaitForSeconds(0.27f);
+            Seat(_step);
+            Appear.In(_guide.gameObject, 0.35f);
+            _reseating = false;
         }
 
         /// <summary>Off the gaze to the left, below eye level, and then still (moving text made Saul sick).</summary>
@@ -402,6 +425,7 @@ namespace MuseXR.Interaction
             var r = q.GetComponent<Renderer>();
             r.sharedMaterial = _ringMat;
             _rings.Add(r);
+            Appear.In(q, 0.5f);
         }
 
         // ---- labels and icons --------------------------------------------------------------
@@ -581,6 +605,7 @@ namespace MuseXR.Interaction
             t.outlineWidth = 0.2f;
             t.outlineColor = new Color32(40, 28, 16, 255);
             t.text = text;
+            Appear.In(t.gameObject, 0.5f);
         }
 
         static Vector3 Flat(Vector3 v) { v.y = 0f; return v.sqrMagnitude < 1e-6f ? Vector3.forward : v.normalized; }

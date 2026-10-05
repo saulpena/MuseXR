@@ -172,7 +172,7 @@ namespace MuseXR.Interaction
             moonGate.Crossed += () =>
             {
                 gateTarget.MarkDone();
-                if (_afterKeep != null) Destroy(_afterKeep.gameObject);
+                if (_afterKeep != null) Appear.Out(_afterKeep.gameObject, 0.3f, destroy: true);
                 Companions.PlaceAll();   // round the visitor in the grotto
                 Debug.Log("[Palace] through the moon gate: in the grotto");
             };
@@ -202,6 +202,7 @@ namespace MuseXR.Interaction
             _afterKeep.outlineWidth = 0.2f;
             _afterKeep.outlineColor = new Color32(40, 28, 16, 255);
             _afterKeep.text = line;
+            Appear.In(_afterKeep.gameObject, 0.5f);
         }
 
         /// <summary>An invisible floor at the layout's ground, teleportable everywhere in the court.</summary>

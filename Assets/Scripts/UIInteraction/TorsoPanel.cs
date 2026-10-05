@@ -104,10 +104,12 @@ namespace MuseXR.UI
             // The ring stays for a system note too (empty): the card keeps one size whoever is speaking.
             _portrait.texture = tex;
             _portrait.color = tex != null ? Color.white : new Color(1f, 1f, 1f, 0f);
-            _lineCard.SetActive(true);
+            Appear.Set(_lineCard, true, CardFade);   // eased in and out, never popped (Saul, 5 Oct)
         }
 
-        public void ClearLine() { if (_lineCard != null) _lineCard.SetActive(false); }
+        const float CardFade = 0.25f;
+
+        public void ClearLine() { if (_lineCard != null) Appear.Set(_lineCard, false, CardFade); }
 
         /// <summary>A short system line on the card (no portrait), cleared after <paramref name="seconds"/>
         /// unless a master's line has taken its place.</summary>
@@ -252,7 +254,7 @@ namespace MuseXR.UI
             Page();
 
             var target = CompassTarget.Current(body.Feet);
-            _compassCard.SetActive(target != null);
+            Appear.Set(_compassCard, target != null, CardFade);
             if (target == null) return;
             var to = target.transform.position - body.Feet; to.y = 0f;
             var angle = Vector3.SignedAngle(fwd, to, Vector3.up);   // + is to the right

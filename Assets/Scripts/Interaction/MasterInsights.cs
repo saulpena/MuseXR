@@ -290,6 +290,7 @@ namespace MuseXR.Interaction
             }
             MuseUi.Text(glass, Disclaimer, MuseUi.Face.Sans, 6.5f, MuseTheme.Ink3, 0.12f, true, name: "Disclaimer");
             _replies = anchor.gameObject;
+            Appear.In(_replies, 0.3f);   // eased, never popped (Saul, 5 Oct)
         }
 
         /// <summary>The visitor's reply: her champion answers, the record keeps it.</summary>
@@ -321,7 +322,7 @@ namespace MuseXR.Interaction
 
         void CloseReplies()
         {
-            if (_replies != null) Destroy(_replies);
+            if (_replies != null) Appear.Out(_replies, 0.25f, destroy: true);
             _replies = null; _replyTo = null;
         }
     }

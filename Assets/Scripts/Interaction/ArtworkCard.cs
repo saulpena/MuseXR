@@ -58,6 +58,7 @@ namespace MuseXR.Interaction
             var card = go.AddComponent<ArtworkCard>();
             card._record = record; card._work = work; card._insight = insight;
             card.Build(workSize);
+            Appear.In(go, 0.3f);   // eased, never popped (Saul, 5 Oct)
             Current = card;
             // A and B are the card's only while nothing else holds them (a chapter's own choice keeps its A).
             if (ConfirmInput.Focus == null) { ConfirmInput.Take(card); card._tookInput = true; }
@@ -112,11 +113,15 @@ namespace MuseXR.Interaction
         {
             if (_tookInput) ConfirmInput.Drop(this);
             if (Current == this) Current = null;
-            if (this != null) Destroy(gameObject);
+            _closing = true;
+            if (this != null) Appear.Out(gameObject, 0.25f, destroy: true);
         }
+
+        bool _closing;
 
         void Update()
         {
+            if (_closing) return;
             if (_work == null) { Close(); return; }
             var eye = Camera.main != null ? Camera.main.transform : null;
             if (eye == null) return;

@@ -100,7 +100,8 @@ namespace MuseXR.Interaction
         }
 
         /// <summary>The choice is made: the card has done its job.</summary>
-        public void Close() { if (this != null) Destroy(gameObject); }
+        public void Close() { if (this != null) { _closed = true; Appear.Out(gameObject, 0.35f, destroy: true); } }
+        bool _closed;
 
         /// <summary>The visitor reached for the choice too early: the card pulses and says why.</summary>
         public void Nudge() => _nudge = 1.2f;
@@ -134,6 +135,7 @@ namespace MuseXR.Interaction
 
         void Update()
         {
+            if (_closed) return;   // fading out: its own distance fade must not fight it
             if (_group == null) return;
             var eye = Camera.main != null ? Camera.main.transform : null;
             float near = 1f;

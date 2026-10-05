@@ -137,7 +137,7 @@ namespace MuseXR.Interaction
         public void Toggle()
         {
             Open = !Open;
-            foreach (var i in _items) if (i.Copy != null) i.Copy.SetActive(Open);
+            foreach (var i in _items) if (i.Copy != null) Appear.Set(i.Copy, Open, 0.25f);   // eased, never popped (Saul, 5 Oct)
             _button.localScale = Vector3.one * (Open ? 0.9f : 1f);
             foreach (var p in Pointer.All) if (p.Source != null && p.Source.Hand == Hand.Left) p.Source.Buzz(0.25f, 0.05f);
         }
@@ -234,7 +234,7 @@ namespace MuseXR.Interaction
 
         void Show(bool on)
         {
-            if (_wrist != null && _wrist.gameObject.activeSelf != on) _wrist.gameObject.SetActive(on);
+            if (_wrist != null) Appear.Set(_wrist.gameObject, on, 0.25f);
         }
 
         void Layout()

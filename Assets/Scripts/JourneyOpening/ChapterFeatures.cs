@@ -922,6 +922,7 @@ namespace MuseXR.Journey
                 var index = i;
                 Pointable.Make(chip.gameObject, "monet work " + i).Selected += (_, __) => TapWork(index);
             }
+            Appear.In(_chips, 0.5f);   // eased, never popped (Saul, 5 Oct)
             Note("Turn back to the moment you stop at, if you like\nTap each painting and hear the companions on it");
         }
 
@@ -956,7 +957,7 @@ namespace MuseXR.Journey
             _picked = true; _pickedWork = i;
             if (_group != null && _group.Busy) _group.StopTurns();   // chosen: the takes on the others are moot (they ran on into the round table)
             JourneyMemory.Record.SetMonet(new JourneyRecord.MonetChoice { Preset = _time.ToString().ToLowerInvariant(), ArtworkId = WorkIds[i], Reason = Works[i] });
-            if (_chips != null) _chips.SetActive(false);
+            if (_chips != null) Appear.Out(_chips, 0.3f);
             // Her water chime comes from ChapterChimes when the choice reaches the record.
             // Her undo: 3 s to take it back with B; A keeps it at once.
             _undoUntil = Time.time + 3f;
@@ -981,7 +982,7 @@ namespace MuseXR.Journey
         {
             _undoUntil = 0f; _picked = false; _pickedWork = -1;
             ConfirmInput.Drop(this);
-            if (_chips != null) _chips.SetActive(true);
+            if (_chips != null) Appear.In(_chips, 0.3f);
             var panel = TorsoPanel.Get();
             if (panel != null) panel.ClearLine();
         }
