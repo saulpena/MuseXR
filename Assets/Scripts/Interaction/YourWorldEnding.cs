@@ -43,7 +43,7 @@ namespace MuseXR.Interaction
         TextMeshPro _engraving;
         TMPro.TextMeshProUGUI _mementoAnswer, _saveStatus;
         RectTransform _mementoCard;
-        GameObject _statusPill;
+        GameObject _statusPill, _buttonRow;
         Transform _stone;
 
         /// <summary>The kept answer changed (B at the answer stone, her "returns to the table"): re-engrave it, rewrite the memento.</summary>
@@ -379,6 +379,7 @@ namespace MuseXR.Interaction
         void Buttons(RectTransform canvas, Transform card)
         {
             var row = MuseUi.Row(canvas, 10f, TextAnchor.MiddleCenter, "Buttons");
+            _buttonRow = row.gameObject;
             var save = Button(row, "Save", MuseTheme.Gold, Color.white);
             var again = Button(row, "Start again", MuseTheme.Paper, MuseTheme.Ink);
             // Its own dark pill under the buttons, hidden until there is something to say: off the card, so a saved
@@ -418,7 +419,7 @@ namespace MuseXR.Interaction
 
         public void SaveMemento()
         {
-            var path = MementoSaver.Save(_mementoCard, MuseTheme.Paper);
+            var path = MementoSaver.Save(_mementoCard, MuseTheme.Paper, _buttonRow, _statusPill);
             if (_statusPill != null) _statusPill.SetActive(true);
             if (_saveStatus != null)
                 _saveStatus.text = path != null ? "Saved to Pictures/MUSE  ·  " + System.IO.Path.GetFileName(path) : "Could not save the memento";

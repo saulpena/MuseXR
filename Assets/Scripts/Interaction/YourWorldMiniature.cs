@@ -96,7 +96,8 @@ namespace MuseXR.Interaction
             var rec = JourneyMemory.Record;
             var anchor = new GameObject("Label").transform; anchor.SetParent(transform, false);
             // Clear above the model's arch (0.64 high in these units; at 0.42 the label cut across it, 5 Oct).
-            anchor.localPosition = new Vector3(0f, Mathf.Max(0.42f, _modelTop + 0.14f), 0f);
+            // Well clear of the arch: seen from standing height, close, the arch still crossed it at +0.14 (5 Oct).
+            anchor.localPosition = new Vector3(0f, Mathf.Max(0.5f, _modelTop + 0.32f), 0f);
             anchor.rotation = Quaternion.LookRotation(-toEye, Vector3.up);
             var c = MuseUi.Canvas(anchor, "Miniature", 1.8f, 300f);
             var card = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Gold, 1f, padX: 12f, padY: 9f, gap: 3f, name: "Card");

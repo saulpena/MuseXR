@@ -870,8 +870,7 @@ namespace MuseXR.Journey
             var rec = JourneyMemory.Record;
             rec.FinalAnswer.Final = null; rec.FinalAnswer.RewrittenBy = null;
             ArtworkCard.Hushed = true;
-            if (!string.IsNullOrEmpty(_rewrite) && _keptRewrite) ShowRewrite(); else ShowDraft();
-            Note("Back at the table\nKeep it, rewrite it, or say your own");
+            if (!string.IsNullOrEmpty(_rewrite) && _keptRewrite) ShowRewrite(); else ShowDraft();   // the card itself says A · X · Y
         }
 
         bool _keptRewrite;
@@ -1435,6 +1434,7 @@ namespace MuseXR.Journey
                 SeatAcross();
             }
             if (_tableSign != null) _tableSign.text = "Roundtable  ·  they look back on your walk";
+            DialogueContext.Set("Roundtable  ·  they look back on your walk");   // the card's title: not the garden's last subject
             Note("Roundtable  ·  they will look back on your walk");
 
             var result = RoundtableAsk();
@@ -1739,6 +1739,7 @@ namespace MuseXR.Journey
             var live = options != null && options.Count == 3;
             if (!live) options = OwnOptionsLocal(_draft);
             _ownOptions = options;
+            if (_tableSign != null) _tableSign.gameObject.SetActive(false);   // it stood behind the options and read through them
             _ownRoot = new GameObject("Say my own");
             _ownRoot.transform.SetParent(_rotunda, false);
             _ownRoot.transform.localPosition = new Vector3(0f, 1.85f, 0f);
@@ -1755,6 +1756,7 @@ namespace MuseXR.Journey
             if (_ownOptions == null || i < 0 || i >= _ownOptions.Count) return;
             _draft = _ownOptions[i];
             if (_ownRoot != null) { Destroy(_ownRoot); _ownRoot = null; }
+            if (_tableSign != null) _tableSign.gameObject.SetActive(true);
             ShowDraft();
         }
 

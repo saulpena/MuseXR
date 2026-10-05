@@ -30,23 +30,34 @@ namespace MuseXR.Interaction
         public static string FileName(DateTime when) => "memento-" + when.ToString("yyyyMMdd-HHmmss") + ".png";
 
         /// <summary>Render <paramref name="card"/> (a world-space canvas's rect) and save it. Returns the path, or null.</summary>
-        public static string Save(RectTransform card, Color paper)
+        public static string Save(RectTransform card, Color paper, params GameObject[] hide)
         {
             if (card == null) return null;
+
+            // The card alone, on the capture layer for one render. A world-space canvas is culled by its CANVAS's layer,
+            // not its children's (moving only the card's children rendered an empty page), so the whole canvas moves.
+            var root = card.GetComponentInParent<Canvas>() != null ? card.GetComponentInParent<Canvas>().rootCanvas.transform : card;
+            var layers = new System.Collections.Generic.List<(GameObject go, int layer)>();
+            foreach (var t in root.GetComponentsInChildren<Transform>(true)) { layers.Add((t.gameObject, t.gameObject.layer)); t.gameObject.layer = CaptureLayer; }
+            // The splat world draws into every camera whatever its culling mask (it painted over the whole card): off for this one render.
+            var splats = new System.Collections.Generic.List<Behaviour>();
+            foreach (var r in UnityEngine.Object.FindObjectsByType<GaussianSplatting.Runtime.GaussianSplatRenderer>(FindObjectsSortMode.None))
+                if (r.enabled) { r.enabled = false; splats.Add(r); }
+            // What sits under the card (its buttons, the status) stays out of the picture.
+            var hidden = new System.Collections.Generic.List<GameObject>();
+            if (hide != null) foreach (var h in hide) if (h != null && h.activeSelf) { h.SetActive(false); hidden.Add(h); }
+            Canvas.ForceUpdateCanvases();
+            // Measured only now: hiding what sits under the card re-lays the canvas and moves the card (it came out cut off).
             var corners = new Vector3[4];
             card.GetWorldCorners(corners);
             var centre = (corners[0] + corners[2]) * 0.5f;
             var width = Vector3.Distance(corners[0], corners[3]);
             var height = Vector3.Distance(corners[0], corners[1]);
-            if (width < 1e-4f || height < 1e-4f) return null;
-
-            // The card alone, on the capture layer for one render.
-            var layers = new System.Collections.Generic.List<(GameObject go, int layer)>();
-            foreach (var t in card.GetComponentsInChildren<Transform>(true)) { layers.Add((t.gameObject, t.gameObject.layer)); t.gameObject.layer = CaptureLayer; }
             var groups = card.GetComponentsInParent<CanvasGroup>(true);
             var alphas = new float[groups.Length];
             for (var i = 0; i < groups.Length; i++) { alphas[i] = groups[i].alpha; groups[i].alpha = 1f; }
 
+            width = Mathf.Max(width, 0.01f); height = Mathf.Max(height, 0.01f);
             var margin = 1.08f;
             var hPx = Mathf.RoundToInt(WidthPx * height / width);
             var rt = new RenderTexture(WidthPx, hPx, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
@@ -88,6 +99,8 @@ namespace MuseXR.Interaction
                 UnityEngine.Object.Destroy(camGo);
                 rt.Release(); UnityEngine.Object.Destroy(rt);
                 foreach (var (go, layer) in layers) if (go != null) go.layer = layer;
+                foreach (var b in splats) if (b != null) b.enabled = true;
+                foreach (var h in hidden) if (h != null) h.SetActive(true);
                 for (var i = 0; i < groups.Length; i++) if (groups[i] != null) groups[i].alpha = alphas[i];
             }
             return path;
