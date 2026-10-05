@@ -56,8 +56,23 @@ namespace MusePico.Generation
         float _startedAt;
         int _lastSamplePosition;
         SilenceDetector _silence;
+        // What has been heard since StartRecording, as captured (interleaved if the device is stereo).
+        readonly System.Collections.Generic.List<float> _heard = new System.Collections.Generic.List<float>();
+        string[] _devices;
 
-        public bool HasMicrophone => Microphone.devices != null && Microphone.devices.Length > 0;
+        /// <summary>
+        /// The microphone is opened ONCE and left running in a looping buffer; a push-to-talk only marks
+        /// where the utterance starts and ends in it. Saul, 4 Oct 2026: a hitch when the microphone starts
+        /// and when it ends, which his other apps never have. That was <c>Microphone.Start</c> and
+        /// <c>Microphone.End</c> on every turn: each opens or closes the audio device on the main thread.
+        /// The buffer only has to outlast one frame's read, so a few seconds is plenty.
+        /// </summary>
+        public const int BufferSeconds = 4;
+
+        /// <summary>Microphone.devices is a platform call (JNI on Android): asked once, not every turn.</summary>
+        string[] Devices => _devices != null && _devices.Length > 0 ? _devices : (_devices = Microphone.devices);
+
+        public bool HasMicrophone => Devices != null && Devices.Length > 0;
 
         /// <summary>
         /// The device in use, or the first one available before recording has started. On Android
@@ -68,7 +83,7 @@ namespace MusePico.Generation
         {
             if (!string.IsNullOrEmpty(DeviceName)) return DeviceName;
             if (!HasMicrophone) return "none";
-            var first = Microphone.devices[0];
+            var first = Devices[0];
             return string.IsNullOrEmpty(first) ? "default" : first;
         }
 
@@ -101,18 +116,34 @@ namespace MusePico.Generation
 #endif
         }
 
+        /// <summary>True once the microphone is open and running.</summary>
+        public bool IsOpen => _clip != null && Microphone.IsRecording(DeviceName);
+
+        /// <summary>
+        /// Open the microphone into its looping buffer if it is not already. Called at Start, so the one
+        /// device open is paid while the scene loads rather than when the visitor first speaks.
+        /// </summary>
+        public bool Open()
+        {
+            if (IsOpen) return true;
+            if (!HasPermission() || !HasMicrophone) return false;
+            DeviceName = Devices[0];
+            _clip = Microphone.Start(DeviceName, true, BufferSeconds, captureSampleRate);
+            _lastSamplePosition = 0;
+            return _clip != null;
+        }
+
+        void Start() => Open();
+
         public bool StartRecording()
         {
             if (IsRecording) return true;
             if (!HasPermission()) { RequestPermission(); return false; }
-            if (!HasMicrophone) return false;
-
-            DeviceName = Microphone.devices[0];
-            _clip = Microphone.Start(DeviceName, false, Mathf.Max(1, maxSeconds), captureSampleRate);
-            if (_clip == null) return false;
+            if (!Open()) return false;
 
             _startedAt = Time.realtimeSinceStartup;
-            _lastSamplePosition = 0;
+            _lastSamplePosition = Microphone.GetPosition(DeviceName);   // from now: what came before is not this utterance
+            _heard.Clear();
             _silence = new SilenceDetector
             {
                 Threshold = silenceThreshold,
@@ -124,25 +155,20 @@ namespace MusePico.Generation
         }
 
         /// <summary>
-        /// Stops and returns the utterance as 16 kHz mono WAV bytes, trimmed of the silence at
+        /// Ends the utterance and returns it as 16 kHz mono WAV bytes, trimmed of the silence at
         /// each end. Returns null when nothing audible was captured — which is the honest answer
         /// when a microphone exists but hears nothing, and stops a silent clip being sent and
-        /// billed.
+        /// billed. The microphone stays open.
         /// </summary>
         public byte[] StopRecording()
         {
             if (!IsRecording) return null;
-
-            var position = Microphone.GetPosition(DeviceName);
-            Microphone.End(DeviceName);
+            if (_clip != null) ReadNew();
             IsRecording = false;
+            if (_clip == null || _heard.Count == 0) return null;
 
-            if (_clip == null || position <= 0) return null;
-
-            var raw = new float[position * _clip.channels];
-            _clip.GetData(raw, 0);
-
-            var mono = WavEncoder.Downmix(raw, _clip.channels);
+            var mono = WavEncoder.Downmix(_heard.ToArray(), _clip.channels);
+            _heard.Clear();
             mono = WavEncoder.Resample(mono, _clip.frequency, WavEncoder.SpeechSampleRate);
             Level = WavEncoder.PeakLevel(mono);
 
@@ -164,32 +190,40 @@ namespace MusePico.Generation
             UtteranceEnded?.Invoke(wav, SilenceDetector.StopReason.Released);
         }
 
+        /// <summary>Drop the utterance. The microphone stays open.</summary>
         public void Abort()
         {
             if (!IsRecording) return;
-            Microphone.End(DeviceName);
             IsRecording = false;
+            _heard.Clear();
         }
 
         public float RecordingSeconds => IsRecording ? Time.realtimeSinceStartup - _startedAt : 0f;
+
+        /// <summary>
+        /// The samples captured since the last read, added to the utterance and returned for the level
+        /// and the silence detector. Only what is new, not the whole buffer: this runs every frame, and
+        /// it is what makes the level a reading of RIGHT NOW. The buffer loops, so a read may wrap.
+        /// </summary>
+        float[] ReadNew()
+        {
+            var position = Microphone.GetPosition(DeviceName);
+            var n = position - _lastSamplePosition;
+            if (n < 0) n += _clip.samples;   // the loop wrapped since the last read
+            if (n <= 0) return null;
+            var samples = new float[n * _clip.channels];
+            _clip.GetData(samples, _lastSamplePosition);   // reads round the end of a looping clip
+            _lastSamplePosition = position;
+            _heard.AddRange(samples);
+            return samples;
+        }
 
         void Update()
         {
             if (!IsRecording || _clip == null) return;
 
-            // Only the samples captured since the last frame, not the whole buffer: this runs
-            // every frame, and copying twelve seconds of audio per frame would cost more than the
-            // generation it is waiting for. It is also what makes the level a reading of RIGHT
-            // NOW rather than an average over the whole utterance, which would never fall back
-            // below the silence threshold once someone had spoken.
-            var position = Microphone.GetPosition(DeviceName);
-            if (position < _lastSamplePosition) _lastSamplePosition = 0;   // the ring buffer wrapped
-            var newSamples = position - _lastSamplePosition;
-            if (newSamples <= 0) return;
-
-            var samples = new float[newSamples * _clip.channels];
-            _clip.GetData(samples, _lastSamplePosition);
-            _lastSamplePosition = position;
+            var samples = ReadNew();
+            if (samples == null) return;
 
             Level = WavEncoder.PeakLevel(samples);
 
@@ -206,7 +240,17 @@ namespace MusePico.Generation
             UtteranceEnded?.Invoke(wav, reason);
         }
 
-        void OnDisable() => Abort();
+        /// <summary>Closed only when the app is put away or the component goes, never between turns.</summary>
+        void Close()
+        {
+            Abort();
+            if (_clip != null) Microphone.End(DeviceName);
+            _clip = null;
+        }
+
+        void OnApplicationPause(bool paused) { if (paused) Close(); }
+
+        void OnDisable() => Close();
     }
 
     /// <summary>Speech in, text out. A seam, so the harness runs with no STT provider at all.</summary>
