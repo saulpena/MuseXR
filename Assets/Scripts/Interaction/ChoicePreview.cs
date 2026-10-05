@@ -106,30 +106,55 @@ namespace MuseXR.Interaction
         /// <summary>The visitor reached for the choice too early: the card pulses and says why.</summary>
         public void Nudge() => _nudge = 1.2f;
 
+        readonly List<(TextMeshProUGUI mark, TextMeshProUGUI state, UnityEngine.UI.Image edge)> _rows = new List<(TextMeshProUGUI, TextMeshProUGUI, UnityEngine.UI.Image)>();
+        readonly List<string> _ids = new List<string>();
+
+        /// <summary>
+        /// Her light panel, as the choice panels are (Saul, 5 Oct: Skylar disliked the dark cards; one style, fixed
+        /// text sizes): a white card, a kicker, the instruction in her serif, one row per option with its number -
+        /// a gold tick once heard - and what to do on the right.
+        /// </summary>
         void Build()
         {
-            var c = MuseUi.Canvas(transform, "Choice", 3f, 420f);
+            var c = MuseUi.Canvas(transform, "Choice", 2.6f, 320f);
             _group = c.gameObject.AddComponent<CanvasGroup>();
-            var glass = MuseUi.Card(c, new Color32(8, 6, 10, 200), MuseTheme.OptionRadius, new Color32(238, 233, 223, 60), 1f, padX: 18f, padY: 14f, gap: 6f, name: "Glass");
-            var k = MuseUi.Text(glass, _kicker.ToUpperInvariant(), MuseUi.Face.Sans, 11f, new Color32(201, 170, 114, 255), 0.22f, true, name: "Kicker");
-            _title = MuseUi.Text(glass, "", MuseUi.Face.Serif, 21f, new Color32(238, 233, 223, 255), lineHeight: 1.1f, name: "Title");
-            var fonts = MuseFonts.Get(); if (fonts != null && fonts.display != null) _title.font = fonts.display;
-            _list = MuseUi.Text(glass, "", MuseUi.Face.Sans, 13f, new Color32(214, 206, 192, 255), lineHeight: 1.35f, name: "Options");
+            var card = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.PanelRadius, MuseTheme.Line, 1f, padX: 16f, padY: 14f, gap: 8f, name: "Card");
+            MuseUi.Text(card, _kicker.ToUpperInvariant(), MuseUi.Face.Sans, ChoicePanel.KickerPx, MuseTheme.Ink3, 0.14f, name: "Kicker");
+            _title = MuseUi.Text(card, "", MuseUi.Face.Serif, ChoicePanel.PromptPx, MuseTheme.Ink, name: "Title");
+            _title.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().minHeight = ChoicePanel.PromptPx * 1.5f;
+            var labels = new List<string>(); foreach (var kv in _targets) labels.Add(kv.Value);
+            for (var i = 0; i < labels.Count; i++)
+            {
+                var row = MuseUi.Card(card, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 10f, padY: 7f, gap: 0f, name: "Option " + i);
+                var line = MuseUi.Row(row, 8f, TextAnchor.MiddleLeft, "Row");
+                var mark = MuseUi.Text(line, (i + 1).ToString("00"), MuseUi.Face.Mono, ChoicePanel.NumberPx, MuseTheme.Ink3, name: "Number");
+                mark.enableWordWrapping = false;
+                var ml = mark.gameObject.AddComponent<UnityEngine.UI.LayoutElement>(); ml.flexibleWidth = 0f; ml.minWidth = ml.preferredWidth = 16f;
+                var l = MuseUi.Text(line, labels[i], MuseUi.Face.Sans, ChoicePanel.OptionPx, MuseTheme.Ink, name: "Label");
+                l.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
+                var st = MuseUi.Text(line, "", MuseUi.Face.Sans, ChoicePanel.FooterPx, MuseTheme.Ink3, name: "State");
+                st.enableWordWrapping = false; st.alignment = TextAlignmentOptions.Right;
+                var sl = st.gameObject.AddComponent<UnityEngine.UI.LayoutElement>(); sl.flexibleWidth = 0f; sl.minWidth = sl.preferredWidth = 62f;   // fixed: it ran past the row's edge
+                var edge = row.Find("Edge");
+                _rows.Add((mark, st, edge != null ? edge.GetComponent<UnityEngine.UI.Image>() : null));
+                _ids.Add(labels[i]);
+            }
             Refresh();
         }
 
         void Refresh()
         {
             if (_title == null) return;
-            if (Ready)
+            _title.text = Ready ? _then : "Before you choose, hear your companions on each";
+            for (var i = 0; i < _rows.Count; i++)
             {
-                _title.text = _then;
-                _list.text = string.Join("\n", Options.Checklist(HowToHear));
-            }
-            else
-            {
-                _title.text = "Before you choose, hear your companions on each";
-                _list.text = string.Join("\n", Options.Checklist(HowToHear));
+                var heard = Options.IsHeard(_ids[i]);
+                var (mark, state, edge) = _rows[i];
+                mark.text = heard ? "✓" : (i + 1).ToString("00");
+                mark.color = heard ? MuseTheme.GoldInk : MuseTheme.Ink3;
+                state.text = heard ? "heard" : "point to hear";
+                state.color = heard ? MuseTheme.GoldInk : MuseTheme.Ink3;
+                if (edge != null) edge.color = heard ? MuseTheme.Gold : MuseTheme.Line;
             }
         }
 
