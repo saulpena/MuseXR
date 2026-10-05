@@ -332,7 +332,7 @@ namespace MuseXR.Interaction
             if (_placedOnce && Vector3.Distance(Flat3(Head.position), Flat3(_lastPos)) > JumpDistance) { SnapCrowd(); Remarked?.Invoke(); }
             // A snap turn jumps the view in one frame: the crowd jumps to its places with it, rather than being
             // caught mid-step across the new view.
-            else if (_placedOnce && Mathf.Abs(Mathf.DeltaAngle(GazeYaw(_lastGazeYaw), _lastGazeYaw)) > SnapTurnDegrees) { SnapCrowd(); Remarked?.Invoke(); }
+            // (a snap turn is a turn, not a move: they stay where they are)
             CrowdStep(Time.deltaTime); _placedOnce = true;
             _lastPos = Head.position;
             _lastGazeYaw = GazeYaw(_lastGazeYaw);
@@ -362,8 +362,12 @@ namespace MuseXR.Interaction
             if (body == null) return;
             body.Step(dt);
             _walking = false;
-            var bodyYaw = Yaw(body.Forward);
-            var gaze = WalkYaw(bodyYaw);
+            // Saul, 4 Oct: they move only when the visitor MOVES - never because the head turned - or a master
+            // speaking to you slides away as you turn to look at them. Places are measured from the way the visitor
+            // walks (kept when they stop), and while they stand still nobody moves unless inside personal space.
+            var gaze = WalkYaw(Yaw(body.Forward));
+            var bodyYaw = gaze;
+            var moving = body.Velocity.sqrMagnitude > 0.09f;
             for (var i = 0; i < _ids.Count; i++)
             {
                 var f = _figures[_ids[i]];
@@ -372,6 +376,7 @@ namespace MuseXR.Interaction
                 var pos = f.position; var flat = new Vector3(pos.x, body.Feet.y, pos.z);
                 var rel = flat - body.Feet;
                 var r = rel.magnitude;
+                if (!moving && r >= CrowdOrbit.MinRadius) continue;
                 var current = r > 1e-3f ? Yaw(rel) : bodyYaw + place.Bearing;
                 var want = CrowdOrbit.AvoidGaze(bodyYaw + place.Bearing, gaze, current);
                 var target = body.Feet + Quaternion.Euler(0f, want, 0f) * Vector3.forward * place.Distance;

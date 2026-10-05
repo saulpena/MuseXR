@@ -324,7 +324,16 @@ namespace MusePico.Dialogue
         public async Task<AudioClip> VoiceAsync(string masterId, string text, CancellationToken ct = default)
         {
             if (_voiceService == null || string.IsNullOrWhiteSpace(text)) return null;
-            try { return await _voiceService.SpeakAsync(text, MasterRoster.Find(_roster, masterId), ct); }
+            // Saul, 4 Oct: the same fixed lines (the masters' introductions, the lanterns, the takes) were billed again
+            // every play. Each line is synthesised once and kept on disk: a repeat is free and instant.
+            var cached = VoiceCache.Load(masterId, text);
+            if (cached != null) return cached;
+            try
+            {
+                var clip = await _voiceService.SpeakAsync(text, MasterRoster.Find(_roster, masterId), ct);
+                if (clip != null) VoiceCache.Save(masterId, text, clip);
+                return clip;
+            }
             catch (System.Exception ex) { Debug.LogWarning("[Dialogue] voice for " + masterId + " failed: " + ex.Message); return null; }
         }
 
@@ -340,7 +349,7 @@ namespace MusePico.Dialogue
             _sayCancel = cts;
             try
             {
-                var clip = await _voiceService.SpeakAsync(text, MasterRoster.Find(_roster, masterId), cts.Token);
+                var clip = await VoiceAsync(masterId, text, cts.Token);   // cached like every line
                 if (!cts.IsCancellationRequested) await PlayAsync(clip, cts.Token);
             }
             catch (System.OperationCanceledException) { }

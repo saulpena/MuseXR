@@ -24,7 +24,9 @@ namespace MuseXR.UI
         public const float LineAhead = 0.62f, LineDrop = 0.34f, CompassAhead = 0.52f, CompassDrop = 0.5f;
         /// <summary>The panel re-centres on the view direction once the head is this far off it, easing over -
         /// following the body alone (40 deg dead zone) left it at the lower left of the view.</summary>
-        public const float RecentreDegrees = 20f, RecentreDegreesPerSecond = 110f;
+        public const float RecentreDegrees = 60f, RecentreDegreesPerSecond = 110f;   // a glance or a look round moves nothing (Saul, 4 Oct)
+        /// <summary>Heights above the floor, fixed: the card and the compass do not bob with the head (Saul, 4 Oct: lower, constant Y).</summary>
+        public const float LineHeight = 1.05f, CompassHeight = 0.85f;
         /// <summary>Lines shown at once; longer readings page through (live readings run ~50 words).</summary>
         public const int MaxLines = 3;
         public const float SecondsPerWord = 0.36f, MinPageSeconds = 3.5f;
@@ -163,9 +165,11 @@ namespace MuseXR.UI
             _hint = MuseUi.Text(head, "", MuseUi.Face.Sans, 9f, NameInk, 0.12f, true, name: "Hint");
             _hint.enableWordWrapping = false;
             _line = Serif(card, "", 17f, LineInk, "Words");
-            _line.overflowMode = TextOverflowModes.Page;   // three lines at a time, paged
+            // Saul, 4 Oct: the whole line in one card, no pages: a fixed box, and the text shrinks to fit it.
+            _line.enableAutoSizing = true; _line.fontSizeMin = 9f; _line.fontSizeMax = 17f;
+            _line.overflowMode = TextOverflowModes.Truncate;
             var wle = _line.gameObject.AddComponent<LayoutElement>();
-            wle.preferredHeight = wle.minHeight = 17f * 1.35f * MaxLines + 4f;
+            wle.preferredHeight = wle.minHeight = 17f * 1.35f * (MaxLines + 1) + 4f;
             wle.flexibleHeight = 0f;
             _lineCard = card.gameObject;
             _lineCard.SetActive(false);
@@ -217,8 +221,9 @@ namespace MuseXR.UI
             var fwd = Quaternion.Euler(0f, _yaw, 0f) * Vector3.forward;
 
             // Each card faces the eye squarely, so nothing reads keystoned (it was tilted 25-30 deg off).
-            var linePos = eye + fwd * LineAhead - Vector3.up * LineDrop;
-            var compassPos = eye + fwd * CompassAhead - Vector3.up * CompassDrop;
+            var floor = body.Feet.y;
+            var linePos = new Vector3(eye.x, floor + LineHeight, eye.z) + fwd * LineAhead;
+            var compassPos = new Vector3(eye.x, floor + CompassHeight, eye.z) + fwd * CompassAhead;
             _lineAnchor.SetPositionAndRotation(linePos, Quaternion.LookRotation(linePos - eye, Vector3.up));
             _compassAnchor.SetPositionAndRotation(compassPos, Quaternion.LookRotation(compassPos - eye, Vector3.up));
 
@@ -241,18 +246,7 @@ namespace MuseXR.UI
         void Page()
         {
             if (_lineCard == null || !_lineCard.activeSelf) return;
-            _line.ForceMeshUpdate();
-            var pages = Mathf.Max(1, _line.textInfo.pageCount);
-            if (pages > 1)
-            {
-                _pageTimer += Time.deltaTime;
-                var words = Mathf.Max(1, _line.text.Split((char[])null, System.StringSplitOptions.RemoveEmptyEntries).Length);
-                var perPage = Mathf.Max(MinPageSeconds, words / (float)pages * SecondsPerWord);
-                if (_pageTimer > perPage && _line.pageToDisplay < pages) { _line.pageToDisplay++; _pageTimer = 0f; }
-            }
-            var page = Mathf.Clamp(_line.pageToDisplay, 1, pages);
-            var counter = pages > 1 ? page + " / " + pages : string.Empty;
-            _hint.text = string.IsNullOrEmpty(_hintBase) ? counter : (counter.Length > 0 ? counter + "   " + _hintBase : _hintBase);
+            _hint.text = _hintBase;   // one card holds the whole line: no pages to count
         }
 
         static Sprite _arrowSprite;

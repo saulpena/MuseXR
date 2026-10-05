@@ -118,6 +118,35 @@ namespace MuseXR.Interaction
             var trigger = Source.Trigger;
             if (trigger && !_wasTrigger && Hovered != null) Hovered.Select(this);
             _wasTrigger = trigger;
+            DrawLaser();
+        }
+
+        LineRenderer _laser;
+
+        /// <summary>
+        /// Saul, 4 Oct: the laser stopped short of the masters (the XR toolkit's ray draws a fading "no valid target"
+        /// line for anything that is not its own interactable). On a headset, while this pointer is on something it
+        /// can point at, a thin line runs all the way from the hand to the hit.
+        /// </summary>
+        void DrawLaser()
+        {
+            var show = Hovered != null && UnityEngine.XR.XRSettings.isDeviceActive && Source?.Aim != null;
+            if (!show) { if (_laser != null && _laser.enabled) _laser.enabled = false; return; }
+            if (_laser == null)
+            {
+                var go = new GameObject("Laser");
+                go.transform.SetParent(transform, false);
+                _laser = go.AddComponent<LineRenderer>();
+                _laser.useWorldSpace = true; _laser.positionCount = 2;
+                _laser.startWidth = 0.004f; _laser.endWidth = 0.0025f;
+                var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+                m.SetColor("_BaseColor", new Color(1f, 0.93f, 0.75f));
+                _laser.sharedMaterial = m;
+                _laser.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            _laser.enabled = true;
+            _laser.SetPosition(0, Source.Aim.position);
+            _laser.SetPosition(1, HitPoint);
         }
 
         IPointable Find()

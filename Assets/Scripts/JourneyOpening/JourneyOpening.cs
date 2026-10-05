@@ -144,7 +144,16 @@ namespace MuseXR.Journey
 
         void OnGatePhase(GateFlow.Phase phase)
         {
-            if (phase == GateFlow.Phase.DoorsOpen && Company == null) BuildCompany();
+            // Saul, 4 Oct: the question has the stage to itself for 3 s before the companions and their panel appear.
+            if (phase == GateFlow.Phase.DoorsOpen && Company == null && !_companyComing) { _companyComing = true; StartCoroutine(CompanyAfter(3f)); }
+        }
+
+        bool _companyComing;
+
+        System.Collections.IEnumerator CompanyAfter(float seconds)
+        {
+            yield return new WaitForSeconds(seconds);
+            if (Company == null) BuildCompany();
         }
 
         void BuildCompany()
