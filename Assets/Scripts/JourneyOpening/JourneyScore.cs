@@ -53,10 +53,15 @@ namespace MuseXR.Journey
             return Stage.Threshold;
         }
 
+        /// <summary>
+        /// The visitor is IN that chapter: its frame is switched on and back at the origin. A chapter's frame comes on as
+        /// its gate opens, posed behind the gate, and returns to the origin only on arrival - so the music changes as
+        /// the visitor crosses, not as the gate appears (Saul, 5 Oct, headset: it changed the moment the Palace showed).
+        /// </summary>
         static bool Live(string frame)
         {
             var t = ChapterFeatures.FindRoot(frame);
-            return t != null && t.gameObject.activeInHierarchy;
+            return t != null && t.gameObject.activeInHierarchy && t.position.sqrMagnitude < 0.01f;
         }
     }
 }

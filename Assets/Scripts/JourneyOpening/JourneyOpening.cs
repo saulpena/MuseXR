@@ -65,6 +65,12 @@ namespace MuseXR.Journey
         /// <summary>A master's voice is still playing (the turns can be marked done before the last clip ends).</summary>
         public bool Speaking => _speaking != null && _speaking.isPlaying;
 
+        void OnEnable() => CompanionGroup.LineSkipped += StopSpeaking;
+        void OnDisable() => CompanionGroup.LineSkipped -= StopSpeaking;
+
+        /// <summary>A skipped answer's voice stops at once, not under the next master's (Saul, 5 Oct, headset).</summary>
+        void StopSpeaking(CompanionGroup _) { if (_speaking != null) _speaking.Stop(); }
+
         void Start()
         {
             if (gate == null) gate = FindAnyObjectByType<GateStage>();

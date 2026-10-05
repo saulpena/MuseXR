@@ -29,6 +29,12 @@ namespace MuseXR.Interaction
         /// <summary>A master's voice is playing now (the music ducks under it).</summary>
         public static bool Speaking => _instance != null && _instance._source != null && _instance._source.isPlaying;
 
+        void OnEnable() => CompanionGroup.LineSkipped += StopNow;
+        void OnDisable() => CompanionGroup.LineSkipped -= StopNow;
+
+        /// <summary>The line being said is cut (skipped): its voice stops; the next line plays when its turn starts.</summary>
+        void StopNow(CompanionGroup _) { if (_source != null) _source.Stop(); }
+
         public static MasterVoice Get()
         {
             if (_instance != null) return _instance;
