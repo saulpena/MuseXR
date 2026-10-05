@@ -86,6 +86,26 @@ namespace MuseXR.Interaction
             return Mathf.Abs(hit.x) <= half.x && hit.y >= 0f && hit.y <= half.y * 2f;
         }
 
+        static readonly System.Reflection.FieldInfo Registered =
+            typeof(GaussianSplatting.Runtime.GaussianSplatRenderer).GetField("m_Registered", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+
+        /// <summary>
+        /// A world the visitor has just walked into that never registered with the splat render system draws
+        /// nothing: the Van Gogh room stood empty after the Grotto's arch until its renderer was switched off and
+        /// on (full walk, 5 Oct 2026). A renderer enabled before its resources are ready skips registering and
+        /// nothing retries it. Only those are cycled: re-enabling one that drew would re-upload its splats.
+        /// </summary>
+        static void Reregister(Transform frame)
+        {
+            if (Registered == null) return;
+            foreach (var r in frame.GetComponentsInChildren<GaussianSplatting.Runtime.GaussianSplatRenderer>())
+            {
+                if (!r.isActiveAndEnabled || (bool)Registered.GetValue(r)) continue;
+                r.enabled = false; r.enabled = true;
+                Debug.Log("[Journey] " + r.name + " had not registered to draw: re-enabled on arrival (now " + ((bool)Registered.GetValue(r) ? "registered" : "STILL NOT registered") + ")");
+            }
+        }
+
         IEnumerator Arrive()
         {
             if (_arrived) yield break;
@@ -120,6 +140,7 @@ namespace MuseXR.Interaction
             if (gate.Door != null) Destroy(gate.Door.gameObject);
             if (previousFrame != null) Destroy(previousFrame.gameObject);   // the gate goes with it
             nextFrame.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+            Reregister(nextFrame);
             Physics.SyncTransforms();
             if (cc != null) cc.enabled = true;
             yield return null;   // A's floors and colliders are gone before B's are made
