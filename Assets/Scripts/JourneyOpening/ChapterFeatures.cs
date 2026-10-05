@@ -745,6 +745,9 @@ namespace MuseXR.Journey
         TimeRingDial _dial;
         TimeOfDay _time = TimeOfDay.Afternoon;
         bool _turned, _picked, _tableStarted, _tableDone;
+
+        /// <summary>The round table has begun: the score turns to Satie, her roundtable track.</summary>
+        public bool AtTable => _tableStarted;
         GameObject _chips;
         TextMeshPro _tableSign;
         CompanionGroup _group;

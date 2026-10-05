@@ -325,8 +325,43 @@ namespace MuseXR.Interaction
             _pending = null;
             Voiced(reaction, () => _group.SayInTurn(reaction));
             Debug.Log("[Insight] reply '" + axis + "' to " + _replyTo.title + ": " + Masters.Name(speaker) + " answers");
-            CloseReplies();
+            ShowContinue(speaker);
             return true;
+        }
+
+        /// <summary>
+        /// Her popup after a reply (app.js artDialogueMarkup, choices off): who speaks to you, an x, and
+        /// CONTINUE THE WALK, which closes it exactly as the x does. The reaction itself reads on the masters' card.
+        /// </summary>
+        void ShowContinue(string speaker)
+        {
+            if (_replies != null) Destroy(_replies);   // swapped in place, not faded: the follow slot stays the same
+            _replies = null; _replyTo = null;
+            var anchor = new GameObject("Replies · continue").transform;
+            anchor.SetParent(transform, false);
+            var c = MuseUi.Canvas(anchor, "Replies", 1.5f, 300f);
+            var glass = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 12f, padY: 10f, gap: 6f, name: "Replies");
+            var top = MuseUi.Row(glass, 6f, TextAnchor.MiddleLeft, "Top");
+            var head = MuseUi.Text(top, "SPEAKS TO YOU  ·  " + Masters.Name(speaker).ToUpperInvariant(), MuseUi.Face.Sans, 8f, MuseTheme.Ink3, 0.16f, true, name: "Kicker");
+            head.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
+            var x = MuseUi.Card(top, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 7f, padY: 2f, gap: 0f, name: "Close");
+            MuseUi.Text(x, "×", MuseUi.Face.Sans, 13f, MuseTheme.Ink3, name: "X").enableWordWrapping = false;
+            x.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 0f;
+            var go = MuseUi.Card(glass, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Gold, 1f, padX: 9f, padY: 7f, gap: 0f, name: "Continue");
+            MuseUi.Text(go, "CONTINUE THE WALK →", MuseUi.Face.Sans, 10f, MuseTheme.Ink, 0.12f, true, name: "Label").alignment = TMPro.TextAlignmentOptions.Center;
+            MuseUi.Text(glass, Disclaimer, MuseUi.Face.Sans, 6.5f, MuseTheme.Ink3, 0.12f, true, name: "Disclaimer");
+            Canvas.ForceUpdateCanvases();
+            foreach (var (rect, name) in new[] { (x, "Hit close"), (go, "Hit continue") })
+            {
+                var corners = new Vector3[4]; rect.GetWorldCorners(corners);
+                var h = new GameObject(name).transform; h.SetParent(anchor, false);
+                var lo = anchor.InverseTransformPoint(corners[0]); var hi = anchor.InverseTransformPoint(corners[2]);
+                var box = h.gameObject.AddComponent<BoxCollider>();
+                box.center = (lo + hi) * 0.5f; box.size = new Vector3(Mathf.Abs(hi.x - lo.x) + 0.02f, Mathf.Abs(hi.y - lo.y) + 0.02f, 0.02f);
+                Pointable.Make(h.gameObject, name.ToLowerInvariant()).Selected += (_, __) => CloseReplies();
+            }
+            _replies = anchor.gameObject;
+            FollowVisitor.Attach(_replies);
         }
 
         void UpdateReplies()
