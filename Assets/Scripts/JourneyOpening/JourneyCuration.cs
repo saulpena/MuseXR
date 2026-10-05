@@ -134,28 +134,34 @@ namespace MuseXR.Journey
         float _quietFor, _companyFor;
         bool _waitLogged, _hopped, _companyFaded;
 
+        /// <summary>Seconds after the answers are done before the lanterns come whatever still reads as busy.</summary>
+        public const float LanternFailsafe = 8f;
+
         void Update()
         {
             // Saul, 5 Oct: the lanterns come only once every chosen master has finished answering the question -
             // the round marked done, nobody's voice still playing - and a beat after.
-            if (!_begun && opening != null && opening.Company != null && opening.Company.Current == CompanyStage.Phase.Done
-                && !opening.Company.Group.Busy && !opening.Speaking)
+            var done = !_begun && opening != null && opening.Company != null && opening.Company.Current == CompanyStage.Phase.Done;
+            if (done && !opening.Company.Group.Busy && !opening.Speaking)
             {
                 _quietFor += Time.deltaTime;
                 if (_quietFor >= 1f) { _begun = true; StartCoroutine(Unfold()); }
             }
             else _quietFor = 0f;
-            HopThrough();
-            // Why the lanterns have not come, said once after the company has stood 20 s (Saul, 5 Oct: "the
-            // lanterns now never appear", and the log could not say which of the three waits held them).
-            if (!_begun && !_waitLogged && opening != null && opening.Company != null && (_companyFor += Time.deltaTime) > 20f)
+            // Never held for good (Saul, 5 Oct, headset: the lanterns never came): once the round is done, anything
+            // still reading as busy or speaking past LanternFailsafe is not the masters answering - the lanterns come.
+            if (done && !_begun)
             {
-                _waitLogged = true;
-                var g = opening.Company.Group;
-                Debug.LogWarning("[Curation] lanterns still waiting: company " + opening.Company.Current
-                    + ", group busy " + (g != null && g.Busy) + (g != null && g.Turns != null ? " (turns " + g.Turns.Current + ")" : "")
-                    + ", opening speaking " + opening.Speaking);
+                _companyFor += Time.deltaTime;
+                if (_companyFor > LanternFailsafe)
+                {
+                    var g = opening.Company.Group;
+                    Debug.LogWarning("[Curation] lanterns forced " + LanternFailsafe + " s after the answers: group busy " + (g != null && g.Busy)
+                        + (g != null && g.Turns != null ? " (turns " + g.Turns.Current + ")" : "") + ", opening speaking " + opening.Speaking);
+                    _begun = true; StartCoroutine(Unfold());
+                }
             }
+            HopThrough();
 
         }
 
