@@ -44,7 +44,7 @@ namespace MuseXR.UI
 
         Transform _lineAnchor, _compassAnchor, _arrow;
         GameObject _lineCard, _compassCard;
-        TextMeshProUGUI _kicker, _speaker, _line, _hint, _stop, _target, _detail;
+        TextMeshProUGUI _kicker, _speaker, _line, _hint, _stop, _target, _detail, _topic;
         RawImage _portrait;
         float _yaw;
         float _eyeHeight; int _eyeSamples;
@@ -89,9 +89,8 @@ namespace MuseXR.UI
         public void ShowLine(string masterId, string speaker, string line, string hint = null, string kicker = "Your companion answers")
         {
             if (masterId != null && kicker == "Your companion answers" && BasedOn.TryGetValue(masterId, out var basedOn)) kicker = basedOn;
-            // Saul, 5 Oct: the heading says what they are talking about - the work, the option, the question.
-            else if (masterId != null && kicker == "Your companion answers" && !string.IsNullOrEmpty(MuseXR.Interaction.DialogueContext.Current))
-                kicker = MuseXR.Interaction.DialogueContext.Current;
+            // The topic line: what they are talking about (the work, the option, the question); masters' lines only.
+            if (_topic != null) _topic.text = masterId != null ? MuseXR.Interaction.DialogueContext.Current : string.Empty;
             _kicker.text = kicker ?? string.Empty;
             _speaker.text = speaker ?? string.Empty;
             _line.text = line ?? string.Empty;
@@ -152,6 +151,12 @@ namespace MuseXR.UI
             _lineAnchor = new GameObject("Line").transform; _lineAnchor.SetParent(transform, false);
             var lc = MuseUi.Canvas(_lineAnchor, "Line Canvas", 1.15f, 560f);   // sized as if 1.15 m away: legible at a glance down
             var card = MuseUi.Card(lc, Paper, 0f, PaperEdge, 1f, padX: 18f, padY: 14f, gap: 8f, name: "Line Card");
+            // Saul, 5 Oct: a title saying what they are talking about - "On Mona Lisa" - at the top of the card. It keeps
+            // its height when empty, so the card never changes size.
+            _topic = Serif(card, "", 13f, NameInk, "Topic");
+            _topic.alignment = TextAlignmentOptions.Center; _topic.fontStyle = FontStyles.Italic;
+            _topic.enableWordWrapping = false; _topic.overflowMode = TextOverflowModes.Ellipsis;
+            var tle = _topic.gameObject.AddComponent<LayoutElement>(); tle.minHeight = tle.preferredHeight = 18f; tle.flexibleHeight = 0f;
             var head = MuseUi.Row(card, 12f, TextAnchor.MiddleLeft, "Head");
             var ring = MuseUi.Card(head, PortraitRing, 26f, null, 0f, padX: 2f, padY: 2f, name: "Portrait");
             var rle = ring.gameObject.AddComponent<LayoutElement>(); rle.preferredWidth = rle.preferredHeight = rle.minWidth = rle.minHeight = 52f; rle.flexibleWidth = 0f;

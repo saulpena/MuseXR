@@ -546,7 +546,7 @@ namespace MuseXR.Journey
         {
             if (Company == null || Company.Group.TimeLinesByLength) yield break;
             var started = Time.time;
-            yield return Say(id, line);
+            yield return Say(id, line, "Your companion answers");   // not the lantern heading: a reading on a work keeps its own topic
             // No clip came back: hold the line for its reading time instead.
             var voiced = VoiceFor(id, line);
             if (!voiced.IsCompleted || voiced.IsFaulted || voiced.Result == null)

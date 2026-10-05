@@ -267,7 +267,14 @@ namespace MuseXR.Interaction
             anchor.SetPositionAndRotation(eye.position + fwd * 1.45f + right * 0.55f - Vector3.up * 0.3f, Quaternion.LookRotation(fwd, Vector3.up));
             var c = MuseUi.Canvas(anchor, "Replies", 1.5f, 300f);
             var glass = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 12f, padY: 10f, gap: 6f, name: "Replies");
-            MuseUi.Text(glass, ReplyPrompt, MuseUi.Face.Serif, 13f, MuseTheme.Ink, name: "Prompt");
+            // Her web popup: the question, and an x to close it (Saul, 5 Oct: no timer - it stays until a reply or the x).
+            var top = MuseUi.Row(glass, 6f, TextAnchor.MiddleLeft, "Top");
+            var prompt = MuseUi.Text(top, ReplyPrompt, MuseUi.Face.Serif, 13f, MuseTheme.Ink, name: "Prompt");
+            prompt.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
+            var x = MuseUi.Card(top, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 7f, padY: 2f, gap: 0f, name: "Close");
+            MuseUi.Text(x, "×", MuseUi.Face.Sans, 13f, MuseTheme.Ink3, name: "X").enableWordWrapping = false;
+            x.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 0f;
+            _closeChip = x;
             for (var i = 0; i < Insights.Replies.Count; i++)
             {
                 var (axis, label) = Insights.Replies[i];
@@ -289,7 +296,17 @@ namespace MuseXR.Interaction
                 p.Selected += (_, __) => Reply(chosen);
             }
             MuseUi.Text(glass, Disclaimer, MuseUi.Face.Sans, 6.5f, MuseTheme.Ink3, 0.12f, true, name: "Disclaimer");
+            // The x's hit box, sized from its laid-out corners like the reply chips.
+            Canvas.ForceUpdateCanvases();
+            var xc = new Vector3[4]; _closeChip.GetWorldCorners(xc);
+            var xh = new GameObject("Hit close").transform; xh.SetParent(anchor, false);
+            var xlo = anchor.InverseTransformPoint(xc[0]); var xhi = anchor.InverseTransformPoint(xc[2]);
+            var xb = xh.gameObject.AddComponent<BoxCollider>();
+            xb.center = (xlo + xhi) * 0.5f; xb.size = new Vector3(Mathf.Abs(xhi.x - xlo.x) + 0.02f, Mathf.Abs(xhi.y - xlo.y) + 0.02f, 0.02f);
+            Pointable.Make(xh.gameObject, "replies close").Selected += (_, __) => CloseReplies();
             _replies = anchor.gameObject;
+            _replyEyeY = eye.position.y; _replyYaw = Mathf.Atan2(fwd.x, fwd.z) * Mathf.Rad2Deg; _replyXZ = new Vector3(eye.position.x, 0f, eye.position.z);
+            FollowReplies(true);
             Appear.In(_replies, 0.3f);   // eased, never popped (Saul, 5 Oct)
         }
 
@@ -315,9 +332,33 @@ namespace MuseXR.Interaction
         {
             if (_replies == null) return;
             _replyAge += Time.deltaTime;
-            var eye = Camera.main != null ? Camera.main.transform.position : Vector3.zero;
-            var far = _replyTo == null || Vector3.Distance(new Vector3(eye.x, 0f, eye.z), new Vector3(_replyTo.transform.position.x, 0f, _replyTo.transform.position.z)) > ReplyLeave;
-            if (far || _replyAge > ReplySeconds || ArtworkCard.Hushed) CloseReplies();
+            if (ArtworkCard.Hushed) { CloseReplies(); return; }   // only the round table takes it away; no timer, no distance
+            FollowReplies(false);
+        }
+
+        RectTransform _closeChip;
+        float _replyEyeY, _replyYaw; Vector3 _replyXZ;
+
+        /// <summary>
+        /// Saul, 5 Oct: the replies follow the visitor like the masters' card - a fixed height, turning with them past
+        /// 20 degrees, still for small head movements - just above that card, so they never stay behind at the work.
+        /// </summary>
+        void FollowReplies(bool snap)
+        {
+            var cam = Camera.main != null ? Camera.main.transform : null;
+            if (cam == null || _replies == null) return;
+            var hf = cam.forward; hf.y = 0f;
+            var headYaw = hf.sqrMagnitude > 1e-6f ? Mathf.Atan2(hf.x, hf.z) * Mathf.Rad2Deg : _replyYaw;
+            if (snap) _replyYaw = headYaw;
+            else if (Mathf.Abs(Mathf.DeltaAngle(_replyYaw, headYaw)) > 20f)
+                _replyYaw = Mathf.MoveTowardsAngle(_replyYaw, headYaw, 110f * Time.deltaTime);
+            var flat = new Vector3(cam.position.x, 0f, cam.position.z);
+            var off = flat - _replyXZ;
+            if (off.magnitude > 0.3f) _replyXZ = flat - off.normalized * 0.3f;
+            var fwd = Quaternion.Euler(0f, _replyYaw, 0f) * Vector3.forward;
+            var at = new Vector3(_replyXZ.x, _replyEyeY - 0.22f, _replyXZ.z) + fwd * 1.1f;   // clear above the masters' card
+            var eye = new Vector3(_replyXZ.x, _replyEyeY, _replyXZ.z);
+            _replies.transform.SetPositionAndRotation(at, Quaternion.LookRotation(at - eye, Vector3.up));
         }
 
         void CloseReplies()
