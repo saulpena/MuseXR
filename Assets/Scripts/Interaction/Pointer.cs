@@ -123,6 +123,9 @@ namespace MuseXR.Interaction
 
         LineRenderer _laser;
 
+        /// <summary>Draw the laser without a headset too (for checking it in the Editor).</summary>
+        public static bool LaserAtDesk;
+
         /// <summary>
         /// Saul, 4 Oct: the laser stopped short of the masters (the XR toolkit's ray draws a fading "no valid target"
         /// line for anything that is not its own interactable). On a headset, while this pointer is on something it
@@ -130,7 +133,7 @@ namespace MuseXR.Interaction
         /// </summary>
         void DrawLaser()
         {
-            var show = Hovered != null && UnityEngine.XR.XRSettings.isDeviceActive && Source?.Aim != null;
+            var show = Hovered != null && (UnityEngine.XR.XRSettings.isDeviceActive || LaserAtDesk) && Source?.Aim != null;
             if (!show) { if (_laser != null && _laser.enabled) _laser.enabled = false; return; }
             if (_laser == null)
             {
