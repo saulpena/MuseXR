@@ -171,6 +171,9 @@ namespace MuseXR.EditorTools
             // A world generated on the headset from the DepthRoom depth pano: nothing shipped but the
             // pano in StreamingAssets, so no group. Needs WORLDLABS_API_KEY (KeyInjectionBuildStep).
             new Target { Name = "Dynamic",   Scene = "Assets/Scenes/Tests/DynamicWorld.unity",  AddressableGroup = null },
+            // The whole GateWorld journey (5 Oct 2026): every chapter's world is a direct reference on its frame
+            // prefab and its heroes come from Resources, so it needs no Addressables group.
+            new Target { Name = "Gate",      Scene = "Assets/Scenes/Tests/GateWorld.unity",     AddressableGroup = null },
         };
 
         /// <summary>
@@ -247,6 +250,8 @@ namespace MuseXR.EditorTools
         [MenuItem("MuseXR/Build/Quest/Portal", priority = 50)]   static void Q13() => BuildOne(Vendor.Quest, T("Portal"));
         [MenuItem("MuseXR/Build/PICO/Dynamic", priority = 51)]   static void P14() => BuildOne(Vendor.Pico, T("Dynamic"));
         [MenuItem("MuseXR/Build/Quest/Dynamic", priority = 51)]  static void Q14() => BuildOne(Vendor.Quest, T("Dynamic"));
+        [MenuItem("MuseXR/Build/PICO/Gate", priority = 30)]      static void P17() => BuildOne(Vendor.Pico, T("Gate"));
+        [MenuItem("MuseXR/Build/Quest/Gate", priority = 30)]     static void Q17() => BuildOne(Vendor.Quest, T("Gate"));
 
         [MenuItem("MuseXR/Build/PICO/All Three", priority = 25)]
         public static void BuildAllPico() => BuildAllFor(Vendor.Pico);

@@ -65,25 +65,49 @@ namespace MuseXR.Interaction
             }
         }
 
-        /// <summary>Step 3: the companions voice the two ways of seeing; the strip waits for them.</summary>
-        void Respond()
+        int _asked;
+
+        /// <summary>
+        /// Step 3: the companions voice the two ways of seeing - live, each through their own lens, answering this
+        /// visitor's choice (Saul, 5 Oct: genuine responses, no placeholders); her lines only when there is no live
+        /// dialogue. Every companion the visitor brought speaks, not only the default three. The strip waits.
+        /// </summary>
+        async void Respond()
         {
             Listening = true;
             _wantFocus = true;
             if (Sockets != null) Sockets.HideStrip = true;
             if (Group == null || Group.Ids.Count == 0) { AskToKeep(); return; }
             var slot = Flow.LampSlot;
+            var token = ++_asked;
             // Speaking order depends on the socket; Set clears the group's own table, so copy it first.
             var figures = new System.Collections.Generic.Dictionary<string, Transform>();
             foreach (var kv in Group.Figures) figures[kv.Key] = kv.Value;
-            var present = new System.Collections.Generic.List<string>();
-            foreach (var id in GrottoFlow.Order(slot)) if (figures.ContainsKey(id)) present.Add(id);
+            var present = GrottoFlow.Order(slot, figures.Keys);
+            DialogueContext.Set(slot == GrottoFlow.Whole ? "You set the lamp to see the whole" : "You set the lamp to see the detail");
+            System.Collections.Generic.Dictionary<string, string> live = null;
+            try { live = await MasterInsights.Ensure().AskMasters(ReactionQuestion(slot), present, "the lamp set for the " + slot, "a lamp in a cave temple: a stone relief close by, a giant cliff Buddha far off"); }
+            catch (Exception ex) { Debug.LogWarning("[Grotto] live reactions: " + ex.Message); }
+            if (this == null || token != _asked || Group == null || Flow.LampSlot != slot || Flow.Current != GrottoFlow.Phase.Placed) return;
             Group.Set(present, figures);
-            Group.LineFor = id => GrottoFlow.Line(id, slot);
+            Group.LineFor = id => live != null && live.TryGetValue(id, out var l) ? l : GrottoFlow.Line(id, slot);
             Group.TurnsFinished -= OnTurnsFinished;
             Group.TurnsFinished += OnTurnsFinished;
             MasterVoice.Follow(Group);   // voiced, each line as its turn starts (silent before, live run 4 Oct)
             Group.BeginTurns();
+        }
+
+        /// <summary>What the masters are asked: the room's question, the visitor's way of seeing, and what they came in with.</summary>
+        static string ReactionQuestion(string slot)
+        {
+            var asked = JourneyMemory.Record != null ? JourneyMemory.Record.Question : "";
+            var way = slot == GrottoFlow.Whole
+                ? "they set the lamp on the railing post, to look at the whole: the giant Buddha in the cliff, far off"
+                : "they set the lamp before the carved relief, to look at the detail: the stone close up, the carver's cuts";
+            return "In the Grotto, the Hall of Time, the room asks: 'Facing things that outlast me, how do I see myself?' "
+                 + "Given a lamp, " + way + ". "
+                 + (string.IsNullOrWhiteSpace(asked) ? "" : "They came into the museum asking: \"" + asked.Trim() + "\". ")
+                 + "Respond to that choice, to them, in one or two short sentences, under 35 words. No numbers, dates or catalogue details.";
         }
 
         void OnTurnsFinished() { if (Listening && Flow.Current == GrottoFlow.Phase.Placed) AskToKeep(); }
@@ -150,6 +174,8 @@ namespace MuseXR.Interaction
 
         void LateUpdate()
         {
+            // No soft-lock: while the lamp waits to be kept and nothing else holds A, A is ours (as in the Palace).
+            if (!Listening && Flow.Current == GrottoFlow.Phase.Placed && ConfirmInput.Focus == null) ConfirmInput.Take(this);
             // While a choice is open (speaking or waiting to keep), A comes here first.
             if (!_wantFocus) return;
             _wantFocus = false;

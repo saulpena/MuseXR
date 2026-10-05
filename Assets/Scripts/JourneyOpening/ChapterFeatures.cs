@@ -172,6 +172,26 @@ namespace MuseXR.Journey
             SayVoiced(host, group, lines);
         }
 
+        /// <summary>
+        /// <see cref="Take"/>, live: the companions answer <paramref name="question"/> now, and the fixed lines stand in
+        /// only when there is no live answer (offline, no key, a failed call). <paramref name="stillWanted"/> is checked
+        /// when the answer lands, so a moment the visitor has already turned past is not spoken late.
+        /// </summary>
+        internal static async void TakeLive(MonoBehaviour host, CompanionGroup group, string question, string title, string about,
+                                            System.Func<string, string> fallback, string context, System.Func<bool> stillWanted = null)
+        {
+            if (context != null) DialogueContext.Set(context);
+            var ids = new List<string>();
+            if (group != null) foreach (var id in group.Ids) ids.Add(id);
+            if (ids.Count == 0) ids.AddRange(Masters.DefaultTrio);
+            Dictionary<string, string> live = null;
+            try { live = await MasterInsights.Ensure().AskMasters(question, ids, title, about); }
+            catch (System.Exception ex) { Debug.LogWarning("[Live] " + title + ": " + ex.Message); }
+            if (host == null || (stillWanted != null && !stillWanted())) return;
+            Debug.Log("[Live] " + title + ": " + (live != null ? live.Count + " live" : "fallback lines"));
+            Take(host, group, id => live != null && live.TryGetValue(id, out var l) && !string.IsNullOrWhiteSpace(l) ? l : fallback(id), null);
+        }
+
         /// <summary>The group says these in turn, and each line is voiced as its own turn starts, never all at
         /// once (the round table started three clips together and they talked over each other).</summary>
         internal static bool SayVoiced(MonoBehaviour host, CompanionGroup group, List<KeyValuePair<string, string>> lines)
@@ -287,13 +307,23 @@ namespace MuseXR.Journey
         /// "the highest surface" found the canvas's edge and floated the pots in front of it.
         /// </summary>
         static readonly Vector3 EaselShelf = new Vector3(0f, 0.84f, -0.31f);
-        LineRenderer _stroke;
-        readonly List<Vector3> _points = new List<Vector3>();
+        // The stroke: smoothed, at most 256 points, drawn as a flat ribbon turned with the brush (StrokeBrush).
+        GameObject _stroke;
+        Mesh _strokeMesh;
+        readonly StrokeBrush _brush = new StrokeBrush();
+        IReadOnlyList<Vector3> _points => _brush.Points;
+        int _reacted;
         bool _drawing, _awaitingKeep, _kept;
         // Her rule: the easel lights once a painting has been looked at and the companions heard.
         bool _unlocked;
         int _repliesAtArrival = -1;
-        string _artworkId = "aic-28560";
+        public const string BedroomId = "aic-28560";
+        string _artworkId = BedroomId;
+        bool _bedroomSeen;
+
+        void OnEnable() => MasterInsights.Spoke += OnSpoke;
+        void OnDisable() => MasterInsights.Spoke -= OnSpoke;
+        void OnSpoke(InsightTarget t) { if (t != null && t.id == BedroomId && Arrived) _bedroomSeen = true; }
         TextMeshPro _prompt;
         CompanionGroup _group;
         Vector3 _exit = new Vector3(3.1f, 0f, -5.3f);
@@ -347,18 +377,16 @@ namespace MuseXR.Journey
                 _skyMat.SetTextureOffset("_BaseMap", o);
             }
             if (_group == null && _layout != null && Arrived) _group = ChapterFeatures.Crowd(_layout, transform);
-            // Her reply to a work ("What is this painting to you?") is asked by the shared insights
-            // (MasterInsights) after every master's opening; answering one here lights the easel.
+            // Her rule (chapter C): "After viewing The Bedroom the easel lights up". Viewing is the companions speaking
+            // on it (a click or walking up, OnSpoke); a reply recorded for it counts too. Any other work no longer does
+            // (Saul, 5 Oct: it lit after any painting).
             if (!_unlocked && Arrived)
             {
                 var replies = JourneyMemory.Record.Replies;
                 if (_repliesAtArrival < 0) _repliesAtArrival = replies.Count;
-                else if (replies.Count > _repliesAtArrival)
-                {
-                    var last = replies[replies.Count - 1].artworkId;
-                    if (!string.IsNullOrEmpty(last)) _artworkId = last;
-                    Unlock();
-                }
+                else for (var i = _repliesAtArrival; i < replies.Count; i++)
+                    if (replies[i].artworkId == BedroomId) { _bedroomSeen = true; break; }
+                if (_bedroomSeen) { _artworkId = BedroomId; Unlock(); }
             }
             if (_easel == null || _kept || !_unlocked) return;
             UpdatePots();
@@ -395,7 +423,9 @@ namespace MuseXR.Journey
             var m = ChapterFeatures.Lit(Color.white, 0f, 0.35f);
             m.SetTexture("_BaseMap", tex);
             relief.gameObject.AddComponent<MeshRenderer>().sharedMaterial = m;
-            Exhibit.Make(relief.gameObject, "aic-28560", "The Bedroom", "Vincent van Gogh");   // the hung one's id: one painting, one record
+            Exhibit.Make(relief.gameObject, BedroomId, "The Bedroom", "Vincent van Gogh");   // the hung one's id: one painting, one record
+            // Her rule: viewing The Bedroom is what lights the easel, so the compass leads there first.
+            CompassTarget.Add(relief.gameObject, 24, "The Bedroom", "Walk up to it and hear your companions");
             var lamp = new GameObject("Raking light").AddComponent<Light>();   // a light from the side brings the ridges out
             lamp.transform.SetParent(root, false); lamp.transform.localPosition = new Vector3(-BedroomWidth * 0.7f, h + 0.3f, -1.2f);
             lamp.type = LightType.Point; lamp.range = 7f; lamp.intensity = 2.2f; lamp.color = new Color(1f, 0.92f, 0.8f);
@@ -480,7 +510,7 @@ namespace MuseXR.Journey
             _prompt = promptAt.gameObject.AddComponent<TextMeshPro>();
             _prompt.fontSize = 0.9f; _prompt.alignment = TextAlignmentOptions.Center; _prompt.color = new Color(0.98f, 0.95f, 0.86f);
             _prompt.rectTransform.sizeDelta = new Vector2(1.8f, 0.4f);
-            _prompt.text = "Look at a painting and hear the companions first";
+            _prompt.text = "Look at The Bedroom and hear the companions first";
             _prompt.color = new Color(0.8f, 0.78f, 0.72f);
             // Until then the compass leads to the paintings (each hung work is already a target).
 
@@ -571,12 +601,7 @@ namespace MuseXR.Journey
             {
                 if (source.Trigger)
                 {
-                    var p = Tip(aim);
-                    if (_points.Count == 0 || Vector3.Distance(p, _points[_points.Count - 1]) > 0.015f)
-                    {
-                        if (_points.Count < JourneyRecord.MaxStrokePoints) _points.Add(p);
-                        _stroke.positionCount = _points.Count; _stroke.SetPositions(_points.ToArray());
-                    }
+                    if (_brush.Add(Tip(aim), aim.up)) RedrawRibbon();
                 }
                 else EndStroke();
             }
@@ -585,21 +610,33 @@ namespace MuseXR.Journey
         void BeginStroke()
         {
             _drawing = true;
-            _points.Clear();
-            if (_stroke != null) Destroy(_stroke.gameObject);
-            var go = new GameObject("Stroke line");
-            go.transform.SetParent(_strokeRoot, false);
-            _stroke = go.AddComponent<LineRenderer>();
-            _stroke.useWorldSpace = true;
-            _stroke.widthCurve = new AnimationCurve(new Keyframe(0f, 0.035f), new Keyframe(1f, 0.018f));
-            _stroke.numCapVertices = 6; _stroke.numCornerVertices = 4;
-            _stroke.material = ChapterFeatures.Unlit(Pots[_colour].colour);
+            _brush.Clear();
+            if (_stroke != null) Destroy(_stroke);
+            // A ribbon in world space, lit so the band reads its turns, both faces painted (wet paint: a little gloss).
+            _stroke = new GameObject("Stroke ribbon", typeof(MeshFilter), typeof(MeshRenderer));
+            _stroke.transform.SetParent(_strokeRoot, false);   // it belongs to the studio, and leaves with it
+            _strokeMesh = new Mesh { name = "stroke" };
+            _strokeMesh.MarkDynamic();
+            _stroke.GetComponent<MeshFilter>().sharedMesh = _strokeMesh;
+            var mat = ChapterFeatures.Lit(Pots[_colour].colour, 0f, 0.55f);
+            mat.SetFloat("_Cull", 0f);
+            var mr = _stroke.GetComponent<MeshRenderer>();
+            mr.sharedMaterial = mat; mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        /// <summary>The ribbon in the stroke root's own space, so it moves and goes with the chapter.</summary>
+        void RedrawRibbon()
+        {
+            var t = _stroke.transform;
+            var pts = new List<Vector3>(_brush.Count); var ups = new List<Vector3>(_brush.Count);
+            for (var i = 0; i < _brush.Count; i++) { pts.Add(t.InverseTransformPoint(_brush.Points[i])); ups.Add(t.InverseTransformDirection(_brush.Ups[i])); }
+            StrokeBrush.BuildRibbon(_strokeMesh, pts, ups);
         }
 
         void EndStroke()
         {
             _drawing = false;
-            if (_points.Count < 4) { _prompt.text = "A longer stroke - hold the trigger and draw"; return; }
+            if (_points.Count < 4) { if (_stroke != null) Destroy(_stroke); _prompt.text = "A longer stroke - hold the trigger and draw"; return; }
             _awaitingKeep = true;
             _prompt.text = "A  Keep this stroke      B  Redraw";
             ConfirmInput.Take(this);
@@ -617,10 +654,7 @@ namespace MuseXR.Journey
             JourneyMemory.Record.MarkChapterDone(VrStage.VanGogh);
             _prompt.text = "Saved  ·  " + Pots[_colour].name + " stroke  ·  linked to " + ArtworkTitle(_artworkId);
             StartCoroutine(GrowToDoor());
-            var vg = Masters.VanGogh;
-            var line = "You pressed hardest at the very start and lighter as you went. Whatever is on your mind was heaviest at the beginning";
-            if (_group != null) _group.Say(vg, line);
-            ChapterFeatures.Voice(this, vg, line);
+            React(StrokeBrush.Describe(_points), Pots[_colour].name);
             return true;
         }
 
@@ -629,10 +663,48 @@ namespace MuseXR.Journey
             if (!_awaitingKeep) return false;
             _awaitingKeep = false;
             ConfirmInput.Drop(this);
-            if (_stroke != null) Destroy(_stroke.gameObject);
-            _points.Clear();
+            if (_stroke != null) Destroy(_stroke);
+            _brush.Clear();
             _prompt.text = Pots[_colour].name + ".  Hold the trigger and paint one stroke in the air";
             return true;
+        }
+
+        /// <summary>
+        /// Van Gogh answers the stroke the visitor actually made - its colour, its length, which way it went, how it
+        /// wandered - live; his fallback line is built from the same reading, so even offline it is about this stroke.
+        /// </summary>
+        async void React(string stroke, string colour)
+        {
+            var token = ++_reacted;
+            var vg = Masters.VanGogh;
+            var asked = JourneyMemory.Record != null ? JourneyMemory.Record.Question : "";
+            var question = "In Van Gogh's studio the room asks: 'What does your hand say that words cannot?' "
+                         + "The visitor dipped the brush in " + colour.ToLowerInvariant() + " and painted one stroke in the air: " + stroke + ". "
+                         + (string.IsNullOrWhiteSpace(asked) ? "" : "They came into the museum asking: \"" + asked.Trim() + "\". ")
+                         + "As Van Gogh, tell them what you read in that stroke, to them, in one or two short sentences, under 35 words. No numbers.";
+            DialogueContext.Set("You painted one stroke in " + colour.ToLowerInvariant());
+            string line = null;
+            try
+            {
+                var live = await MasterInsights.Ensure().AskMasters(question, new[] { vg }, "your stroke", "one stroke of " + colour.ToLowerInvariant() + " paint in the air");
+                if (live != null) live.TryGetValue(vg, out line);
+            }
+            catch (System.Exception ex) { Debug.LogWarning("[VanGogh] live reaction: " + ex.Message); }
+            if (this == null || token != _reacted) return;
+            if (string.IsNullOrWhiteSpace(line)) line = CannedReading(stroke, colour);
+            Debug.Log("[VanGogh] on the stroke (" + stroke + "): " + line);
+            if (_group != null) _group.Say(vg, line);
+            ChapterFeatures.Voice(this, vg, line);
+        }
+
+        /// <summary>Offline only: his reading built from the stroke itself, never one fixed sentence for every stroke.</summary>
+        internal static string CannedReading(string stroke, string colour)
+        {
+            var shape = stroke.Contains("rising") ? "It climbs, like a cypress reaching for the stars."
+                      : stroke.Contains("falling") ? "It comes down, the way rain falls on a field: something set down, not lost."
+                      : "It goes across, the way a horizon holds a whole field together.";
+            var path = stroke.Contains("curling") || stroke.Contains("winding") ? " And it turns; you did not want to go straight." : stroke.Contains("nearly straight") ? " And it does not hesitate." : "";
+            return "In " + colour.ToLowerInvariant() + ". " + shape + path;
         }
 
         static string ArtworkTitle(string id)
@@ -699,6 +771,13 @@ namespace MuseXR.Journey
         static readonly string[] Works = { "Water Lilies", "Arrival of the Normandy Train, Gare Saint-Lazare", "Stacks of Wheat (End of Summer)", "Cliff Walk at Pourville" };
         static readonly string[] WorkIds = { "aic-16568", "aic-16571", "aic-64818", "aic-14620" };
 
+        /// <summary>The work the visitor stopped for, by its record id. The record's reason is WHY, since 5 Oct - never the title.</summary>
+        internal static string WorkTitle(string artworkId)
+        {
+            for (var i = 0; i < WorkIds.Length; i++) if (WorkIds[i] == artworkId) return Works[i];
+            return "a painting";
+        }
+
         // Each moment on the ring, and each painting, heard before the visitor is asked to choose.
         static readonly Dictionary<TimeOfDay, Dictionary<string, string>> MomentTakes = new Dictionary<TimeOfDay, Dictionary<string, string>>
         {
@@ -711,7 +790,7 @@ namespace MuseXR.Journey
                 { Masters.VanGogh, "Full light. The greens are shouting. I like it when they shout." },
                 { Masters.Socrates, "Everything is visible now. Does seeing everything mean you have understood anything?" } } },
             { TimeOfDay.Dusk, new Dictionary<string, string> {
-                { Masters.Monet, "The pink on the water has only just come out. In a quarter of an hour it will sink to violet and the edges of the lilies will be gone" },
+                { Masters.Monet, "An hour on, this water is gone." },   // her line (chapter D)
                 { Masters.VanGogh, "Dusk is when colour gets heavy. I would paint it before it goes." },
                 { Masters.Socrates, "You turned it to the end of the day. Is what is ending more worth stopping for?" } } },
         };
@@ -736,8 +815,7 @@ namespace MuseXR.Journey
         };
         readonly HashSet<TimeOfDay> _seen = new HashSet<TimeOfDay>();
         readonly bool[] _workHeard = new bool[4];
-        readonly List<Renderer> _chipBacks = new List<Renderer>();
-        TextMeshPro _chipQuestion;
+        ChoicePanel _choice;
         Component _ringPlate;
         bool AllWorksHeard => _workHeard[0] && _workHeard[1] && _workHeard[2] && _workHeard[3];
 
@@ -759,7 +837,6 @@ namespace MuseXR.Journey
         Vector3 _rotundaLocal = RotundaAt;
         string _draft = "", _rewrite = "";
         int _answerStage;   // 0 none, 1 draft shown (A keep · X rewrite · Y say), 2 rewrite shown (A use · B back)
-        float _undoUntil;   // her 3 s undo after the painting is chosen
         int _pickedWork = -1;
         bool _rewriting;
         InputAction _x, _y;
@@ -910,9 +987,84 @@ namespace MuseXR.Journey
 
             _driver = new GameObject("Time Ring Driver").AddComponent<TimeRingDriver>();
             _driver.transform.SetParent(root, false);
+            _driver.particles = GardenMotes(root);
+            _driver.particlesAtFull = MotesAtFull;
             _dial = TimeRingDial.Make(dial, ring.transform, _driver);
             _dial.Clicked += OnTime;
             CompassTarget.Add(dial, 21, "The time ring", "Grip it and turn");
+        }
+
+        /// <summary>
+        /// Her ring changes the particles too: motes drifting over the garden, thick in the mist, a little dust at dusk,
+        /// none in the clear afternoon (TimeRing's looks: 1, 0.35, 0). The driver sets the rate; this is only the system.
+        /// Soft discs, additive, unlit, slow and buoyant over the path between the ring and the pond.
+        /// </summary>
+        // Saul, 5 Oct: "add more motes, make it more obvious". Four times the first rate, soft-edged so a near one is a blur,
+        // not a white disc (hard discs read as snow), and capped on screen.
+        const float MotesAtFull = 160f;
+
+        ParticleSystem GardenMotes(Transform ring)
+        {
+            var go = new GameObject("Garden motes");
+            go.transform.SetParent(transform, false);
+            var mid = transform.InverseTransformPoint(ring.position);
+            go.transform.localPosition = new Vector3((mid.x + LiliesAt.x) * 0.5f, 1.4f, (mid.z + LiliesAt.z) * 0.5f);
+            var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main;
+            main.loop = true; main.playOnAwake = true; main.maxParticles = 1500;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(7f, 11f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.02f, 0.07f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.02f, 0.05f);
+            main.startColor = new Color(1f, 0.99f, 0.96f, 0.7f);
+            main.gravityModifier = -0.004f;   // buoyant: they rise, barely
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(Mathf.Abs(mid.x - LiliesAt.x) + 8f, 2.6f, Mathf.Abs(mid.z - LiliesAt.z) + 8f);
+            var col = ps.colorOverLifetime; col.enabled = true;
+            var g = new Gradient();
+            g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                      new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.25f), new GradientAlphaKey(1f, 0.7f), new GradientAlphaKey(0f, 1f) });
+            col.color = g;
+            var noise = ps.noise; noise.enabled = true; noise.strength = 0.05f; noise.frequency = 0.3f; noise.scrollSpeed = 0.1f;
+            var emission = ps.emission; emission.rateOverTime = 0f;   // the clear afternoon it starts in; the driver sets it from the ring
+            var r = go.GetComponent<ParticleSystemRenderer>();
+            r.renderMode = ParticleSystemRenderMode.Billboard;
+            r.maxParticleSize = 0.012f;   // a mote passing the eye stays a fleck
+            var m = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+            m.SetFloat("_Surface", 1f); m.SetFloat("_Blend", 2f);
+            m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            m.SetFloat("_ZWrite", 0f);
+            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            m.SetTexture("_BaseMap", SoftDot());
+            r.sharedMaterial = m;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; r.receiveShadows = false;
+            ps.Play();
+            return ps;
+        }
+
+        static Texture2D _softDot;
+
+        /// <summary>A soft round blur, white, its alpha a gaussian: what a mote looks like out of focus.</summary>
+        static Texture2D SoftDot()
+        {
+            if (_softDot != null) return _softDot;
+            const int n = 64;
+            _softDot = new Texture2D(n, n, TextureFormat.RGBA32, false) { name = "soft-dot", wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.DontSave };
+            var px = new Color32[n * n];
+            for (var y = 0; y < n; y++)
+            for (var x = 0; x < n; x++)
+            {
+                float dx = (x + 0.5f) / n - 0.5f, dy = (y + 0.5f) / n - 0.5f;
+                var r = Mathf.Sqrt(dx * dx + dy * dy) * 2f;
+                var a = Mathf.Exp(-r * r * 5f) * Mathf.Clamp01((1f - r) * 4f);
+                px[y * n + x] = new Color32(255, 255, 255, (byte)(a * 255));
+            }
+            _softDot.SetPixels32(px); _softDot.Apply();
+            return _softDot;
         }
 
         void OnTime(TimeOfDay t)
@@ -929,7 +1081,13 @@ namespace MuseXR.Journey
             var target = _dial.GetComponent<CompassTarget>(); if (target != null) target.MarkDone();
             if (_picked) return;
             // Each moment heard the first time the ring reaches it; the paintings wait until all three have been.
-            if (_seen.Add(t)) ChapterFeatures.Take(this, _group, id => MomentTakes[t].TryGetValue(id, out var l) ? l : null, "The moment  ·  " + t);
+            if (_seen.Add(t))
+            {
+                var moment = t;
+                ChapterFeatures.TakeLive(this, _group, MomentQuestion(moment), "the garden at " + MomentWord(moment), "Monet's water garden, " + MomentWord(moment),
+                                         id => MomentTakes[moment].TryGetValue(id, out var l) ? l : null, "The moment  ·  " + moment,
+                                         () => _time == moment && !_picked);
+            }
             if (!_turned && _seen.Count == 3)
             {
                 _turned = true;
@@ -938,7 +1096,61 @@ namespace MuseXR.Journey
             }
             else if (!_turned)
                 Note(t + "  ·  " + _seen.Count + " / 3 moments\nTurn the ring to each moment and hear the companions");
-            if (_chipQuestion != null) _chipQuestion.text = Question();
+            if (_choice != null) _choice.SetPrompt(Question());   // the moment named in the question follows the ring
+        }
+
+        static string MomentWord(TimeOfDay t) => t == TimeOfDay.Mist ? "morning mist" : t == TimeOfDay.Dusk ? "dusk" : "afternoon";
+
+        /// <summary>Her response: "Monet stages how this moment changes an hour later" - live, to this visitor.</summary>
+        static string MomentQuestion(TimeOfDay t)
+        {
+            var asked = JourneyMemory.Record != null ? JourneyMemory.Record.Question : "";
+            return "In Monet's water garden the room asks: 'What is worth stopping for?' The visitor has turned the time ring to "
+                 + MomentWord(t) + ", and the garden has changed around them. "
+                 + (string.IsNullOrWhiteSpace(asked) ? "" : "They came into the museum asking: \"" + asked.Trim() + "\". ")
+                 + "Monet: stage how this very moment will have changed an hour from now - the light, the water, what will be gone. "
+                 + "The others: answer it through your own way of seeing. Each one or two short sentences, under 30 words, to the visitor. No numbers.";
+        }
+
+        /// <summary>
+        /// Her saved record is monet{preset, artworkId, reason}: after the work, why they stopped for it. Three different
+        /// answers to the garden's question, "What is worth stopping for?" - attention (what we nearly miss), time (what
+        /// will not come back) and feeling (what quiets the mind) - so each master has something of their own to say to
+        /// it: Socrates the first, Monet the second, Van Gogh the third (Saul, 5 Oct: ours, Skylar has none).
+        /// </summary>
+        static readonly string[] MonetReasons =
+        {
+            "Because I almost walked past it",
+            "Because it will never look this way again",
+            "Because it let me stop thinking",
+        };
+
+        /// <summary>Only when there is no live answer: each master on each reason, in their own lens.</summary>
+        static readonly Dictionary<string, string>[] ReasonTakes =
+        {
+            new Dictionary<string, string> {
+                { Masters.Socrates, "You almost walked past it. Then what else did you walk past today without knowing?" },
+                { Masters.Monet, "Most of my life went into the things people walk past. The pond was there for years before I looked." },
+                { Masters.VanGogh, "The best things never call out. You have to turn round for them." } },
+            new Dictionary<string, string> {
+                { Masters.Monet, "That is the only reason I ever painted. Tomorrow the same water is a different picture." },
+                { Masters.Socrates, "If it will never look this way again, will you? What changes, the painting or the one who stops?" },
+                { Masters.VanGogh, "Then hold it now, hard, the way you would hold a hand." } },
+            new Dictionary<string, string> {
+                { Masters.VanGogh, "Yes. When the thinking stops, the seeing starts. That is when I could paint." },
+                { Masters.Monet, "The water does that. It asks for nothing, and you give it all your attention anyway." },
+                { Masters.Socrates, "And is a quiet mind empty, or only listening? I have never been sure which." } },
+        };
+
+        /// <summary>What the companions are asked once the reason is kept: the moment, the work and the reason, to this visitor.</summary>
+        string ReasonQuestion()
+        {
+            var asked = JourneyMemory.Record != null ? JourneyMemory.Record.Question : "";
+            return "In Monet's water garden the room asks: 'What is worth stopping for?' At " + MomentWord(_time) + " the visitor stopped for "
+                 + Works[_pickedWork] + ", and gave this reason: '" + MonetReasons[_reason] + "'. "
+                 + (string.IsNullOrWhiteSpace(asked) ? "" : "They came into the museum asking: \"" + asked.Trim() + "\". ")
+                 + "Answer their reason, each through your own way of seeing - agree, push back, or ask. "
+                 + "Each one or two short sentences, under 30 words, to the visitor. No numbers.";
         }
 
         /// <summary>"At this moment, which painting did you stop for?" - her four Monets as chips over the pedestal.</summary>
@@ -948,39 +1160,25 @@ namespace MuseXR.Journey
             var root = _dial.transform.parent;
             _chips = new GameObject("Which painting").gameObject;
             _chips.transform.SetParent(root, false);
-            _chips.transform.localPosition = new Vector3(0f, 2.15f, 0.1f);
-            var q = _chips.AddComponent<TextMeshPro>(); _chipQuestion = q;
-            q.text = Question(); q.fontSize = 0.8f; q.alignment = TextAlignmentOptions.Center;
-            q.color = new Color(0.98f, 0.95f, 0.88f); q.rectTransform.sizeDelta = new Vector2(2.4f, 0.3f);
-            for (var i = 0; i < Works.Length; i++)
-            {
-                var chip = new GameObject("Chip " + Works[i]).transform;
-                chip.SetParent(_chips.transform, false);
-                chip.localPosition = new Vector3((i % 2 - 0.5f) * 0.78f, -0.32f - (i / 2) * 0.27f, 0f);   // two by two: readable close up
-                _chipBacks.Add(ChapterFeatures.Quad(chip, "Back", new Vector3(0f, 0f, 0.004f), Quaternion.identity, new Vector2(0.72f, 0.22f), ChapterFeatures.Unlit(new Color(0.08f, 0.07f, 0.09f, 1f))).GetComponent<Renderer>());
-                var textGo = new GameObject("Text"); textGo.transform.SetParent(chip, false);   // not on the chip: adding TMP swaps its Transform and kills `chip`
-                var t = textGo.AddComponent<TextMeshPro>();
-                t.text = Works[i]; t.fontSize = 0.42f; t.alignment = TextAlignmentOptions.Center; t.color = new Color(0.95f, 0.92f, 0.86f);
-                t.rectTransform.sizeDelta = new Vector2(0.66f, 0.2f); t.enableWordWrapping = true;
-                var box = chip.gameObject.AddComponent<BoxCollider>(); box.size = new Vector3(0.72f, 0.22f, 0.04f); box.isTrigger = true;
-                var index = i;
-                var wp = Pointable.Make(chip.gameObject, "monet work " + i);
-                HoverTint.Bind(wp, _chipBacks[_chipBacks.Count - 1], chip);
-                wp.Selected += (_, __) => TapWork(index);
-            }
+            // Over the time ring it is about, turned to the visitor wherever they stand, in her panel style - the same
+            // as the Palace's reasons (Saul, 5 Oct: the quad chips looked bad; choices belong over what they are about).
+            _chips.transform.localPosition = new Vector3(0f, 1.95f, 0f);
+            TurnToVisitor.Attach(_chips);
+            _choice = ChoicePanel.Make(_chips.transform, "Paintings");
+            _choice.Build("Stop 4  ·  Which painting", Question(), Works, Footer(), 2.2f, (i, _) => TapWork(i));
+            for (var i = 0; i < _workHeard.Length; i++) if (_workHeard[i]) _choice.MarkHeard(i);
             Appear.In(_chips, 0.5f);   // eased, never popped (Saul, 5 Oct)
-            // Saul, 5 Oct: the question follows the visitor like the masters' card, not left at the ring.
-            _chips.transform.localScale = Vector3.one * 0.6f;
-            FollowVisitor.Attach(_chips, 1.3f, 0.12f);
             Note("Turn back to the moment you stop at, if you like\nTap each painting and hear the companions on it");
         }
 
-        string Question()
+        string Question() => (_time == TimeOfDay.Mist ? "In the morning mist" : _time == TimeOfDay.Dusk ? "At dusk" : "In the afternoon light")
+                             + ", which painting did you stop for?";
+
+        string Footer()
         {
-            if (!_turned) return "";
             var heard = 0; foreach (var h in _workHeard) if (h) heard++;
-            return AllWorksHeard ? "At " + _time.ToString().ToLowerInvariant() + ", which painting did you stop for?  Tap it"
-                                 : "Tap each painting and hear the companions  ·  " + heard + " / 4";
+            return AllWorksHeard ? "Point at the one you stopped for and pull the trigger"
+                                 : "Pull the trigger on each to hear your companions  ·  " + heard + " / 4";
         }
 
         /// <summary>The first tap on each painting is for hearing it; once all four are heard, a tap chooses.</summary>
@@ -990,50 +1188,95 @@ namespace MuseXR.Journey
             if (!AllWorksHeard || !_workHeard[i])
             {
                 _workHeard[i] = true;
-                if (i < _chipBacks.Count && _chipBacks[i] != null) _chipBacks[i].sharedMaterial = ChapterFeatures.Unlit(new Color(0.24f, 0.2f, 0.12f, 1f));   // heard: warmed
+                if (_choice != null) _choice.MarkHeard(i);   // heard: its number becomes a gold dot
                 var at = i;
                 ChapterFeatures.Take(this, _group, id => WorkTakes[at].TryGetValue(id, out var l) ? l : null, "On " + Works[at]);
-                if (_chipQuestion != null) _chipQuestion.text = Question();
+                if (_choice != null) { _choice.SetPrompt(Question()); _choice.SetFooter(Footer()); }
                 if (AllWorksHeard) Note("You have heard all four\nTap the painting you stopped for");
                 return;
             }
             PickWork(i);
         }
 
+        // Her flow after the paintings (chapter D): "Stopped at Water Lilies · dusk", A keep · B turn again; then the
+        // reason; then saved. 0 choosing, 1 stopped (A or B), 2 the reason, 3 saved.
+        int _stage;
+        int _reason = -1;
+        ChoicePanel _reasons;
+
         void PickWork(int i)
         {
             if (_picked) return;
-            _picked = true; _pickedWork = i;
+            _picked = true; _pickedWork = i; _stage = 1;
             if (_group != null && _group.Busy) _group.StopTurns();   // chosen: the takes on the others are moot (they ran on into the round table)
-            JourneyMemory.Record.SetMonet(new JourneyRecord.MonetChoice { Preset = _time.ToString().ToLowerInvariant(), ArtworkId = WorkIds[i], Reason = Works[i] });
-            if (_chips != null) Appear.Out(_chips, 0.3f);
-            // Her water chime comes from ChapterChimes when the choice reaches the record.
-            // Her undo: 3 s to take it back with B; A keeps it at once.
-            _undoUntil = Time.time + 3f;
+            if (_choice != null) _choice.Mark(i);
             var panel = TorsoPanel.Get();
-            if (panel != null) panel.ShowLine(null, "Saved", _time + "  ·  " + Works[i], "B undo  ·  3 s", "Monet garden");
+            if (panel != null) panel.ShowLine(null, "Stopped at", Works[i] + "  ·  " + MomentWord(_time), "A keep  ·  B turn again", "Monet garden");
             ConfirmInput.Take(this);
+        }
+
+        /// <summary>A on "Stopped at": the work stands; now why they stopped for it, over the ring, with a Keep button.</summary>
+        void AskReason()
+        {
+            _stage = 2; _reason = -1;
+            var panel = TorsoPanel.Get(); if (panel != null) panel.ClearLine();
+            if (_choice != null) { Destroy(_choice.gameObject); _choice = null; }
+            _reasons = ChoicePanel.Make(_chips.transform, "Reasons");
+            _reasons.Build("Stop 4  ·  Your reason", "Why did you stop for " + Works[_pickedWork] + "?", MonetReasons,
+                           "Point at a reason and pull the trigger", 2.2f, (r, pointer) => PickReason(r, pointer),
+                           "Keep this moment", () => SaveMonet());
+            Appear.In(_chips, 0.3f);
+        }
+
+        void PickReason(int r, Pointer pointer)
+        {
+            if (_stage != 2) return;
+            _reason = r;
+            _reasons.Mark(r, "Or press A  ·  choose another to change it");
+            ChimePlayer.Play(ChimePlayer.TickClip(), _chips.transform.position, 0.4f);
+            pointer?.Source.Buzz(SlotRules.LightAmplitude * 1.5f, SlotRules.LightSeconds);
+        }
+
+        /// <summary>Saved: her monet{preset, artworkId, reason}. Her water chime comes from ChapterChimes as it reaches the record.</summary>
+        bool SaveMonet()
+        {
+            if (_stage != 2 || _reason < 0) return false;
+            JourneyMemory.Record.SetMonet(new JourneyRecord.MonetChoice { Preset = _time.ToString().ToLowerInvariant(), ArtworkId = WorkIds[_pickedWork], Reason = MonetReasons[_reason] });
+            Debug.Log("[Monet] saved: " + _time + " · " + Works[_pickedWork] + " · " + MonetReasons[_reason]);
+            _stage = 3;
+            KeepWork();
+            // The companions answer the reason itself, live; their own lines on it only when there is no live answer.
+            var reason = _reason;
+            ChapterFeatures.TakeLive(this, _group, ReasonQuestion(), "your reason", "why the visitor stopped for " + Works[_pickedWork],
+                                     id => ReasonTakes[reason].TryGetValue(id, out var l) ? l : null, "Your reason  ·  " + MonetReasons[reason],
+                                     () => !_tableStarted);
+            return true;
+        }
+
+        /// <summary>B: turn the ring again - the choice is let go and the paintings come back, following the ring.</summary>
+        void TurnAgain()
+        {
+            _stage = 0; _picked = false; _pickedWork = -1; _reason = -1;
+            ConfirmInput.Drop(this);
+            if (_reasons != null) { Destroy(_reasons.gameObject); _reasons = null; }
+            var panel = TorsoPanel.Get(); if (panel != null) panel.ClearLine();
+            if (_chips != null) Destroy(_chips);
+            _chips = null; _choice = null;
+            StartCoroutine(ShowChips());
+            Note("Turn the ring again\nThen choose the painting you stop for");
         }
 
         /// <summary>The undo window has closed (or A kept it): the choice stands and the rotunda calls.</summary>
         void KeepWork()
         {
-            _undoUntil = 0f;
             ConfirmInput.Drop(this);
             JourneyMemory.Record.MarkChapterDone(VrStage.Monet);
             if (_chips != null) Destroy(_chips);
-            Note("Saved  ·  " + _time + "  ·  " + Works[_pickedWork] + "\nEnd of the garden  ·  Form my answer");
+            var saved = TorsoPanel.Get();
+            if (saved != null) saved.ShowLine(null, "Saved", Works[_pickedWork] + "  ·  " + MomentWord(_time) + "  ·  " + MonetReasons[_reason], null, "Monet garden");
+            Note("Saved  ·  " + MomentWord(_time) + "  ·  " + Works[_pickedWork] + "\nEnd of the garden  ·  Form my answer");
             if (_tableSign != null) _tableSign.text = "Form my answer";
             var ct = _rotunda.GetComponent<CompassTarget>(); if (ct == null) CompassTarget.Add(_rotunda.gameObject, 28, "Form my answer", "The rotunda · they are waiting");
-        }
-
-        void UndoWork()
-        {
-            _undoUntil = 0f; _picked = false; _pickedWork = -1;
-            ConfirmInput.Drop(this);
-            if (_chips != null) Appear.In(_chips, 0.3f);
-            var panel = TorsoPanel.Get();
-            if (panel != null) panel.ClearLine();
         }
 
         void Note(string text)
@@ -1143,11 +1386,10 @@ namespace MuseXR.Journey
             }
             var flat = new Vector3(cam.transform.position.x, _rotunda.position.y, cam.transform.position.z);
             // Only once the garden's choice is kept: walking past it on the way to the time ring starts nothing.
-            var ready = _picked && _undoUntil <= 0f && JourneyMemory.Record.Monet != null;
+            var ready = _stage == 3 && JourneyMemory.Record.Monet != null;
             UpdateRotundaGlow(ready);
             KeepSeatsClear();
             if (!_tableStarted && Arrived && ready && Vector3.Distance(flat, _rotunda.position) < 2.4f) StartCoroutine(Roundtable());
-            if (_undoUntil > 0f && Time.time > _undoUntil) KeepWork();
             if (_answerStage == 1 && _x != null && _x.WasPressedThisFrame()) Rewrite();
             if (_answerStage == 1 && _y != null && _y.WasPressedThisFrame()) SayOwn();
         }
@@ -1222,7 +1464,12 @@ namespace MuseXR.Journey
             if (rec.Palace != null) session.RecordAnswer("the Palace", "kept the " + rec.Palace.Object + (rec.Palace.Reason.Length > 0 ? ", because " + rec.Palace.Reason : ""), "visitor");
             if (rec.Grotto != null) session.RecordAnswer("the Grotto", "set the lamp on the " + rec.Grotto.LampSlot, "visitor");
             if (rec.VanGogh != null) session.RecordAnswer("The Bedroom", "painted one " + rec.VanGogh.Color + " stroke toward the door", "visitor");
-            if (rec.Monet != null) { session.RecordArtwork(rec.Monet.Reason, "Claude Monet"); session.RecordAnswer(rec.Monet.Reason, "stopped for it at " + rec.Monet.Preset, "visitor"); }
+            if (rec.Monet != null)
+            {
+                var work = WorkTitle(rec.Monet.ArtworkId);
+                session.RecordArtwork(work, "Claude Monet");
+                session.RecordAnswer(work, "stopped for it at " + rec.Monet.Preset + (string.IsNullOrWhiteSpace(rec.Monet.Reason) ? "" : ", because: " + rec.Monet.Reason), "visitor");
+            }
             var client = new RoundtableClient(new MusePico.Tripo.TripoWebRequestTransport(key, ResponsesCall.DefaultEndpoint), roster);
             return await client.AskAsync(session, masters);
         }
@@ -1261,7 +1508,7 @@ namespace MuseXR.Journey
         {
             var rec = JourneyMemory.Record;
             var l = new List<KeyValuePair<string, string>>();
-            var monet = rec.Monet != null ? "You stopped at " + rec.Monet.Reason + " at " + rec.Monet.Preset + ". An hour later that water is already other water. What you kept was the moment" : "You walked the garden without stopping long. Even that is a choice about time";
+            var monet = rec.Monet != null ? "You stopped at " + WorkTitle(rec.Monet.ArtworkId) + " at " + rec.Monet.Preset + ". An hour later that water is already other water. What you kept was the moment" : "You walked the garden without stopping long. Even that is a choice about time";
             var vg = rec.VanGogh != null ? "Your stroke left The Bedroom and ran all the way to the door. The place you pressed hardest is the thing you most wanted to say on this walk" : "You never lifted the brush. Some feelings wait until they are sure";
             var soc = rec.Palace != null ? "In the Palace you kept the " + rec.Palace.Object + (rec.Palace.Reason.Length > 0 ? ", \"" + rec.Palace.Reason + "\"" : "") + ". And you, which road do you keep walking?" : "You carried a question the whole way. Is it the same question now?";
             var c = Masters.Company;
@@ -1337,7 +1584,8 @@ namespace MuseXR.Journey
                 var paint = c == "#2F4F8F" ? "cobalt" : c == "#E3B33A" ? "chrome yellow" : c == "#3F5F2F" ? "cypress green" : "colour";
                 kept.Append("In the Van Gogh studio they painted one stroke in " + paint + ". ");
             }
-            if (rec.Monet != null) kept.Append("In the Monet garden they stopped at " + rec.Monet.Reason + " at " + rec.Monet.Preset + ". ");
+            if (rec.Monet != null) kept.Append("In the Monet garden they stopped at " + WorkTitle(rec.Monet.ArtworkId) + " at " + rec.Monet.Preset
+                                               + (string.IsNullOrWhiteSpace(rec.Monet.Reason) ? "" : ", because: " + rec.Monet.Reason) + ". ");
             const string instructions =
                 "Write the visitor's own answer to the question they carried through a museum, as one sentence they could keep. " +
                 "Exactly ONE sentence with a single full stop at the end. First person or a plain statement, under 22 words, built from what they kept on the walk, answering the question directly. " +
@@ -1395,7 +1643,8 @@ namespace MuseXR.Journey
 
         public bool Confirm()
         {
-            if (_undoUntil > 0f) { KeepWork(); return true; }
+            if (_stage == 1) { AskReason(); return true; }
+            if (_stage == 2) return SaveMonet();
             if (_answerStage == 0 || _tableDone) return false;
             var final = _answerStage == 2 ? _rewrite : _draft;
             var rec = JourneyMemory.Record;
@@ -1413,7 +1662,7 @@ namespace MuseXR.Journey
 
         public bool Redo()
         {
-            if (_undoUntil > 0f) { UndoWork(); return true; }
+            if (_stage == 1 || _stage == 2) { TurnAgain(); return true; }
             if (_answerStage != 2) return false;
             ShowDraft();
             return true;

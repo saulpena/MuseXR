@@ -80,9 +80,11 @@ namespace MuseXR.Worlds
             {
                 // Reviewed 3 Oct 2026: saturation 0.55 + exposure 1.05 read as "a white veil, a faded
                 // photo". Near colour stays; only the distance fades, which is what mist does.
+                // Saul, 5 Oct: at haze 0.045 it looked too like the afternoon. 0.14 and paler: the far garden goes
+                // milky while the near stays readable (A/B screenshots, the Monet garden from the ring).
                 splatTint = new Color(0.95f, 0.98f, 1f), tintSparesBright = 0f,
-                saturation = 0.82f, exposure = 0.95f,
-                hazeColor = new Color(0.76f, 0.8f, 0.83f), hazeDensity = 0.045f,
+                saturation = 0.65f, exposure = 1.0f,
+                hazeColor = new Color(0.86f, 0.89f, 0.91f), hazeDensity = 0.14f,
                 frameLightColor = new Color(0.9f, 0.95f, 1f), frameLightIntensity = 0.8f,
                 particles = 1f,
             },

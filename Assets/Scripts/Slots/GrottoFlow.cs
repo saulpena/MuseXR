@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace MuseXR.Slots
 {
@@ -74,22 +75,21 @@ namespace MuseXR.Slots
         void Go(Phase p) { Current = p; PhaseChanged?.Invoke(p); }
 
         /// <summary>
-        /// What each companion says about the chosen way of seeing. Her storyboard gives one line in
-        /// words, Socrates' "From further back, what do you see?" (to the visitor at the relief). The
-        /// others are DRAFTS for the test scene, to be replaced by hers or by DialogueClient.
-        /// Van Gogh speaks for the close look, Monet for the whole; both speak either way.
+        /// Only when there is no live dialogue: what each companion says about the chosen way of seeing. The
+        /// "detail" lines are hers, word for word (MUSE-VR-design, the Grotto storyboard); she gives none for
+        /// "whole", so those are ours, in the same voices. Live, every companion answers through their own lens.
         /// </summary>
         public static string Line(string master, string lampSlot)
         {
             var detail = lampSlot == Detail;
             switch (master)
             {
-                case Masters.VanGogh: return detail ? "Look how deep the chisel went. Every cut was a decision someone made by hand."
-                                                    : "Up close it would be stone and toolmarks. From here you only see the calm.";
-                case Masters.Monet: return detail ? "Step back and the carving melts into the cliff, the way a face melts into the light."
-                                                  : "From the rail it is one form, a mountain holding the light all day.";
-                case Masters.Socrates: return detail ? "From further back, what do you see?"
-                                                     : "And close up, what would you lose?";
+                case Masters.VanGogh: return detail ? "Look how close you are leaning. You are looking for the place where the carver's hand pressed hardest, and it is right there in the deepest cut"
+                                                    : "Up close it would be stone and toolmarks. From the rail you only see the calm, and you chose the calm";
+                case Masters.Monet: return detail ? "The moment the lamp comes close the shadows on this stone move. Flat places now have depth, and when daylight returns it will all fold back in"
+                                                  : "From the rail it is one form, a mountain holding the light all day. Up close, the hour would keep changing it";
+                case Masters.Socrates: return detail ? "You chose the detail. The Buddha is right behind you. Are you afraid the whole would make you look too small?"
+                                                     : "You chose the whole. Standing back, do you see the Buddha, or only how small you are beside it?";
                 default: return Masters.Name(master) + " considers the lamp.";
             }
         }
@@ -98,5 +98,19 @@ namespace MuseXR.Slots
         public static string[] Order(string lampSlot) =>
             lampSlot == Whole ? new[] { Masters.Monet, Masters.VanGogh, Masters.Socrates }
                               : new[] { Masters.VanGogh, Masters.Monet, Masters.Socrates };
+
+        /// <summary>
+        /// The visitor's own companions, whoever they are, in that order where it applies: the close look's
+        /// master first for "detail", the whole's for "whole", then the rest as they walk. Only the default three
+        /// used to speak, so a chosen Frida or Picasso was silently left out.
+        /// </summary>
+        public static List<string> Order(string lampSlot, IEnumerable<string> company)
+        {
+            var present = new List<string>(company);
+            var order = new List<string>();
+            foreach (var id in Order(lampSlot)) if (present.Contains(id)) order.Add(id);
+            foreach (var id in present) if (!order.Contains(id)) order.Add(id);
+            return order;
+        }
     }
 }

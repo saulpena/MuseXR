@@ -53,21 +53,12 @@ namespace MuseXR.Interaction
 
         public const float CourtLightIntensity = 2.6f, CourtLightRange = 0.9f;   // a pool on the court, not the room
 
-        const float ChipW = 0.5f, ChipH = 0.15f, ChipStep = 0.56f;
-        // At the court the chips are a narrow row over the piece, above the confirm strip: her 4.3
-        // prompt - the options, then A/B - centred on what was placed (Saul, headset test: "the UI is
-        // all over the place, not centred where I'm placing it").
-        const float CourtW = 0.3f, CourtH = 0.11f, CourtStep = 0.32f;
-        // Type ceilings in TMP world units (0.6 ~ 16 mm cap height). Measured: at the card chips' 0.9
-        // the court chips' text spilled off the bottom.
-        const float CourtFontMax = 0.5f, CourtFontMin = 0.25f;
-        // Not-chosen chips stay legible (dark ink on a paler stone), so they read "not chosen, still
-        // pickable" rather than disabled (blind review: grey on grey at ~2:1).
-        static readonly Color ChipPaper = new Color(0.96f, 0.94f, 0.89f), ChipGold = new Color(0.86f, 0.66f, 0.26f),
-                              ChipDim = new Color(0.78f, 0.76f, 0.72f), InkDark = new Color(0.2f, 0.16f, 0.12f);
-        readonly List<Material> _chipMats = new List<Material>();
+        /// <summary>Her reasons prompt (MUSE-VR-design, Palace: "Leave one reason for your choice").</summary>
+        public const string ReasonsKicker = "Stop 1  ·  Your reason", ReasonsPrompt = "Leave one reason for your choice";
+        public const string ReasonsHint = "Point at a reason and pull the trigger", ReasonsKeep = "Or press A  ·  choose another to change it",
+                            KeepAction = "Keep this moment";
+        ChoicePanel _panel;
         readonly List<Pointable> _chips = new List<Pointable>();
-        readonly List<TMPro.TextMeshPro> _chipText = new List<TMPro.TextMeshPro>();
         readonly Dictionary<Transform, GameObject> _glows = new Dictionary<Transform, GameObject>();
         Transform _chipRoot;
         Vector3 _courtChipsAt;
@@ -288,111 +279,61 @@ namespace MuseXR.Interaction
             _chipRoot.SetParent(transform, true);
             _chipRoot.SetPositionAndRotation(at, awayFromViewer);
             _courtChipsAt = at; _courtChipsRot = awayFromViewer;
-            for (var i = 0; i < 3; i++)
-            {
-                var chip = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                chip.name = "Reason " + i;
-                DestroyImmediate(chip.GetComponent<Collider>());
-                chip.transform.SetParent(_chipRoot, false);
-                chip.transform.localPosition = new Vector3((i - 1) * ChipStep, 0f, 0f);
-                chip.transform.localScale = new Vector3(ChipW, ChipH, 1f);
-                var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
-                m.SetColor("_BaseColor", ChipPaper);
-                chip.GetComponent<Renderer>().sharedMaterial = m;
-                _chipMats.Add(m);
-                var t = new GameObject("Text").AddComponent<TMPro.TextMeshPro>();
-                t.transform.SetParent(chip.transform, false);
-                t.transform.localPosition = new Vector3(0f, 0f, -0.002f);
-                t.transform.localScale = Vector3.one;   // set per layout in Lay()
-                // Shrinks to fit rather than spilling off the chip (blind review: the longest wrapped
-                // to three lines over a one-line chip).
-                t.enableAutoSizing = true;
-                t.fontSizeMax = 0.024f * (0.6f / 0.016f);
-                t.fontSizeMin = 0.012f * (0.6f / 0.016f);
-                t.alignment = TMPro.TextAlignmentOptions.Center;
-                t.enableWordWrapping = true;
-                t.color = new Color(0.2f, 0.16f, 0.12f);
-                var p = Pointable.Make(chip, "reason-" + i);
-                HoverTint.Bind(p, chip.GetComponent<Renderer>());
-                var index = i;
-                p.Selected += (_, pointer) => PickChip(index, pointer);
-                _chips.Add(p);
-                _chipText.Add(t);
-            }
-            ShowChips(false);
+            _panel = ChoicePanel.Make(_chipRoot, "Reasons");
+            _chipRoot.gameObject.SetActive(false);
         }
+
+        /// <summary>Whether the reasons should be up: the piece is placed, the companions have spoken, nothing kept yet.</summary>
+        bool ReasonsWanted => !Listening && _reasonsOpen && (Flow.Current == PalaceFlow.Phase.Placed || Flow.Current == PalaceFlow.Phase.Ready);
+        bool _reasonsOpen;
+        const float ReasonsLift = 0.3f;
 
         void ShowChips(bool on)
         {
+            _reasonsOpen = on;
+            if (Court != null) Court.HideStrip = on;   // the panel says what the strip said; two of them overlapped (Saul, 5 Oct)
             Appear.Set(_chipRoot.gameObject, on, 0.3f);   // eased, never popped (Saul, 5 Oct)
             if (!on) return;
-            // Beside whichever was chosen: under the cards for the fallback, before the court otherwise.
+            // Over the court, above the placed piece, turned to the visitor wherever they stand (Saul, 5 Oct); under
+            // the cards in the card fallback.
+            // Lifted clear of the seated piece: at the court mark the crane's head stood through the footer (5 Oct).
+            var at = _courtChipsAt + Vector3.up * ReasonsLift;
             if (Flow.Kind == PalaceFlow.Mode.Card && Cards != null && Cards.Cards.Length > 0)
             {
                 var mid = Vector3.zero; foreach (var c in Cards.Cards) mid += c.position; mid /= Cards.Cards.Length;
-                var at = mid - Vector3.up * 0.36f;
-                var eye = Camera.main != null ? Camera.main.transform.position : at - Cards.Cards[0].forward;
-                var away = at - eye; away.y = 0f;
-                _chipRoot.SetPositionAndRotation(at, Quaternion.LookRotation(away.normalized, Vector3.up));
+                at = mid - Vector3.up * 0.36f;
             }
-            else
-            {
-                // Facing wherever the visitor stands NOW (they walked up to place it), not the spawn.
-                var eye = Camera.main != null ? Camera.main.transform.position : _courtChipsAt - _courtChipsRot * Vector3.forward;
-                var away = _courtChipsAt - eye; away.y = 0f;
-                _chipRoot.SetPositionAndRotation(_courtChipsAt,
-                    away.sqrMagnitude > 1e-6f ? Quaternion.LookRotation(away.normalized, Vector3.up) : _courtChipsRot);
-            }
-            // Saul, 5 Oct (second word): the reasons belong to the court, so they stand over it - above the placed
-            // piece - and turn to face the visitor wherever they stand, rather than following them about.
+            _chipRoot.position = at;
             var follow = _chipRoot.GetComponent<FollowVisitor>(); if (follow != null) Destroy(follow);
-            _chipRoot.localScale = Vector3.one;
-            if (AtCourt) TurnToVisitor.Attach(_chipRoot.gameObject);
-            else { _chipRoot.localScale = Vector3.one * 0.6f; FollowVisitor.Attach(_chipRoot.gameObject, 1.3f, 0.15f); }
+            TurnToVisitor.Attach(_chipRoot.gameObject);
             var reasons = PalaceFlow.ReasonsFor(Flow.Piece);
-            for (var i = 0; i < _chipText.Count; i++)
-            {
-                _chipText[i].text = reasons[i];
-                _chipText[i].fontStyle = TMPro.FontStyles.Normal;
-                _chipText[i].color = InkDark;
-                _chipMats[i].SetColor("_BaseColor", ChipPaper);
-                Lay(i, false);
-            }
+            _panel.Build(ReasonsKicker, ReasonsPrompt, reasons, ReasonsHint, 2.2f, (i, pointer) => PickChip(i, pointer),
+                         KeepAction, () => { if (!Confirm()) Say("[Palace] keep refused: " + Flow.Current); });
+            _chips.Clear(); _chips.AddRange(_panel.Options);
+            // Already chosen (shown again after something hid it): keep the choice marked.
+            var already = -1; for (var i = 0; i < reasons.Count; i++) if (reasons[i] == Flow.Reason) already = i;
+            if (already >= 0) _panel.Mark(already, ReasonsKeep);
         }
 
-        /// <summary>Narrow chips behind the court; wider ones under the cards in the card fallback.</summary>
-        bool AtCourt => Flow.Kind != PalaceFlow.Mode.Card;
-
-        void Lay(int i, bool chosen)
+        /// <summary>
+        /// The soft-lock's guard: while a reason is wanted the panel is up. Something else opened mid-choice once hid it
+        /// for good and left the visitor stuck in the Palace (Saul, 5 Oct); whatever hides it now, it comes back, and
+        /// A comes back here when nothing else holds it.
+        /// </summary>
+        void KeepReasonsUp()
         {
-            float w = AtCourt ? CourtW : ChipW, h = AtCourt ? CourtH : ChipH;
-            var at = new Vector3((i - 1) * (AtCourt ? CourtStep : ChipStep), 0f, 0f);
-            if (chosen) at.z = -0.04f;   // steps towards the visitor
-            _chips[i].transform.localPosition = at;
-            _chips[i].transform.localScale = new Vector3(w, h, 1f) * (chosen ? 1.05f : 1f);
-            _chipText[i].transform.localScale = new Vector3(1f / w, 1f / h, 1f);
-            _chipText[i].rectTransform.sizeDelta = new Vector2(w - 0.03f, h - 0.015f);
-            _chipText[i].fontSizeMax = AtCourt ? CourtFontMax : 0.024f * (0.6f / 0.016f);
-            _chipText[i].fontSizeMin = AtCourt ? CourtFontMin : 0.012f * (0.6f / 0.016f);
+            if (_chipRoot == null || !ReasonsWanted) return;
+            if (!_chipRoot.gameObject.activeSelf || _panel.Options.Count == 0) { Debug.Log("[Palace] the reasons were hidden while one is wanted: shown again"); ShowChips(true); }
+            if (ConfirmInput.Focus == null) ConfirmInput.Take(this);
         }
 
         public bool PickChip(int index, Pointer pointer = null)
         {
-            if (index < 0 || index >= _chipText.Count || Listening) return false;   // the reasons come after the companions
+            if (index < 0 || index >= _chips.Count || Listening) return false;   // the reasons come after the companions
             if (!Flow.ChooseReason(PalaceFlow.ReasonsFor(Flow.Piece)[index])) return false;
-            // The chosen chip turns solid gold, bold, with a "»", a little larger and nearer; the other
-            // two dim. Shape and weight as well as colour, so the choice reads at a glance (Saul: "I can
-            // keep clicking on them, I don't know if it's doing anything").
-            var reasons = PalaceFlow.ReasonsFor(Flow.Piece);
-            for (var i = 0; i < _chips.Count; i++)
-            {
-                var on = i == index;
-                _chipText[i].text = (on ? "» " : "") + reasons[i];
-                _chipText[i].fontStyle = on ? TMPro.FontStyles.Bold : TMPro.FontStyles.Normal;
-                _chipText[i].color = on ? InkDark : new Color(0.28f, 0.25f, 0.22f);
-                _chipMats[i].SetColor("_BaseColor", on ? ChipGold : ChipDim);
-                Lay(i, on);
-            }
+            // The chosen chip fills with her soft gold and its number turns to a tick; the others quieten. Colour only,
+            // so the panel never changes size (Saul, 5 Oct: the grown, bolded choice overlapped the text beside it).
+            _panel.Mark(index, ReasonsKeep);
             ChimePlayer.Play(ChimePlayer.TickClip(), _chips[index].transform.position, 0.4f);
             pointer?.Source.Buzz(SlotRules.LightAmplitude * 1.5f, SlotRules.LightSeconds);
             Retitle();
@@ -511,6 +452,7 @@ namespace MuseXR.Interaction
             if (CourtLight != null) CourtLight.intensity = CourtLightIntensity * k;
             if (CourtGlow != null) CourtGlow.sharedMaterial.SetColor("_BaseColor", new Color(1f, 0.72f, 0.38f) * (0.85f * k));
             if (_turnsPending && Company != null && Company.Current == CompanyStage.Phase.Done) StartTurns();
+            KeepReasonsUp();
         }
 
         void LateUpdate()
