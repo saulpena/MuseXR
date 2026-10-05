@@ -276,7 +276,7 @@ namespace MuseXR.Interaction
                 {
                     var r = canvas.GetComponent<Renderer>();
                     r.material.SetTexture("_BaseMap", tex);
-                    var h = canvas.localScale.y; canvas.localScale = new Vector3(h * tex.width / (float)tex.height, h, 1f);
+                    var h = canvas.localScale.y; canvas.localScale = new Vector3(h * MuseXR.Worlds.PictureAspect.Of(tex), h, 1f);
                 }
                 f.name = "Work " + titleOf(ids[i]);
                 _chimes.Add((f.position, ChapterChimes.Clip("monet"), false));   // water
