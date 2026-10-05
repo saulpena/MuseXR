@@ -222,6 +222,7 @@ namespace MuseXR.Interaction
         {
             var speaker = _rule.NextSpeaker();
             if (speaker == null) return;
+            DialogueContext.On(t.title);
             var opening = Insights.Opening(speaker, t.title, t.artist);
             Voiced(new List<KeyValuePair<string, string>> { new KeyValuePair<string, string>(speaker, opening) }, () => _group.Say(speaker, opening));
             _pending = null;

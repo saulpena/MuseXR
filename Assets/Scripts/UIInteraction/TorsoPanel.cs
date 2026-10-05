@@ -89,6 +89,9 @@ namespace MuseXR.UI
         public void ShowLine(string masterId, string speaker, string line, string hint = null, string kicker = "Your companion answers")
         {
             if (masterId != null && kicker == "Your companion answers" && BasedOn.TryGetValue(masterId, out var basedOn)) kicker = basedOn;
+            // Saul, 5 Oct: the heading says what they are talking about - the work, the option, the question.
+            else if (masterId != null && kicker == "Your companion answers" && !string.IsNullOrEmpty(MuseXR.Interaction.DialogueContext.Current))
+                kicker = MuseXR.Interaction.DialogueContext.Current;
             _kicker.text = kicker ?? string.Empty;
             _speaker.text = speaker ?? string.Empty;
             _line.text = line ?? string.Empty;
@@ -167,6 +170,7 @@ namespace MuseXR.UI
             _hint = MuseUi.Text(head, "", MuseUi.Face.Sans, 9f, NameInk, 0.12f, true, name: "Hint");
             _hint.enableWordWrapping = false;
             _line = Serif(card, "", 17f, LineInk, "Words");
+            _line.alignment = TextAlignmentOptions.Center;   // Saul, 5 Oct: centred
             // Saul, 4 Oct: the whole line in one card, no pages: a fixed box, and the text shrinks to fit it.
             _line.enableAutoSizing = true; _line.fontSizeMin = 9f; _line.fontSizeMax = 17f;
             _line.overflowMode = TextOverflowModes.Truncate;

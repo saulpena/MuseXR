@@ -162,8 +162,9 @@ namespace MuseXR.Journey
         /// companions on it. Their take on one option, in turn (A next), each line voiced as its turn starts;
         /// the visitor's touch interrupts whatever they were saying. Up to three speakers.
         /// </summary>
-        internal static void Take(MonoBehaviour host, CompanionGroup group, System.Func<string, string> lineFor)
+        internal static void Take(MonoBehaviour host, CompanionGroup group, System.Func<string, string> lineFor, string context = null)
         {
+            if (context != null) DialogueContext.Set(context);
             var ids = new List<string>();
             if (group != null) foreach (var id in group.Ids) ids.Add(id);
             if (ids.Count == 0) ids.AddRange(Masters.DefaultTrio);
@@ -521,7 +522,7 @@ namespace MuseXR.Journey
                 _potHeard[index] = true;
                 _pots[index].localScale = _potScale[index] * PotHeard;
                 var at = index;
-                ChapterFeatures.Take(this, _group, id => PotTakes[at].TryGetValue(id, out var l) ? l : null);
+                ChapterFeatures.Take(this, _group, id => PotTakes[at].TryGetValue(id, out var l) ? l : null, "The colour  ·  " + Pots[at].name);
                 var heard = (_potHeard[0] ? 1 : 0) + (_potHeard[1] ? 1 : 0) + (_potHeard[2] ? 1 : 0);
                 if (AllPotsHeard)
                 {
@@ -899,7 +900,7 @@ namespace MuseXR.Journey
             var target = _dial.GetComponent<CompassTarget>(); if (target != null) target.MarkDone();
             if (_picked) return;
             // Each moment heard the first time the ring reaches it; the paintings wait until all three have been.
-            if (_seen.Add(t)) ChapterFeatures.Take(this, _group, id => MomentTakes[t].TryGetValue(id, out var l) ? l : null);
+            if (_seen.Add(t)) ChapterFeatures.Take(this, _group, id => MomentTakes[t].TryGetValue(id, out var l) ? l : null, "The moment  ·  " + t);
             if (!_turned && _seen.Count == 3)
             {
                 _turned = true;
@@ -955,7 +956,7 @@ namespace MuseXR.Journey
                 _workHeard[i] = true;
                 if (i < _chipBacks.Count && _chipBacks[i] != null) _chipBacks[i].sharedMaterial = ChapterFeatures.Unlit(new Color(0.24f, 0.2f, 0.12f, 1f));   // heard: warmed
                 var at = i;
-                ChapterFeatures.Take(this, _group, id => WorkTakes[at].TryGetValue(id, out var l) ? l : null);
+                ChapterFeatures.Take(this, _group, id => WorkTakes[at].TryGetValue(id, out var l) ? l : null, "On " + Works[at]);
                 if (_chipQuestion != null) _chipQuestion.text = Question();
                 if (AllWorksHeard) Note("You have heard all four\nTap the painting you stopped for");
                 return;

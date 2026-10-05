@@ -377,6 +377,7 @@ namespace MuseXR.Journey
             RefreshPrompt();
             // Once chosen they walk with the visitor as a crowd: beside, never in front (Saul, 3 Oct).
             if (phase == CompanyStage.Phase.Answering) Company.Group.Crowd = true;
+            if (phase == CompanyStage.Phase.Stepping || phase == CompanyStage.Phase.Answering) DialogueContext.Set("Your question  ·  " + Company.Question);   // the card's heading
             if (phase != CompanyStage.Phase.Choosing) RevealGateWorks();   // the company is confirmed: walking and the works
             if (phase == CompanyStage.Phase.Stepping)
                 foreach (var kv in _marks) { kv.Value.ring.gameObject.SetActive(false); kv.Value.state.transform.parent.parent.parent.gameObject.SetActive(false); }
