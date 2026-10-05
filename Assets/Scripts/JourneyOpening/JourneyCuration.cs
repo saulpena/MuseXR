@@ -235,7 +235,7 @@ namespace MuseXR.Journey
                     yield return null;
                 }
             }
-            gate.HideLettering();
+            // Saul, 4 Oct: the question stays over the arch the whole time at the Gate (it used to be taken down here).
             _toDoor = toDoor;
             _from = from;
             ShowCard(-1);
