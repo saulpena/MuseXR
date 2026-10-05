@@ -34,6 +34,10 @@ Shader "Hidden/Gaussian Splatting/Portal Mask"
     float _Seep;
     float _SeepRadius;
     float _ClipSeepToDoor;
+    // Global, 0 unless a gate is fading in: how much of what stands behind the door still shows through the
+    // erase (1 = all of it). The depth is erased regardless, so the next world draws over it; only the colour
+    // cross-fades instead of going to black first (the Palace moon gate, 5 Oct 2026).
+    float _PortalKeepBehind;
 
     struct v2f
     {
@@ -108,7 +112,7 @@ Shader "Hidden/Gaussian Splatting/Portal Mask"
         #else
         depth = 1.0;
         #endif
-        return fixed4(0, 0, 0, 1);
+        return fixed4(0, 0, 0, 1.0 - saturate(_PortalKeepBehind));
     }
     ENDCG
 
@@ -143,6 +147,7 @@ Shader "Hidden/Gaussian Splatting/Portal Mask"
         // 2: erase the marked pixels (depth to far, colour to black) and clear the mark
         Pass
         {
+            Blend SrcAlpha OneMinusSrcAlpha
             ZWrite On
             ZTest Always
             Cull Off

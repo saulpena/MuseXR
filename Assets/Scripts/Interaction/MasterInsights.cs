@@ -24,6 +24,8 @@ namespace MuseXR.Interaction
         List<KeyValuePair<string, string>> _pending;
         int _asking;
         float _nextSweep;
+        CompanyStage _opening;   // looked up once a second, with the sweep
+        bool OpeningUnderway => _opening != null && _opening.isActiveAndEnabled && _opening.Current != CompanyStage.Phase.Done;
         bool _voicesOnly;   // our stand-in group, not a chapter's companions   // the latest insight's token: a reading for an older one is dropped (her dialogueToken)
 
         async void Start()
@@ -150,7 +152,7 @@ namespace MuseXR.Interaction
             _lastClicked = t; _lastClickAt = Time.time;
             // A tap while a companion is still speaking is kept and answered when they finish: ignored, it
             // read as a broken pointer (the turtle tapped during the crane's reading, 4 Oct 2026).
-            if (_group.Busy) { _queued = t; return; }
+            if (_group.Busy || OpeningUnderway) { _queued = t; return; }
             _rule.Clicked(t.id);
             Speak(t);
         }
@@ -158,12 +160,17 @@ namespace MuseXR.Interaction
         void Update()
         {
             UpdateReplies();
-            if (Time.time >= _nextSweep) { _nextSweep = Time.time + 1f; Exhibit.Sweep(); MakeAskable(); }
+            if (Time.time >= _nextSweep) { _nextSweep = Time.time + 1f; Exhibit.Sweep(); MakeAskable(); _opening = FindAnyObjectByType<CompanyStage>(); }
             UpdateAskTalk();   // every piece on show answers and is tracked
             // The round table is running: no gazing at a painting beside it starts a reading, and none
             // still in flight lands among the table's turns under their "Based on" lines.
             if (ArtworkCard.Hushed) { if (_pending != null) { _pending = null; _asking++; } return; }
             if (Group() == null || _group.Busy) return;
+            // The Gate's company is still being chosen, stepping out or answering the visitor's question: no
+            // reading starts. One did (the Pissarros now stand by the start): Socrates on The Crystal Palace took
+            // the companions' turns, their answers never played, the round never finished, and the lanterns,
+            // which wait for it, never came (Saul's run, 5 Oct). A tap meanwhile waits in _queued.
+            if (OpeningUnderway) return;
             if (_pending != null) { var p = _pending; _pending = null; Voiced(p, () => _group.SayInTurn(p), cut: false); return; }
             if (_queued != null) { var q = _queued; _queued = null; _rule.Clicked(q.id); Speak(q); return; }
             var head = Camera.main != null ? Camera.main.transform : null;
