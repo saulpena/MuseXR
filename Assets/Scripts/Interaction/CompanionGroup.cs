@@ -60,7 +60,7 @@ namespace MuseXR.Interaction
         /// also kept out of the gaze itself (<see cref="CrowdOrbit.AvoidGaze"/>).
         /// </summary>
         public static readonly CompanionMarks.Mark[] CrowdPlaces =
-            { new CompanionMarks.Mark(-60f, 2.0f), new CompanionMarks.Mark(60f, 2.0f), new CompanionMarks.Mark(78f, 2.7f) };
+            { new CompanionMarks.Mark(-42f, 2.0f), new CompanionMarks.Mark(42f, 2.0f), new CompanionMarks.Mark(-26f, 3.4f) };   // Saul, 5 Oct: on screen, off-centre, each in its own place
         public const float CrowdCatchUpSpeed = 3.2f, CrowdCatchUpPerMetre = 1.1f, CrowdArrive = 0.12f;
 
         public string ActiveSpeaker
@@ -356,49 +356,84 @@ namespace MuseXR.Interaction
         /// eye for 2-3.5 s after turns, glances, teleports and a step back, and inside the visitor after a
         /// teleport and a turn.
         /// </summary>
+        /// <summary>Re-form round a new facing only after the head has turned this far: turning to face one of them to
+        /// talk moves nobody; turning round always does (Saul, 5 Oct).</summary>
+        public const float TurnThreshold = 70f;
+        /// <summary>Re-forming, nobody walks through this cone in front of the visitor.</summary>
+        public const float FrontCone = 22f;
+        public const float CrowdMinRadius = 1.2f;
+        float _heading = float.NaN;
+
+        /// <summary>
+        /// Saul, 5 Oct - her WebXR companions, translated to VR: each master keeps their own place relative to the
+        /// visitor, on screen but off-centre, and never swaps with another. When the visitor moves they move, always.
+        /// The places turn with the visitor only past <see cref="TurnThreshold"/>; then everyone goes round to the
+        /// new places the way that does not cross in front. A place inside a wall or object is pulled in short of it.
+        /// </summary>
         void CrowdStep(float dt)
         {
             var body = BodyFrame.Get();
             if (body == null) return;
             body.Step(dt);
             _walking = false;
-            // Saul, 4 Oct: they move only when the visitor MOVES - never because the head turned - or a master
-            // speaking to you slides away as you turn to look at them. Places are measured from the way the visitor
-            // walks (kept when they stop), and while they stand still nobody moves unless inside personal space.
-            var gaze = WalkYaw(Yaw(body.Forward));
-            var bodyYaw = gaze;
-            var moving = body.Velocity.sqrMagnitude > 0.09f;
+            var headYaw = GazeYaw(float.IsNaN(_heading) ? Yaw(body.Forward) : _heading);
+            if (float.IsNaN(_heading) || Mathf.Abs(Mathf.DeltaAngle(_heading, headYaw)) > TurnThreshold) _heading = headYaw;
+            var feet = body.Feet;
+            var speed = Mathf.Max(CrowdCatchUpSpeed, body.Velocity.magnitude + 1.5f);
             for (var i = 0; i < _ids.Count; i++)
             {
                 var f = _figures[_ids[i]];
                 if (f == null) continue;
                 var place = CrowdPlaces[Mathf.Min(i, CrowdPlaces.Length - 1)];
-                var pos = f.position; var flat = new Vector3(pos.x, body.Feet.y, pos.z);
-                var rel = flat - body.Feet;
+                var targetYaw = _heading + place.Bearing;
+                var targetR = Clear(feet, targetYaw, place.Distance);
+                var rel = new Vector3(f.position.x - feet.x, 0f, f.position.z - feet.z);
                 var r = rel.magnitude;
-                if (!moving && r >= CrowdOrbit.MinRadius) continue;
-                var current = r > 1e-3f ? Yaw(rel) : bodyYaw + place.Bearing;
-                var want = CrowdOrbit.AvoidGaze(bodyYaw + place.Bearing, gaze, current);
-                var target = body.Feet + Quaternion.Euler(0f, want, 0f) * Vector3.forward * place.Distance;
-                var gap = (target - flat).magnitude;
-                if (gap < CrowdArrive && !CrowdOrbit.InGaze(current, gaze) && r >= CrowdOrbit.MinRadius) continue;
-                // The visitor's own pace plus a catch-up for the gap: at walking pace alone, someone who
-                // starts behind stays behind (measured in the Palace: most of the walk at 150-180 degrees).
-                var speed = Mathf.Min(CrowdCatchUpSpeed, body.Velocity.magnitude + CrowdCatchUpPerMetre * gap);
-                if (gap < 0.6f) speed = Mathf.Max(speed, gap * 2f);
-                var reach = Mathf.Max(r, CrowdOrbit.MinRadius);
-                var nextYaw = CrowdOrbit.Step(current, want, gaze, speed * dt / reach * Mathf.Rad2Deg,
-                                              CrowdOrbit.EscapeDegreesPerSecond * dt);
-                var nextR = CrowdOrbit.StepRadius(r, place.Distance, speed * dt);
-                var next = body.Feet + Quaternion.Euler(0f, nextYaw, 0f) * Vector3.forward * nextR;
-                var moved = next - flat;
-                f.position = new Vector3(next.x, body.Feet.y, next.z);
+                var a = r > 1e-3f ? Yaw(rel) : targetYaw;
+                var da = Mathf.DeltaAngle(a, targetYaw);
+                if (Sweeps(a, da)) da = da > 0f ? da - 360f : da + 360f;   // the other way round: behind, not in front
+                if (Mathf.Abs(da) < 0.5f && Mathf.Abs(targetR - r) < 0.03f) continue;
+                var step = speed * dt;
+                var na = a + Mathf.Sign(da) * Mathf.Min(Mathf.Abs(da), step / Mathf.Max(r, CrowdMinRadius) * Mathf.Rad2Deg);
+                var nr = Mathf.Max(CrowdMinRadius, Mathf.MoveTowards(Mathf.Max(r, CrowdMinRadius), targetR, step));
+                var next = feet + Quaternion.Euler(0f, na, 0f) * Vector3.forward * nr;
+                var moved = new Vector3(next.x - f.position.x, 0f, next.z - f.position.z);
+                f.position = new Vector3(next.x, feet.y, next.z);
                 if (moved.magnitude / Mathf.Max(dt, 1e-5f) > 0.25f)
                 {
                     _walking = true;
                     f.rotation = Quaternion.RotateTowards(f.rotation, Quaternion.LookRotation(moved.normalized, Vector3.up), 240f * dt);
                 }
             }
+        }
+
+        /// <summary>Whether going from yaw <paramref name="from"/> by <paramref name="delta"/> passes in front of the visitor.</summary>
+        bool Sweeps(float from, float delta)
+        {
+            if (Mathf.Abs(Mathf.DeltaAngle(_heading, from)) < FrontCone) return false;   // already in front: any way out
+            var steps = Mathf.CeilToInt(Mathf.Abs(delta) / 5f);
+            for (var k = 1; k < steps; k++)
+                if (Mathf.Abs(Mathf.DeltaAngle(_heading, from + delta * k / steps)) < FrontCone) return true;
+            return false;
+        }
+
+        /// <summary>The place's distance, pulled in short of anything solid on the way to it (never the masters or the rig).</summary>
+        float Clear(Vector3 feet, float yaw, float distance)
+        {
+            var dir = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
+            var origin = feet + Vector3.up * 1.0f;
+            var hits = Physics.RaycastAll(origin, dir, distance + 0.35f, ~0, QueryTriggerInteraction.Ignore);
+            var best = distance;
+            foreach (var h in hits)
+            {
+                var t = h.collider.transform;
+                if (Head != null && t.IsChildOf(Head.root)) continue;
+                var mine = false;
+                foreach (var fig in _figures.Values) if (fig != null && t.IsChildOf(fig)) { mine = true; break; }
+                if (mine) continue;
+                best = Mathf.Min(best, h.distance - 0.35f);
+            }
+            return Mathf.Max(CrowdMinRadius, best);
         }
 
         static float Yaw(Vector3 v) => Mathf.Atan2(v.x, v.z) * Mathf.Rad2Deg;
@@ -433,16 +468,15 @@ namespace MuseXR.Interaction
             var body = BodyFrame.Get();
             if (body == null) return;
             body.Step(0f);
-            var bodyYaw = Yaw(body.Forward);
-            var gaze = WalkYaw(bodyYaw);
+            _heading = GazeYaw(Yaw(body.Forward));
             for (var i = 0; i < _ids.Count; i++)
             {
                 var f = _figures[_ids[i]];
                 if (f == null) continue;
                 var place = CrowdPlaces[Mathf.Min(i, CrowdPlaces.Length - 1)];
-                var yaw = CrowdOrbit.AvoidGaze(bodyYaw + place.Bearing, gaze, bodyYaw + place.Bearing);
-                var at = body.Feet + Quaternion.Euler(0f, yaw, 0f) * Vector3.forward * place.Distance;
-                f.SetPositionAndRotation(new Vector3(at.x, body.Feet.y, at.z), Quaternion.LookRotation(body.Forward, Vector3.up));
+                var yaw = _heading + place.Bearing;
+                var at = body.Feet + Quaternion.Euler(0f, yaw, 0f) * Vector3.forward * Clear(body.Feet, yaw, place.Distance);
+                f.SetPositionAndRotation(new Vector3(at.x, body.Feet.y, at.z), Quaternion.LookRotation(-(Quaternion.Euler(0f, yaw, 0f) * Vector3.forward), Vector3.up));
             }
         }
 
