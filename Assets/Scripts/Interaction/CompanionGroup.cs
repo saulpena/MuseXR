@@ -362,7 +362,12 @@ namespace MuseXR.Interaction
         /// <summary>Re-forming, nobody walks through this cone in front of the visitor.</summary>
         public const float FrontCone = 22f;
         public const float CrowdMinRadius = 1.2f;
-        float _heading = float.NaN;
+        float _heading = float.NaN, _settleYaw, _settledFor;
+        bool _reforming;
+        /// <summary>How long the head must hold still (below StillDegreesPerSecond) before they re-form.</summary>
+        public const float SettleSeconds = 0.4f, StillDegreesPerSecond = 20f;
+        /// <summary>Just after a re-form, a leftover turn bigger than this finishes it.</summary>
+        public const float FinishDegrees = 30f;
 
         /// <summary>
         /// Saul, 5 Oct - her WebXR companions, translated to VR: each master keeps their own place relative to the
@@ -377,7 +382,18 @@ namespace MuseXR.Interaction
             body.Step(dt);
             _walking = false;
             var headYaw = GazeYaw(float.IsNaN(_heading) ? Yaw(body.Forward) : _heading);
-            if (float.IsNaN(_heading) || Mathf.Abs(Mathf.DeltaAngle(_heading, headYaw)) > TurnThreshold) _heading = headYaw;
+            // Saul, 5 Oct: past the threshold they wait until the visitor has STOPPED turning, then go once to the
+            // final places - never chasing a turn still in progress.
+            if (float.IsNaN(_heading)) { _heading = headYaw; _settleYaw = headYaw; }
+            // "Stopped" means the head really is still: turning slower than StillDegreesPerSecond for SettleSeconds.
+            var yawSpeed = dt > 1e-5f ? Mathf.Abs(Mathf.DeltaAngle(_settleYaw, headYaw)) / dt : 0f;
+            _settleYaw = headYaw;
+            _settledFor = yawSpeed < StillDegreesPerSecond ? _settledFor + dt : 0f;
+            // From a settled formation only a real turn re-forms them (facing one of them to talk moves nobody); once
+            // re-formed mid-turn, a smaller leftover still finishes the job, so a pause halfway never strands them.
+            var off = Mathf.Abs(Mathf.DeltaAngle(_heading, headYaw));
+            if (_settledFor > SettleSeconds && (off > TurnThreshold || (_reforming && off > FinishDegrees))) { _heading = headYaw; _reforming = true; _settledFor = 0f; }
+            else if (_settledFor > SettleSeconds * 4f) _reforming = false;   // properly settled again
             var feet = body.Feet;
             var speed = Mathf.Max(CrowdCatchUpSpeed, body.Velocity.magnitude + 1.5f);
             for (var i = 0; i < _ids.Count; i++)
@@ -391,7 +407,7 @@ namespace MuseXR.Interaction
                 var r = rel.magnitude;
                 var a = r > 1e-3f ? Yaw(rel) : targetYaw;
                 var da = Mathf.DeltaAngle(a, targetYaw);
-                if (Sweeps(a, da)) da = da > 0f ? da - 360f : da + 360f;   // the other way round: behind, not in front
+                // The short way to the new place, even across the front for a moment (Saul, 5 Oct: going round behind looked wrong).
                 if (Mathf.Abs(da) < 0.5f && Mathf.Abs(targetR - r) < 0.03f) continue;
                 var step = speed * dt;
                 var na = a + Mathf.Sign(da) * Mathf.Min(Mathf.Abs(da), step / Mathf.Max(r, CrowdMinRadius) * Mathf.Rad2Deg);
