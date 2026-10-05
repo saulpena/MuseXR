@@ -771,6 +771,13 @@ namespace MuseXR.Journey
         static readonly string[] Works = { "Water Lilies", "Arrival of the Normandy Train, Gare Saint-Lazare", "Stacks of Wheat (End of Summer)", "Cliff Walk at Pourville" };
         static readonly string[] WorkIds = { "aic-16568", "aic-16571", "aic-64818", "aic-14620" };
 
+        /// <summary>The work the visitor stopped for, by its record id. The record's reason is WHY, since 5 Oct - never the title.</summary>
+        internal static string WorkTitle(string artworkId)
+        {
+            for (var i = 0; i < WorkIds.Length; i++) if (WorkIds[i] == artworkId) return Works[i];
+            return "a painting";
+        }
+
         // Each moment on the ring, and each painting, heard before the visitor is asked to choose.
         static readonly Dictionary<TimeOfDay, Dictionary<string, string>> MomentTakes = new Dictionary<TimeOfDay, Dictionary<string, string>>
         {
@@ -1457,7 +1464,12 @@ namespace MuseXR.Journey
             if (rec.Palace != null) session.RecordAnswer("the Palace", "kept the " + rec.Palace.Object + (rec.Palace.Reason.Length > 0 ? ", because " + rec.Palace.Reason : ""), "visitor");
             if (rec.Grotto != null) session.RecordAnswer("the Grotto", "set the lamp on the " + rec.Grotto.LampSlot, "visitor");
             if (rec.VanGogh != null) session.RecordAnswer("The Bedroom", "painted one " + rec.VanGogh.Color + " stroke toward the door", "visitor");
-            if (rec.Monet != null) { session.RecordArtwork(rec.Monet.Reason, "Claude Monet"); session.RecordAnswer(rec.Monet.Reason, "stopped for it at " + rec.Monet.Preset, "visitor"); }
+            if (rec.Monet != null)
+            {
+                var work = WorkTitle(rec.Monet.ArtworkId);
+                session.RecordArtwork(work, "Claude Monet");
+                session.RecordAnswer(work, "stopped for it at " + rec.Monet.Preset + (string.IsNullOrWhiteSpace(rec.Monet.Reason) ? "" : ", because: " + rec.Monet.Reason), "visitor");
+            }
             var client = new RoundtableClient(new MusePico.Tripo.TripoWebRequestTransport(key, ResponsesCall.DefaultEndpoint), roster);
             return await client.AskAsync(session, masters);
         }
@@ -1496,7 +1508,7 @@ namespace MuseXR.Journey
         {
             var rec = JourneyMemory.Record;
             var l = new List<KeyValuePair<string, string>>();
-            var monet = rec.Monet != null ? "You stopped at " + rec.Monet.Reason + " at " + rec.Monet.Preset + ". An hour later that water is already other water. What you kept was the moment" : "You walked the garden without stopping long. Even that is a choice about time";
+            var monet = rec.Monet != null ? "You stopped at " + WorkTitle(rec.Monet.ArtworkId) + " at " + rec.Monet.Preset + ". An hour later that water is already other water. What you kept was the moment" : "You walked the garden without stopping long. Even that is a choice about time";
             var vg = rec.VanGogh != null ? "Your stroke left The Bedroom and ran all the way to the door. The place you pressed hardest is the thing you most wanted to say on this walk" : "You never lifted the brush. Some feelings wait until they are sure";
             var soc = rec.Palace != null ? "In the Palace you kept the " + rec.Palace.Object + (rec.Palace.Reason.Length > 0 ? ", \"" + rec.Palace.Reason + "\"" : "") + ". And you, which road do you keep walking?" : "You carried a question the whole way. Is it the same question now?";
             var c = Masters.Company;
@@ -1572,7 +1584,8 @@ namespace MuseXR.Journey
                 var paint = c == "#2F4F8F" ? "cobalt" : c == "#E3B33A" ? "chrome yellow" : c == "#3F5F2F" ? "cypress green" : "colour";
                 kept.Append("In the Van Gogh studio they painted one stroke in " + paint + ". ");
             }
-            if (rec.Monet != null) kept.Append("In the Monet garden they stopped at " + rec.Monet.Reason + " at " + rec.Monet.Preset + ". ");
+            if (rec.Monet != null) kept.Append("In the Monet garden they stopped at " + WorkTitle(rec.Monet.ArtworkId) + " at " + rec.Monet.Preset
+                                               + (string.IsNullOrWhiteSpace(rec.Monet.Reason) ? "" : ", because: " + rec.Monet.Reason) + ". ");
             const string instructions =
                 "Write the visitor's own answer to the question they carried through a museum, as one sentence they could keep. " +
                 "Exactly ONE sentence with a single full stop at the end. First person or a plain statement, under 22 words, built from what they kept on the walk, answering the question directly. " +

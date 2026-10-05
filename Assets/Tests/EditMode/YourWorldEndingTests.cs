@@ -13,16 +13,16 @@ namespace MusePico.Tests
         public void HerMementoLinesComeFromTheRecordInWalkingOrder()
         {
             var r = new JourneyRecord();
-            r.SetMonet(new JourneyRecord.MonetChoice { Preset = "dusk", ArtworkId = "aic-16568", Reason = "Water Lilies" });
+            r.SetMonet(new JourneyRecord.MonetChoice { Preset = "dusk", ArtworkId = "aic-16568", Reason = "Because I almost walked past it" });
             r.SetPalace(new JourneyRecord.PalaceChoice { Object = "turtle", YawDeg = 90f, Reason = "Because it is slow, but it keeps going" });
             r.SetGrotto(new JourneyRecord.GrottoChoice { LampSlot = "detail", ExhibitId = "aic-142512" });
             r.SetVanGogh("#2F4F8F", "aic-28560", new List<float[]> { new[] { 0f, 0f, 0f }, new[] { 0f, 1f, 0f } });
-            var lines = YourWorldEnding.ChoiceLines(r, id => id == "aic-28560" ? "The Bedroom" : id);
+            var lines = YourWorldEnding.ChoiceLines(r, id => id == "aic-28560" ? "The Bedroom" : id == "aic-16568" ? "Water Lilies" : id);
             Assert.AreEqual(4, lines.Count);
             Assert.AreEqual("Turtle · facing east · “Because it is slow, but it keeps going”", lines[0].line);
             Assert.AreEqual("Lamp on the detail", lines[1].line);
             Assert.AreEqual("Cobalt stroke · The Bedroom", lines[2].line);
-            Assert.AreEqual("Dusk · Water Lilies", lines[3].line);
+            Assert.AreEqual("Dusk · Water Lilies · “Because I almost walked past it”", lines[3].line);   // the work, then why
         }
 
         [Test]

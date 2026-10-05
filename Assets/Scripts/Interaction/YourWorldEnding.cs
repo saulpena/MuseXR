@@ -83,7 +83,8 @@ namespace MuseXR.Interaction
             if (r.VanGogh != null && (r.VanGogh.Points.Count > 0 || !string.IsNullOrEmpty(r.VanGogh.Color)))
                 list.Add(("vangogh", PotName(r.VanGogh.Color) + " stroke" + (string.IsNullOrEmpty(r.VanGogh.ArtworkId) ? "" : " · " + Title(r.VanGogh.ArtworkId))));
             if (r.Monet != null && !string.IsNullOrEmpty(r.Monet.Preset))
-                list.Add(("monet", Cap(r.Monet.Preset) + " · " + (string.IsNullOrWhiteSpace(r.Monet.Reason) ? Title(r.Monet.ArtworkId) : r.Monet.Reason.Trim())));
+                list.Add(("monet", Cap(r.Monet.Preset) + " · " + Title(r.Monet.ArtworkId) +
+                                   (string.IsNullOrWhiteSpace(r.Monet.Reason) ? "" : " · “" + r.Monet.Reason.Trim() + "”")));   // her "Dusk · Water Lilies", and why
             return list;
         }
 
