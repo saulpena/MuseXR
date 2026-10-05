@@ -21,6 +21,7 @@ namespace MuseXR.UI
         // About 29 deg below the eye line for the card and 43 deg for the compass: a natural glance down
         // (15-25 deg) brings the card into view; looking ahead it stays below the view. At 45 deg the
         // card needed a deliberate stare down and sat cut off at the frame's lower edge (review, 4 Oct).
+        public const float CompassScale = 1.333f;
         public const float LineAhead = 0.62f, LineDrop = 0.62f, CompassAhead = 0.52f, CompassDrop = 1.1f;   // Saul, 4 Oct: half a metre lower; 5 Oct: 10 cm more, it touched the card
         /// <summary>The panel re-centres on the view direction once the head is this far off it, easing over -
         /// following the body alone (40 deg dead zone) left it at the lower left of the view.</summary>
@@ -251,6 +252,7 @@ namespace MuseXR.UI
 
             // Her tour guide.
             _compassAnchor = new GameObject("Compass").transform; _compassAnchor.SetParent(transform, false);
+            _compassAnchor.localScale = Vector3.one * CompassScale;   // Saul, 5 Oct: scaled up in the Editor to 1.333
             var cc = MuseUi.Canvas(_compassAnchor, "Compass Canvas", 1.15f, 360f);
             var cardC = MuseUi.Card(cc, Pill, 34f, null, 0f, padX: 18f, padY: 11f, gap: 0f, name: "Tour Guide");
             var row = MuseUi.Row(cardC, 14f, TextAnchor.MiddleLeft, "Row");
