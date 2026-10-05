@@ -21,7 +21,11 @@ namespace MuseXR.Interaction
         float _pointedAway;
         static readonly Color AiPurple = new Color32(0x7a, 0x5c, 0xb8, 0xff);
 
-        public static ArtworkCard Current { get; private set; }
+        /// <summary>The open card, or a real null: a card destroyed without Close (Play stopped) never reads as one.</summary>
+        public static ArtworkCard Current { get => _current != null ? _current : null; private set => _current = value; }
+        static ArtworkCard _current;
+
+        void OnDestroy() { if (_current == this) _current = null; }
 
         /// <summary>
         /// While true, no artwork card or reply chips open (and an open card closes): the Monet round table sets
