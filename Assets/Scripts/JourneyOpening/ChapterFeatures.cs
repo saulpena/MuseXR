@@ -96,16 +96,7 @@ namespace MuseXR.Journey
             return q.transform;
         }
 
-        internal static Transform Part(Transform parent, PrimitiveType type, string name, Vector3 pos, Vector3 scale, Material m, Quaternion? rot = null)
-        {
-            var g = GameObject.CreatePrimitive(type);
-            g.name = name; Destroy(g.GetComponent<Collider>());
-            g.transform.SetParent(parent, false);
-            g.transform.localPosition = pos; g.transform.localScale = scale;
-            if (rot.HasValue) g.transform.localRotation = rot.Value;
-            g.GetComponent<Renderer>().sharedMaterial = m;
-            return g.transform;
-        }
+
 
         /// <summary>Her museum label: dark ink on a pale card, facing along <paramref name="rot"/>.</summary>
         internal static TextMeshPro Label(Transform parent, Vector3 pos, Quaternion rot, string text, float width, float size = 0.9f)
@@ -339,7 +330,7 @@ namespace MuseXR.Journey
             var box = _sky.gameObject.AddComponent<BoxCollider>(); box.size = new Vector3(1f, 1f, 0.02f);
             var r = Replicable.Make(_sky.gameObject, "The Starry Night", "vangogh", StarDisc(tex));
             Exhibit.Make(_sky.gameObject, "starry-night", "The Starry Night", "Vincent van Gogh");
-            r.replicaName = "A small disc of slowly turning stars";
+            r.replicaName = "A small Starry Night medallion";
             CompassTarget.Add(_sky.gameObject, CompassTarget.Optional + 1, "The Starry Night", "Look up · hold the trigger to replicate");
             ChapterFeatures.Label(transform, new Vector3(-1.9f, 1.55f, -2.2f), Quaternion.LookRotation(Vector3.left),
                 "<b>The Starry Night</b>  ·  Vincent van Gogh  ·  1889  ·  MoMA\n<size=70%>Across a 20 m ceiling  ·  motion is an interpretation, original 74 × 92 cm</size>", 2.2f, 0.7f);
@@ -374,15 +365,12 @@ namespace MuseXR.Journey
             UpdateDrawing();
         }
 
-        /// <summary>The replica: a small disc of the sky that turns.</summary>
+        /// <summary>The replica: a Starry Night medallion on a small gilt stand (generated; Saul, 5 Oct: no shapes made in code).</summary>
         GameObject StarDisc(Texture2D tex)
         {
-            var disc = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            var disc = PropModels.Spawn("star-disc", transform, transform.position, transform.rotation, new Vector3(0f, 0.2f, 0f));
+            if (disc == null) return null;
             disc.name = "Star disc";
-            Destroy(disc.GetComponent<Collider>());
-            disc.transform.SetParent(transform, false);
-            disc.transform.localScale = new Vector3(0.2f, 0.01f, 0.2f);
-            disc.GetComponent<Renderer>().sharedMaterial = ChapterFeatures.Unlit(Color.white, tex, true);
             disc.SetActive(false);
             return disc;
         }
@@ -801,22 +789,20 @@ namespace MuseXR.Journey
             var box = canvas.gameObject.AddComponent<BoxCollider>(); box.size = new Vector3(1f, 1f, 0.05f);
             var r = Replicable.Make(canvas.gameObject, "The Great Wave", "monet", SmallWave(tex));
             Exhibit.Make(canvas.gameObject, "great-wave", "The Great Wave off Kanagawa", "Katsushika Hokusai");
-            r.replicaName = "A small wave";
+            r.replicaName = "A small carved wave";
             CompassTarget.Add(canvas.gameObject, CompassTarget.Optional + 1, "The Great Wave", "Hold the trigger to replicate");
             ChapterFeatures.Label(transform, new Vector3(3.2f, 1.3f, -11f), Quaternion.LookRotation(Vector3.left),
                 "<b>The Great Wave off Kanagawa</b>  ·  Hokusai  ·  c. 1830–32  ·  The Met\n<size=70%>Rising from the pond, enlarged about 15×  ·  original 26 × 38 cm</size>", 2.4f, 0.65f);
         }
 
+        /// <summary>The replica: a small carved Great Wave on its base (generated; Saul, 5 Oct: no shapes made in code).</summary>
         GameObject SmallWave(Texture2D tex)
         {
-            var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            q.name = "Small wave";
-            Destroy(q.GetComponent<Collider>());
-            q.transform.SetParent(transform, false);
-            q.transform.localScale = new Vector3(0.14f, 0.1f, 1f);
-            q.GetComponent<Renderer>().sharedMaterial = ChapterFeatures.Unlit(Color.white, tex, true);
-            q.SetActive(false);
-            return q;
+            var w = PropModels.Spawn("small-wave", transform, transform.position, transform.rotation, new Vector3(0.18f, 0f, 0f));
+            if (w == null) return null;
+            w.name = "Small wave";
+            w.SetActive(false);
+            return w;
         }
 
         void BuildLilies()

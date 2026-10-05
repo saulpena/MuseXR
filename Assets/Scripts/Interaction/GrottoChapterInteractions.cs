@@ -126,11 +126,11 @@ namespace MuseXR.Interaction
 
             // Her brass stand, front-left of the entry, the lamp on it.
             var standTop = BrassStand(standAt.position);
-            GameObject lamp;
+            // The generated lamp is required (Saul, 5 Oct: no shapes made in code): without it there is no lamp to carry.
+            if (lampPrefab == null) { Debug.LogError("[Grotto] no lamp model assigned"); yield break; }
             var face = Quaternion.LookRotation(Flat(entry - standTop), Vector3.up);
-            if (lampPrefab != null) { lamp = Instantiate(lampPrefab, standTop, face, transform); lamp.name = "Lamp"; }
-            else { lamp = GameObject.CreatePrimitive(PrimitiveType.Sphere); lamp.name = "Lamp"; lamp.transform.SetPositionAndRotation(standTop + Vector3.up * 0.08f, face); lamp.transform.localScale = Vector3.one * 0.15f; }
-            _lampLight = LampLight.Make(lamp, lampPrefab != null ? LampFlame : Vector3.zero);
+            var lamp = Instantiate(lampPrefab, standTop, face, transform); lamp.name = "Lamp";
+            _lampLight = LampLight.Make(lamp, LampFlame);
             Lamp = Holdable.Make(lamp, "Lamp", idleSpin: false);
 
             Sockets = SlotStation.Make(gameObject, global::MuseXR.Slots.Chapter.Grotto, new[] { detail, whole }, new[] { Lamp },

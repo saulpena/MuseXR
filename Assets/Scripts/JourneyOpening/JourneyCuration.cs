@@ -180,10 +180,8 @@ namespace MuseXR.Journey
             WalkAlongside();
             for (var i = 0; i < 4; i++) { var sp = SpeakerFor(i); if (sp != null) opening.VoiceFor(sp, Spoken(_lines[i])); }   // fetch ahead
             var side = Vector3.Cross(Vector3.up, toDoor).normalized;
-            var warm = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
-            warm.SetColor("_BaseColor", new Color(0.35f, 0.3f, 0.24f));
-            var wood = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            wood.SetColor("_BaseColor", new Color(0.32f, 0.22f, 0.14f));
+            // The generated lantern is required (Saul, 5 Oct: no shapes made in code): without it there are no lanterns.
+            if (lanternModel == null) { Debug.LogError("[Curation] no lantern model assigned: no lanterns"); yield break; }
 
             for (var i = 0; i < 4; i++)
             {
@@ -194,20 +192,9 @@ namespace MuseXR.Journey
                 var lantern = new GameObject("Lantern " + Chapters[i]).transform;
                 lantern.SetParent(transform, false);
                 lantern.SetPositionAndRotation(at, face);
-                Transform body;
-                if (lanternModel != null)
-                {
-                    var model = Instantiate(lanternModel, lantern);
-                    model.transform.localPosition = Vector3.zero; model.transform.localRotation = Quaternion.identity;
-                    FitHeight(model.transform, LanternHeight);
-                    body = model.transform;
-                }
-                else
-                {
-                    Part(lantern, PrimitiveType.Cylinder, new Vector3(0f, 0.6f, 0f), new Vector3(0.06f, 0.6f, 0.06f), wood);       // post
-                    body = Part(lantern, PrimitiveType.Sphere, new Vector3(0f, 1.42f, 0f), new Vector3(0.42f, 0.52f, 0.42f), new Material(warm));
-                    Part(lantern, PrimitiveType.Cylinder, new Vector3(0f, 1.71f, 0f), new Vector3(0.2f, 0.03f, 0.2f), wood);       // cap
-                }
+                var model = Instantiate(lanternModel, lantern);
+                model.transform.localPosition = Vector3.zero; model.transform.localRotation = Quaternion.identity;
+                FitHeight(model.transform, LanternHeight);
                 var light = new GameObject("Glow").AddComponent<Light>();
                 light.transform.SetParent(lantern, false); light.transform.localPosition = new Vector3(0f, 1.42f, 0f);
                 light.type = LightType.Point; light.range = 3.5f; light.intensity = 0f; light.color = new Color(1f, 0.78f, 0.45f);
@@ -225,13 +212,10 @@ namespace MuseXR.Journey
                 p.Unhovered += _ => light.intensity = 1.6f;
                 Tag(lantern, Chapters[i], Subtitles[i], i < 2 ? 2.05f : 2.75f);   // the far pair's names above the near pair's, as seen from the spawn
                 _lanterns.Add(lantern); _lights.Add(light);
-                // It lights: the paper warms and its glow comes up.
+                // It lights: its glow comes up.
                 for (float t = 0f; t < 0.7f; t += Time.deltaTime)
                 {
-                    var k = t / 0.7f;
-                    var bodyRenderer = lanternModel == null ? body.GetComponent<Renderer>() : null;
-                    if (bodyRenderer != null) bodyRenderer.material.SetColor("_BaseColor", Color.Lerp(new Color(0.35f, 0.3f, 0.24f), new Color(1f, 0.74f, 0.4f), k));
-                    light.intensity = 1.6f * k;
+                    light.intensity = 1.6f * (t / 0.7f);
                     yield return null;
                 }
             }
@@ -319,16 +303,6 @@ namespace MuseXR.Journey
             yield return m;
             yield return new CompanionMarks.Mark(m.Bearing, 1.5f);
             yield return new CompanionMarks.Mark(-m.Bearing, m.Distance);
-        }
-
-        static Transform Part(Transform parent, PrimitiveType type, Vector3 pos, Vector3 scale, Material m)
-        {
-            var go = GameObject.CreatePrimitive(type);
-            Destroy(go.GetComponent<Collider>());
-            go.transform.SetParent(parent, false);
-            go.transform.localPosition = pos; go.transform.localScale = scale;
-            go.GetComponent<Renderer>().sharedMaterial = m;
-            return go.transform;
         }
 
         void Tag(Transform lantern, string chapter, string subtitle, float height = 2.05f)

@@ -38,7 +38,8 @@ namespace MuseXR.Interaction
 
         [System.NonSerialized] public Vector3 fiveAt = new Vector3(-2.6f, 0f, -4.2f);
         [System.NonSerialized] public float fiveHeight = 2.0f;   // the figures: the platform makes the model ~2x their height
-        [System.NonSerialized] public Vector3 guanyinAt = new Vector3(-6.4f, 0f, -10.2f);
+        // 1.8 m toward the path from her (-6.4, -10.2): there the capture's flowering bush hid the group from the approach (5 Oct).
+        [System.NonSerialized] public Vector3 guanyinAt = new Vector3(-5.44f, 0f, -8.68f);
         [System.NonSerialized] public float guanyinHeight = 2.2f;
 
         public GameObject Cliff { get; private set; }
@@ -53,6 +54,10 @@ namespace MuseXR.Interaction
 
         void Start()
         {
+            // Regenerated with the 3D generator from her five-buddhas.webp and guanyin-group.webp (5 Oct 2026): the Peach props
+            // were the right subjects at 50k triangles each, and the Guanyin group carried stray flat slabs in its base.
+            var fiveModel = Resources.Load<GameObject>("Heroes/five-buddhas"); if (fiveModel != null) fiveBuddhas = fiveModel;
+            var guanyinModel = Resources.Load<GameObject>("Heroes/guanyin-group"); if (guanyinModel != null) guanyinGroup = guanyinModel;
             var entry = transform.TransformPoint(Vector3.zero);
             if (seatedBuddha != null)
             {
@@ -181,7 +186,9 @@ namespace MuseXR.Interaction
         {
             var b = Bounds(hero);
             var eye = transform.TransformPoint(new Vector3(0f, 1.6f, 0f));
-            var at = new Vector3(b.center.x, b.min.y + 0.9f, b.center.z);
+            // At the plinth, not across the figures: a fifth of the work's height, at most 0.9 m (at 0.9 the plate
+            // hung over the 2.2 m Guanyin group's figures, 5 Oct).
+            var at = new Vector3(b.center.x, b.min.y + Mathf.Min(0.9f, b.size.y * 0.2f), b.center.z);
             var toEye = eye - at; toEye.y = 0f;
             // In front of the work, but never at the visitor: the five Buddhas spread so wide that their
             // half-width carried the label past them onto the arrival spot, a huge plate at the knees
