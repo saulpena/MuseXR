@@ -78,7 +78,7 @@ def download(url, dest):
 
 def data_uri(p):
     p = pathlib.Path(p)
-    mime = "image/jpeg" if p.suffix.lower() in (".jpg", ".jpeg") else "image/png"
+    mime = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".glb": "application/octet-stream"}.get(p.suffix.lower(), "image/png")
     return f"data:{mime};base64," + base64.b64encode(p.read_bytes()).decode()
 
 
@@ -181,6 +181,27 @@ def cmd_rig(a):
     for k, u in (res.get("basic_animations") or {}).items():
         if u and k.endswith("_glb_url") and "armature" not in k.lower():
             download(u, out / f"{a.master}-anim-{k[:-8]}.glb")
+    print(f"DONE {out} credits {rig.get('consumed_credits', '?')}")
+
+
+def cmd_rigfile(a):
+    """Rig a GLB made outside the generator (Skylar's characters): model_url and its colour texture as data URIs. 5 cr."""
+    out = outdir(a.master, a.tag)
+    h = a.height or HEIGHT.get(a.master, 1.7)
+    body = {"model_url": data_uri(a.glb), "height_meters": h}
+    if a.texture:
+        body["texture_image_url"] = data_uri(a.texture)
+    tid = call("POST", ENDPOINT["rig"], body)["result"]
+    (out / "task_id.txt").write_text(f"rig {tid}\n")
+    print(f"[rigfile] {a.master}/{a.tag} at {h} m task {tid}")
+    rig = wait(f"{ENDPOINT['rig']}/{tid}", "rig")
+    (out / "rig.json").write_text(json.dumps(rig, indent=1))
+    if rig["status"] != "SUCCEEDED":
+        sys.exit(f"FAILED rig {rig['status']}: {rig.get('task_error')}")
+    res = rig.get("result") or {}
+    for k, ext in (("rigged_character_fbx_url", "fbx"), ("rigged_character_glb_url", "glb")):
+        if res.get(k):
+            download(res[k], out / f"{a.master}-rigged.{ext}")
     print(f"DONE {out} credits {rig.get('consumed_credits', '?')}")
 
 
@@ -301,6 +322,8 @@ if __name__ == "__main__":
     x = sub.add_parser("retex"); x.add_argument("master"); x.add_argument("tag"); x.add_argument("--task", required=True)
     x.add_argument("--prompt-file"); x.add_argument("--style-image"); x.add_argument("--multiview"); x.add_argument("--keep-uv", action="store_true")
     x.add_argument("--ai-model", default="latest"); x.set_defaults(f=cmd_retex)
+    rf = sub.add_parser("rigfile"); rf.add_argument("master"); rf.add_argument("tag"); rf.add_argument("--glb", required=True)
+    rf.add_argument("--texture"); rf.add_argument("--height", type=float); rf.set_defaults(f=cmd_rigfile)
     fe = sub.add_parser("fetch"); fe.add_argument("kind", choices=list(ENDPOINT)); fe.add_argument("id")
     fe.add_argument("master"); fe.add_argument("tag"); fe.set_defaults(f=cmd_fetch)
     ti = sub.add_parser("t2i"); ti.add_argument("name"); ti.add_argument("tag"); ti.add_argument("--group", default="doors")
