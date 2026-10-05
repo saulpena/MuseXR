@@ -331,6 +331,7 @@ namespace MuseXR.Interaction
             if (_guide == null) return;
             var step = CurrentStep();
             if (step != _step) { _step = step; ShowStep(step); }
+            else if (_guide.gameObject.activeSelf && GuideInTheWay()) Seat(_step);
             // the rings pulse in brightness only: nothing moves
             var k = 0.55f + 0.45f * Mathf.Sin(Time.time * 3f);
             _ringMat.SetColor("_BaseColor", new Color(1f, 0.74f, 0.3f) * k);
@@ -344,7 +345,8 @@ namespace MuseXR.Interaction
             switch (step)
             {
                 case Step.Hear:
-                    text = "First hear your companions on both ways of seeing.\nPoint at the <b>DETAIL</b> stand and the <b>WHOLE</b> stand, and pull the trigger.";
+                    // No plate: the choice card already says this, and the two said it twice, one through the other
+                    // (blind review, 4 Oct). The rings still show where the stands are.
                     Ring(_detailFloor); Ring(_wholeFloor);
                     break;
                 case Step.TakeLamp:
@@ -362,23 +364,46 @@ namespace MuseXR.Interaction
                     text = "<b>A</b> keeps the lamp here.\nOr lift it out and set it on the other stand.";
                     break;
                 case Step.GoThrough:
-                    text = "An <b>arch</b> has risen on your right, with Van Gogh's studio inside it.\nTeleport onto the step in front of it to go through.";
+                    text = "An <b>arch</b> has risen on your right, with Van Gogh's studio inside it.\nWalk through it.";
                     if (arch != null) Ring(arch.transform.position - arch.transform.forward * (MuseXR.Worlds.MoonGate.StepDepth * 0.5f));
                     break;
             }
             _guide.gameObject.SetActive(text != null);
             if (text == null) return;
             _guideText.text = text;
-            // Where the visitor is looking now, a little below eye level; then it stays put.
+            Seat(step);
+        }
+
+        /// <summary>Off the gaze to the left, below eye level, and then still (moving text made Saul sick).</summary>
+        public const float GuideBearing = -32f, GuideDistance = 1.7f, GuideDrop = 0.35f;
+        /// <summary>Nearer than this (flat) the plate is in the visitor's face; further, or out of view, it is left behind.</summary>
+        public const float GuideTooClose = 1.0f, GuideLeftBehind = 4f, GuideOutOfView = 75f;
+
+        /// <summary>
+        /// Where the visitor is looking now, off to the left: the answer panel and the previews are straight
+        /// ahead, and straight ahead the plate cut through them and was walked into (live run, 4 Oct). It stays
+        /// put; it is only seated again when walked into or left behind, never slid while it is read.
+        /// </summary>
+        void Seat(Step step)
+        {
             var head = Camera.main != null ? Camera.main.transform : null;
             if (head == null) return;
             var fwd = Flat(head.forward);
-            var at = head.position + fwd * 1.6f + Vector3.up * -0.3f;
-            // When the arch rises, the visitor looks at it: the panel goes beside it, never across the
-            // opening (it covered Van Gogh's studio in the first capture).
-            if (step == Step.GoThrough && arch != null)
-                at = head.position + (Quaternion.Euler(0f, -35f, 0f) * fwd) * 1.6f + Vector3.up * -0.3f;   // close, off to the left
+            var bearing = step == Step.GoThrough ? -35f : GuideBearing;   // the arch rises on the right: never across its opening
+            var at = head.position + (Quaternion.Euler(0f, bearing, 0f) * fwd) * GuideDistance + Vector3.up * -GuideDrop;
             _guide.SetPositionAndRotation(at, Quaternion.LookRotation(Flat(at - head.position), Vector3.up));
+        }
+
+        bool GuideInTheWay()
+        {
+            var head = Camera.main != null ? Camera.main.transform : null;
+            if (head == null) return false;
+            var to = _guide.position - head.position; to.y = 0f;
+            if (to.magnitude < GuideTooClose) return true;   // walked into
+            if (to.magnitude > GuideLeftBehind) return true;   // walked away from
+            // Seated before the rig settled at the spawn: 1.04 m below the eye and 93 degrees off (Grotto test, 4 Oct).
+            if (Mathf.Abs(head.position.y - _guide.position.y - GuideDrop) > 0.4f) return true;
+            return Vector3.Angle(Flat(head.forward), to) > GuideOutOfView;   // outside the headset's view: re-seated unseen
         }
 
         void Ring(Vector3 floorAt)
