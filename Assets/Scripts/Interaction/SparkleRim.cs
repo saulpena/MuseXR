@@ -4,45 +4,48 @@ using UnityEngine;
 namespace MuseXR.Interaction
 {
     /// <summary>
-    /// Her "the distant Buddha silhouette is rimmed", as a line of soft gold sparks along the figure's own outline
-    /// (Saul, 5 Oct: "a halo is not a silhouette rim" ... "place particles along the outline"). The outline is traced once
-    /// from a render of the figure's mesh alone, seen from where the visitor stands to choose (Resources/Rims/*.json, in
-    /// the chapter frame's space). At 65 m it barely shifts as the visitor walks the terrace. Drawn after the splat world
-    /// like the soft halo it replaces (a solid shell drawn before it blocked the world behind, measured), so nothing of
-    /// the splat renderer is touched. The sparks share one additive material: whoever fades it (GrottoChapter, black to
-    /// gold) fades the whole rim.
+    /// Her "the distant Buddha silhouette is rimmed", as a line of gold sparks along the figure's own outline (Saul,
+    /// 5 Oct: "a halo is not a silhouette rim" ... "place particles along the outline" ... "denser, larger, more golden,
+    /// magical"). The outline is traced once from a render of the figure's mesh alone, from where the visitor stands to
+    /// choose (Resources/Rims/*.json, chapter-frame space, with the figure's centre and the point it was seen from).
+    /// The traced ring is turned about the figure's upright axis to face the visitor wherever they stand: from a terrace
+    /// a few metres across, a 65 m figure is only ever seen within a few degrees of the traced view, so the turned
+    /// outline stays on its edge without tracing every angle. Two layers - small bright cores and a wide soft glow -
+    /// twinkling out of step. Drawn after the splat world like the halo it replaces (a solid shell drawn before it
+    /// blocked the world behind, measured), so nothing of the splat renderer is touched. The chapter fades the rim by
+    /// the material colour (black to gold); that level is carried as the sparks' opacity.
     /// </summary>
     public sealed class SparkleRim : MonoBehaviour
     {
-        /// <summary>A spark's size, metres at the figure's distance (about 0.8 degrees at 65 m), and how much it twinkles.</summary>
-        public const float SparkSize = 2.2f, Twinkle = 0.3f, TwinkleSpeed = 2.2f;
-        /// <summary>The sparks' gold, drawn (not added): additive gold vanished against the bright sky (measured, 5 Oct).</summary>
-        public static readonly Color Gold = new Color(1f, 0.78f, 0.28f);
+        /// <summary>Core and glow sizes, metres at the figure's distance; how much they twinkle.</summary>
+        public const float CoreSize = 2.6f, GlowSize = 7f, Twinkle = 0.45f, TwinkleSpeed = 2.6f;
+        public static readonly Color Gold = new Color(1f, 0.8f, 0.3f), GlowGold = new Color(1f, 0.62f, 0.16f);
+        public const float GlowAlpha = 0.3f;
 
-        ParticleSystem _ps;
+        ParticleSystem _core, _glow;
+        ParticleSystem.Particle[] _cores, _glows;
+        Vector3[] _local;
+        float[] _phase;
+        Transform _frame;
+        Vector3 _centre, _seenFrom;
+        bool _turn;
         Material _material;
         float _shown;
-        ParticleSystem.Particle[] _sparks;
-        float[] _phase;
 
-        /// <summary>The rim's renderer (black: invisible, additive), its sparks on the outline in <paramref name="resource"/>.</summary>
+        /// <summary>The rim's renderer (its material black: hidden), its sparks on the outline in <paramref name="resource"/>.</summary>
         public static Renderer Make(Transform frame, Transform parent, string name, string resource)
         {
-            var points = Load(resource);
+            var asset = Resources.Load<TextAsset>(resource);
+            var text = asset != null ? asset.text : "";
+            var points = Vectors(text, "points");
+            var centre = Vectors(text, "centre");
+            var from = Vectors(text, "seenFrom");
+            if (points.Count == 0) Debug.LogWarning("[Rim] no outline in Resources/" + resource);
+
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
-            var ps = go.AddComponent<ParticleSystem>();
-            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            var main = ps.main;
-            main.loop = false; main.playOnAwake = false; main.maxParticles = Mathf.Max(1, points.Count);
-            main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.startLifetime = 1e6f; main.startSpeed = 0f;
-            var emission = ps.emission; emission.enabled = false;
-            var shape = ps.shape; shape.enabled = false;
-            var r = go.GetComponent<ParticleSystemRenderer>();
-            // Particles/Unlit takes each spark's own colour; alpha-blended so the gold reads on sky and stone alike.
             var m = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit")) { name = name + " (sparks)" };
-            m.SetFloat("_Surface", 1f); m.SetFloat("_Blend", 0f);
+            m.SetFloat("_Surface", 1f); m.SetFloat("_Blend", 0f);   // drawn gold, not added: additive vanished on the sky
             m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
             m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
             m.SetFloat("_ZWrite", 0f); m.SetFloat("_Cull", 0f);
@@ -50,74 +53,107 @@ namespace MuseXR.Interaction
             m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
             m.SetTexture("_BaseMap", Spark());
             m.SetColor("_BaseColor", Color.black);
+
+            var rim = go.AddComponent<SparkleRim>();
+            rim._frame = frame; rim._material = m;
+            rim._centre = centre.Count > 0 ? centre[0] : Vector3.zero;
+            rim._seenFrom = from.Count > 0 ? from[0] : Vector3.zero;
+            rim._turn = centre.Count > 0 && from.Count > 0;
+            rim._local = points.ToArray();
+            rim._phase = new float[points.Count];
+            for (var i = 0; i < points.Count; i++) rim._phase[i] = Random.value * Mathf.PI * 2f;
+            // The glow first, so the bright cores draw over it.
+            var glowGo = new GameObject(name + " glow"); glowGo.transform.SetParent(go.transform, false);
+            rim._glow = Layer(glowGo, m, points.Count, 0); rim._glows = new ParticleSystem.Particle[points.Count];
+            rim._core = Layer(go, m, points.Count, 1); rim._cores = new ParticleSystem.Particle[points.Count];
+            for (var i = 0; i < points.Count; i++)
+            {
+                rim._cores[i].remainingLifetime = rim._cores[i].startLifetime = 1e6f;
+                rim._glows[i].remainingLifetime = rim._glows[i].startLifetime = 1e6f;
+            }
+            return go.GetComponent<ParticleSystemRenderer>();
+        }
+
+        static ParticleSystem Layer(GameObject go, Material m, int count, int order)
+        {
+            var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main;
+            main.loop = false; main.playOnAwake = false; main.maxParticles = Mathf.Max(1, count);
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.startLifetime = 1e6f; main.startSpeed = 0f;
+            var emission = ps.emission; emission.enabled = false;
+            var shape = ps.shape; shape.enabled = false;
+            var r = go.GetComponent<ParticleSystemRenderer>();
             r.sharedMaterial = m;
             r.renderMode = ParticleSystemRenderMode.Billboard;
             r.minParticleSize = 0f; r.maxParticleSize = 1f;
+            r.sortingFudge = order == 0 ? 10f : 0f;
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; r.receiveShadows = false;
-
-            var rim = go.AddComponent<SparkleRim>();
-            rim._ps = ps; rim._material = m;
-            rim._sparks = new ParticleSystem.Particle[points.Count];
-            rim._phase = new float[points.Count];
-            for (var i = 0; i < points.Count; i++)
-            {
-                rim._sparks[i].position = frame != null ? frame.TransformPoint(points[i]) : points[i];
-                rim._sparks[i].startSize = SparkSize;
-                rim._sparks[i].startColor = new Color(Gold.r, Gold.g, Gold.b, 0f);   // hidden until the chapter fades it up
-                rim._sparks[i].remainingLifetime = 1e6f; rim._sparks[i].startLifetime = 1e6f;
-                rim._phase[i] = (i * 0.61803f) % 1f * Mathf.PI * 2f;
-            }
-            ps.SetParticles(rim._sparks, rim._sparks.Length);
-            if (points.Count == 0) Debug.LogWarning("[Rim] no outline in Resources/" + resource);
-            return r;
-        }
-
-        static List<Vector3> Load(string resource)
-        {
-            var list = new List<Vector3>();
-            var asset = Resources.Load<TextAsset>(resource);
-            if (asset == null) return list;
-            // The file's "points" are [[x,y,z], ...]: read the numbers in order (JsonUtility has no nested arrays).
-            var text = asset.text;
-            var i = text.IndexOf("\"points\"", System.StringComparison.Ordinal);
-            if (i < 0) return list;
-            var nums = new List<float>();
-            var sb = new System.Text.StringBuilder();
-            for (var k = text.IndexOf('[', i); k < text.Length; k++)
-            {
-                var ch = text[k];
-                if (char.IsDigit(ch) || ch == '-' || ch == '.' || ch == 'e' || ch == 'E') sb.Append(ch);
-                else
-                {
-                    if (sb.Length > 0) { nums.Add(float.Parse(sb.ToString(), System.Globalization.CultureInfo.InvariantCulture)); sb.Clear(); }
-                    if (ch == '}') break;
-                }
-            }
-            for (var n = 0; n + 2 < nums.Count; n += 3) list.Add(new Vector3(nums[n], nums[n + 1], nums[n + 2]));
-            return list;
+            return ps;
         }
 
         void LateUpdate()
         {
-            if (_ps == null || _sparks == null || _sparks.Length == 0) return;
-            // The chapter fades the rim by its material colour (black to gold): read how far, carry it as the sparks'
-            // opacity, and keep the material itself white so each spark's own gold shows.
+            if (_core == null || _local == null || _local.Length == 0) return;
+            // The chapter's fade level, read off the material it sets; the material itself stays white.
             if (_material != null)
             {
                 var c = _material.GetColor("_BaseColor");
                 if (c != Color.white) { _shown = Mathf.Clamp01(c.maxColorComponent); _material.SetColor("_BaseColor", Color.white); }
             }
-            var t = Time.time * TwinkleSpeed;
-            for (var i = 0; i < _sparks.Length; i++)
+            if (_shown <= 0f) { if (_core.particleCount > 0) { _core.Clear(); _glow.Clear(); } return; }
+
+            // Turn the traced outline about the figure's upright axis to face where the visitor stands now.
+            var turn = Quaternion.identity;
+            if (_turn && Camera.main != null)
             {
-                var tw = Mathf.Sin(t + _phase[i]);
-                _sparks[i].startSize = SparkSize * (1f - Twinkle * 0.5f + Twinkle * 0.5f * tw);
-                _sparks[i].startColor = new Color(Gold.r, Gold.g, Gold.b, _shown * (0.8f + 0.2f * tw));
+                var cam = Camera.main.transform.position;
+                var eye = _frame != null ? _frame.InverseTransformPoint(cam) : cam;
+                var a = _seenFrom - _centre; a.y = 0f;
+                var b = eye - _centre; b.y = 0f;
+                if (a.sqrMagnitude > 1e-4f && b.sqrMagnitude > 1e-4f) turn = Quaternion.FromToRotation(a.normalized, b.normalized);
             }
-            _ps.SetParticles(_sparks, _sparks.Length);
+            var t = Time.time * TwinkleSpeed;
+            for (var i = 0; i < _local.Length; i++)
+            {
+                var local = _centre + turn * (_local[i] - _centre);
+                var world = _frame != null ? _frame.TransformPoint(local) : local;
+                var tw = Mathf.Sin(t + _phase[i]);
+                var tw2 = Mathf.Sin(t * 0.37f + _phase[i] * 1.7f);
+                _cores[i].position = world;
+                _cores[i].startSize = CoreSize * (1f - Twinkle * 0.5f + Twinkle * 0.5f * tw);
+                _cores[i].startColor = new Color(Gold.r, Gold.g, Gold.b, _shown * (0.75f + 0.25f * tw));
+                _glows[i].position = world;
+                _glows[i].startSize = GlowSize * (0.85f + 0.15f * tw2);
+                _glows[i].startColor = new Color(GlowGold.r, GlowGold.g, GlowGold.b, _shown * GlowAlpha * (0.7f + 0.3f * tw2));
+            }
+            _glow.SetParticles(_glows, _glows.Length);
+            _core.SetParticles(_cores, _cores.Length);
         }
 
-        /// <summary>A soft round spark: bright core, falling off to nothing at the edge.</summary>
+        /// <summary>The [x,y,z] triples under <paramref name="key"/> in the outline file (JsonUtility has no nested arrays).</summary>
+        static List<Vector3> Vectors(string text, string key)
+        {
+            var list = new List<Vector3>();
+            var i = text.IndexOf("\"" + key + "\"", System.StringComparison.Ordinal);
+            if (i < 0) return list;
+            var start = text.IndexOf('[', i);
+            if (start < 0) return list;
+            var depth = 0; var nums = new List<float>(); var sb = new System.Text.StringBuilder();
+            for (var k = start; k < text.Length; k++)
+            {
+                var ch = text[k];
+                if (ch == '[') depth++;
+                if (char.IsDigit(ch) || ch == '-' || ch == '.' || ch == 'e' || ch == 'E') { sb.Append(ch); continue; }
+                if (sb.Length > 0) { nums.Add(float.Parse(sb.ToString(), System.Globalization.CultureInfo.InvariantCulture)); sb.Clear(); }
+                if (ch == ']' && --depth == 0) break;
+            }
+            for (var n = 0; n + 2 < nums.Count; n += 3) list.Add(new Vector3(nums[n], nums[n + 1], nums[n + 2]));
+            return list;
+        }
+
+        /// <summary>A soft round spark: white (it takes its colour from each spark), bright core falling off to nothing.</summary>
         static Texture2D Spark()
         {
             const int n = 64;
@@ -127,8 +163,8 @@ namespace MuseXR.Interaction
                 for (var x = 0; x < n; x++)
                 {
                     var d = new Vector2(x + 0.5f - n / 2f, y + 0.5f - n / 2f).magnitude / (n / 2f);
-                    var a = Mathf.Clamp01(1f - d); a = a * a * (3f - 2f * a); a = Mathf.Pow(a, 1.6f);
-                    px[y * n + x] = new Color(1f, 1f, 1f, a);   // white: the spark takes its gold from its own colour
+                    var a = Mathf.Clamp01(1f - d); a = a * a * (3f - 2f * a); a = Mathf.Pow(a, 1.4f);
+                    px[y * n + x] = new Color(1f, 1f, 1f, a);
                 }
             tex.SetPixels(px); tex.Apply(false, true);
             return tex;
