@@ -344,6 +344,9 @@ namespace MuseXR.Journey
                 _cardLine = MuseUi.Title(glass, "", 20f);
                 _cardNote = MuseUi.Body(glass, "");
                 _card = anchor.gameObject;
+                // Saul, 5 Oct: it was left behind as the visitor walked. It follows like the compass, high above the eye
+                // line so it never crosses the masters' card or the lanterns' names.
+                FollowVisitor.Attach(_card, 2.6f, -1.0f);
                 Appear.In(_card, 0.5f);   // eased in, never popped (Saul, 5 Oct)
             }
             PlaceCard();
@@ -368,7 +371,7 @@ namespace MuseXR.Journey
         /// </summary>
         void PlaceCard()
         {
-            if (_card == null || _eye == null) return;
+            if (_card == null || _eye == null || _card.GetComponent<FollowVisitor>() != null) return;   // it follows now
             var fwd = _eye.forward; fwd.y = 0f; fwd = fwd.sqrMagnitude > 1e-4f ? fwd.normalized : _toDoor;
             var right = Vector3.Cross(Vector3.up, fwd).normalized;
             // High and a little to the right: at eye height it sat across the companions' heads (headset test).

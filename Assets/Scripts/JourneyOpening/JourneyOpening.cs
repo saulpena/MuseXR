@@ -231,7 +231,7 @@ namespace MuseXR.Journey
                     if (Company.Current == CompanyStage.Phase.Choosing && id != _introId)
                     {
                         StopIntro();
-                        if (!Company.Invitation.IsChosen(id)) { _introId = id; _intro = StartCoroutine(IntroAfterDwell(id)); }
+                        _introId = id; _intro = StartCoroutine(IntroAfterDwell(id));   // chosen or not (Saul, 5 Oct: the dwell makes it deliberate)
                     }
                 };
                 pointable.Unhovered += _ => { _hovered.Remove(id); RefreshMarks(); if (id == _introId) StopIntro(); };   // looking away stops it
@@ -344,7 +344,10 @@ namespace MuseXR.Journey
             var pill = MuseUi.Card(glass, new Color32(56, 48, 61, 160), 18f, new Color32(238, 233, 223, 107), 1f, padX: 16f, padY: 9f, name: "Continue");
             pill.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 0f;
             glass.GetComponent<UnityEngine.UI.VerticalLayoutGroup>().childForceExpandWidth = false;
-            MuseUi.Text(pill, "A  \u00b7  Continue", MuseUi.Face.Sans, 10f, cream, 0.2f, true, name: "Label").enableWordWrapping = false;
+            pill.GetComponent<UnityEngine.UI.VerticalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;
+            var go = MuseUi.Text(pill, "A  \u00b7  Continue", MuseUi.Face.Sans, 10f, cream, 0.2f, true, lineHeight: 1f, name: "Label");
+            go.enableWordWrapping = false;
+            go.alignment = TMPro.TextAlignmentOptions.Midline;   // centred in the pill (Saul, 5 Oct)
             _prompt = anchor.gameObject;
         }
 

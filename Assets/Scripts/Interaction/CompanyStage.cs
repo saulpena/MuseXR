@@ -149,6 +149,21 @@ namespace MuseXR.Interaction
 
         public bool Redo() => false;
 
+        static readonly int SpeedParam = Animator.StringToHash("Speed"), ListeningParam = Animator.StringToHash("Listening");
+
+        /// <summary>Painter.controller: Speed walks, Listening holds the Listen pose. A figure without them is left alone.</summary>
+        static void Pose(Transform figure, float speed, bool listening)
+        {
+            if (figure == null) return;
+            var an = figure.GetComponentInChildren<Animator>();
+            if (an == null || an.runtimeAnimatorController == null) return;
+            foreach (var p in an.parameters)
+            {
+                if (p.nameHash == SpeedParam) an.SetFloat(SpeedParam, speed, 0.1f, Time.deltaTime);
+                else if (p.nameHash == ListeningParam) an.SetBool(ListeningParam, listening);
+            }
+        }
+
         /// <summary>
         /// The walk from the line-up to the mark, as an arc round the visitor: out to the side first, nearer
         /// last. A straight line from the row ahead to a mark beside the visitor crossed the middle of the view
@@ -194,6 +209,8 @@ namespace MuseXR.Interaction
                 case Phase.Choosing:
                     foreach (var id in _standees.Keys)
                     {
+                        // Chosen: her attentive Listen pose, so who is in the company reads at a glance (Saul, 5 Oct).
+                        Pose(_standees[id], 0f, Invitation.IsChosen(id));
                         var (pos, rot) = _rowPose[id];
                         var target = Invitation.IsChosen(id) ? pos + (rot * Vector3.forward) * StepForward : pos;   // +Z is the figure's front
                         var t = _standees[id];
@@ -208,6 +225,12 @@ namespace MuseXR.Interaction
                     break;
                 case Phase.Stepping:
                     _walkT += Time.deltaTime;
+                    // Walking, not floating, to their places (Saul, 5 Oct): the walk cycle at the pace they move.
+                    foreach (var kv in _walk)
+                    {
+                        var arc = Vector3.Distance(kv.Value.from, kv.Value.to) * 1.15f;
+                        Pose(_standees[kv.Key], _walkT < _stepSeconds ? arc / Mathf.Max(0.1f, _stepSeconds) : 0f, false);
+                    }
                     var k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_walkT / _stepSeconds));
                     var eye = Group.Head != null ? Group.Head.position : Vector3.zero;
                     foreach (var kv in _walk)

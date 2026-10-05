@@ -16,6 +16,9 @@ namespace MuseXR.Interaction
     public sealed class ArtworkCard : MonoBehaviour, IConfirmable
     {
         public const float Beside = 0.3f, NarrowWork = 1f, LeaveDistance = 4.5f, LookAwaySeconds = 6f;
+        /// <summary>Saul, 5 Oct: with the ray on nothing at all for this long, the card goes.</summary>
+        public const float PointAwaySeconds = 5f;
+        float _pointedAway;
         static readonly Color AiPurple = new Color32(0x7a, 0x5c, 0xb8, 0xff);
 
         public static ArtworkCard Current { get; private set; }
@@ -193,6 +196,10 @@ namespace MuseXR.Interaction
             if (flat.magnitude > LeaveDistance) { Close(); return; }
             _away = Vector3.Angle(eye.forward, to) > 50f ? _away + Time.deltaTime : 0f;
             if (_away > LookAwaySeconds) Close();
+            var pointing = false;
+            foreach (var p in Pointer.All) if (p.isActiveAndEnabled && p.Hovered != null) { pointing = true; break; }
+            _pointedAway = pointing ? 0f : _pointedAway + Time.deltaTime;
+            if (_pointedAway > PointAwaySeconds) Close();
         }
     }
 }
