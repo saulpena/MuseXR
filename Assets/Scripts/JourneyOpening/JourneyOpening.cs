@@ -335,7 +335,7 @@ namespace MuseXR.Journey
             var cream = new Color32(238, 233, 223, 255); var cream2 = new Color32(238, 233, 223, 170);
             var accent = new Color32(158, 135, 170, 255);
             var c = MuseUi.Canvas(anchor, "Prompt", rowFromSpawn, 520f);
-            var glass = MuseUi.Card(c, new Color32(8, 6, 10, 196), 0f, new Color32(238, 233, 223, 46), 1f, padX: 26f, padY: 20f, gap: 8f, name: "Glass");
+            var glass = MuseUi.Card(c, new Color32(8, 6, 10, 196), MuseTheme.PanelRadius, new Color32(238, 233, 223, 46), 1f, padX: 26f, padY: 20f, gap: 8f, name: "Glass");
             MuseUi.Text(glass, "02 / Invite companions", MuseUi.Face.Sans, 10f, accent, 0.28f, true, name: "Eyebrow");
             _promptTitle = MuseUi.Text(glass, "Choose up to three", MuseUi.Face.Serif, 30f, cream, lineHeight: 1.1f, name: "Title");
             var fonts = MuseFonts.Get();

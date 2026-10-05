@@ -67,7 +67,9 @@ namespace MuseXR.Interaction
             var right = Vector3.Cross(Vector3.up, -facing).normalized;
             // Its width across the visitor's view, never "narrow": a piece's card goes beside it, not down by the floor.
             var across = Mathf.Abs(Vector3.Dot(b.extents, new Vector3(Mathf.Abs(right.x), 0f, Mathf.Abs(right.z)))) * 2f;
-            var centre = new Vector3(b.center.x, Mathf.Clamp(b.center.y, 1.1f, 1.7f), b.center.z) + facing * Mathf.Min(b.extents.x, b.extents.z);
+            // At the piece's near face, but never closer than 1.5 m to the visitor (a 10 m group's near face is where they stand).
+            var near = Mathf.Min(Mathf.Min(b.extents.x, b.extents.z), Mathf.Max(0f, toEye.magnitude - 1.5f));
+            var centre = new Vector3(b.center.x, Mathf.Clamp(b.center.y, 1.1f, 1.7f), b.center.z) + facing * near;
             var record = new ArtworkRecord { id = piece.id, title = piece.title, artist = piece.artist };
             return Show(record, piece.transform, new Vector2(Mathf.Max(across, NarrowWork), b.size.y), piece, centre, facing, true);
         }

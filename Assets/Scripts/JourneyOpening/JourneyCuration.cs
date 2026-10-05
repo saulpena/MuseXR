@@ -563,6 +563,7 @@ namespace MuseXR.Journey
             // world seen through the gate. The companions' figures on its marks wait for the crossing (the
             // companions are walking beside the visitor); the interactions wake on arrival, at the origin.
             foreach (var c in palaceContent) if (c != null && c.name.StartsWith("Chapter")) c.SetActive(true);
+            WorldReveal.Begin(palaceFrame);   // its pieces come up one by one from now, not at the crossing (Saul, 5 Oct)
             ShowMarks(false);
             mg.Crossed += () => { ShowMarks(true); if (opening != null && opening.Companions.Count > 0) SwapFigures(opening.Companions); };
 
@@ -710,6 +711,7 @@ namespace MuseXR.Journey
             sequence.CloseSeconds = 0.6f;
             sequence.TriggerDistance = 0f;   // the fade opens it, not a look
             foreach (var c in palaceContent) if (c != null && c.name.StartsWith("Chapter")) c.SetActive(true);
+            WorldReveal.Begin(palaceFrame);   // its pieces come up one by one from now, not at the crossing (Saul, 5 Oct)
             ShowMarks(false);
             // The Palace's figures are revealed on arrival, fading in beside the visitor (Arrive), not on the
             // throne room's marks at the crossing - they showed far off there and walked over (Saul, 5 Oct).
@@ -858,7 +860,8 @@ namespace MuseXR.Journey
             // The marks are hidden (inactive): the Palace's crowd puts them beside the visitor as it starts and
             // fades them in there (CompanionGroup's first placement) - never seen on the throne room's marks.
             yield return null;
-            foreach (var c in palaceContent) if (c != null && !c.activeSelf) Appear.In(c, ChapterLink.ArriveFade);   // nothing pops (Saul, 5 Oct)
+            foreach (var c in palaceContent) if (c != null && !c.activeSelf) c.SetActive(true);
+            WorldReveal.Begin(palaceFrame);   // the rest of its pieces join the same one-by-one fade (Saul, 5 Oct)
             for (var i = 0; i < 30 && GameObject.Find("Teleport Floor") == null; i++) yield return null;
             yield return new WaitForFixedUpdate();
             if (gravity != null) gravity.enabled = true;

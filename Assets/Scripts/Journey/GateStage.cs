@@ -486,7 +486,7 @@ namespace MusePico.Journey
             qa.SetPositionAndRotation(at, rot);
             _promptRoot = qa.gameObject;
             var qc = MuseUi.Canvas(qa, "Prompt", ScreenDistance, 1060f);
-            var dim = MuseUi.Card(qc, WebDim, 0f, null, 0f, padX: 34f, padY: 34f, gap: 0f, name: "Screen");
+            var dim = MuseUi.Card(qc, WebDim, MuseTheme.PanelRadius * 2f, null, 0f, padX: 34f, padY: 34f, gap: 0f, name: "Screen");
             var cols = MuseUi.Row(dim, 46f, TextAnchor.MiddleLeft, "Columns");
             cols.GetComponent<HorizontalLayoutGroup>().childControlHeight = true;
             cols.GetComponent<HorizontalLayoutGroup>().childForceExpandHeight = false;
@@ -498,7 +498,7 @@ namespace MusePico.Journey
             WebText(left, "There is no correct question. The museum will use it as the curatorial thread connecting every artwork, companion and space.",
                     false, 14f, WebInk2, 0f, false, 1.5f, "Lede");
 
-            var panel = MuseUi.Card(cols, WebGlass, 0f, WebLine, 1f, padX: 30f, padY: 30f, gap: 16f, name: "Question Panel");
+            var panel = MuseUi.Card(cols, WebGlass, MuseTheme.PanelRadius, WebLine, 1f, padX: 30f, padY: 30f, gap: 16f, name: "Question Panel");
             var ple = panel.gameObject.AddComponent<LayoutElement>(); ple.preferredWidth = ple.minWidth = 540f; ple.flexibleWidth = 0f;
             WebText(panel, "Your question", false, 8f, WebAccent, 0.22f, true, name: "Label");
             _draftText = WebText(panel, Placeholder, true, 40f, WebInkFaint, 0f, false, 1.15f, "Question");
@@ -510,7 +510,7 @@ namespace MusePico.Journey
             for (var k = 0; k < GateFlow.Samples.Count; k++)   // her three samples (MUSE-VR-design, 2 Oct 2026)
             {
                 var q = GateFlow.Samples[k];
-                var chip = MuseUi.Card(chips, new Color(0f, 0f, 0f, 0f), 0f, WebLine, 1f, padX: 10f, padY: 8f, name: "Chip");
+                var chip = MuseUi.Card(chips, new Color(0f, 0f, 0f, 0f), MuseTheme.OptionRadius, WebLine, 1f, padX: 10f, padY: 8f, name: "Chip");
                 var cl = WebText(chip, q, false, 8.5f, WebInk2, 0f, false, 1.2f, "Label");
                 cl.enableWordWrapping = false;
                 var edge = EdgeOf(chip);
