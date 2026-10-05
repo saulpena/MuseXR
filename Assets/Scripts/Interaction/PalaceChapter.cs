@@ -176,6 +176,7 @@ namespace MuseXR.Interaction
             group.LineFor = id => LineFor(id, piece);
             group.TurnsFinished -= OnTurnsFinished;
             group.TurnsFinished += OnTurnsFinished;
+            MasterVoice.Follow(group);   // voiced, each line as its turn starts (silent before, live run 4 Oct)
             group.BeginTurns();   // the group takes A while they speak: A is "next"
         }
 

@@ -63,6 +63,39 @@ namespace MuseXR.Interaction
             Debug.Log("[Insight] " + lines.Count + " live readings on " + t.title + " in " + result.Seconds.ToString("F1") + " s");
         }
 
+        // ---- the masters' voices -----------------------------------------------------------------------
+
+        // Each line queued HERE is voiced as its own turn starts, through MasterVoice: a new piece starts a new
+        // round, which stops the voice of the last one instead of talking over it.
+        readonly List<System.Action<string, string>> _listening = new List<System.Action<string, string>>();
+        CompanionGroup _listeningOn;
+
+        /// <summary>Say <paramref name="lines"/> through <paramref name="say"/>, and voice each as its turn starts.</summary>
+        void Voiced(List<KeyValuePair<string, string>> lines, System.Func<bool> say, bool cut = true)
+        {
+            // The live readings follow their own piece's opening line: they queue behind its voice, not cut it.
+            if (cut) StopVoice();
+            var mine = new Dictionary<string, string>();
+            foreach (var kv in lines) mine[kv.Key] = kv.Value;
+            var group = _group;
+            System.Action<string, string> speak = null;
+            speak = (id, line) =>
+            {
+                if (mine.TryGetValue(id, out var l) && l == line) { mine.Remove(id); MasterVoice.Get().Say(id, line); }
+                if (mine.Count == 0) { group.LineStarted -= speak; _listening.Remove(speak); }
+            };
+            group.LineStarted += speak; _listening.Add(speak); _listeningOn = group;
+            if (!say()) { group.LineStarted -= speak; _listening.Remove(speak); }
+        }
+
+        /// <summary>The voice playing and any still to come of the last round: gone.</summary>
+        void StopVoice()
+        {
+            MasterVoice.Get().NewRound();
+            if (_listeningOn != null) foreach (var s in _listening) _listeningOn.LineStarted -= s;
+            _listening.Clear();
+        }
+
         public static MasterInsights Ensure()
         {
             var m = FindAnyObjectByType<MasterInsights>();
@@ -125,7 +158,7 @@ namespace MuseXR.Interaction
             // still in flight lands among the table's turns under their "Based on" lines.
             if (ArtworkCard.Hushed) { if (_pending != null) { _pending = null; _asking++; } return; }
             if (Group() == null || _group.Busy) return;
-            if (_pending != null) { var p = _pending; _pending = null; _group.SayInTurn(p); return; }
+            if (_pending != null) { var p = _pending; _pending = null; Voiced(p, () => _group.SayInTurn(p), cut: false); return; }
             if (_queued != null) { var q = _queued; _queued = null; _rule.Clicked(q.id); Speak(q); return; }
             var head = Camera.main != null ? Camera.main.transform : null;
             if (head == null) return;
@@ -189,7 +222,8 @@ namespace MuseXR.Interaction
         {
             var speaker = _rule.NextSpeaker();
             if (speaker == null) return;
-            _group.Say(speaker, Insights.Opening(speaker, t.title, t.artist));
+            var opening = Insights.Opening(speaker, t.title, t.artist);
+            Voiced(new List<KeyValuePair<string, string>> { new KeyValuePair<string, string>(speaker, opening) }, () => _group.Say(speaker, opening));
             _pending = null;
             AskLive(t);
             if (t.askReply) ShowReplies(t, speaker);
@@ -269,7 +303,7 @@ namespace MuseXR.Interaction
             if (_pending != null) reaction.AddRange(_pending);
             if (_group.Busy) _group.StopTurns();
             _pending = null;
-            _group.SayInTurn(reaction);
+            Voiced(reaction, () => _group.SayInTurn(reaction));
             Debug.Log("[Insight] reply '" + axis + "' to " + _replyTo.title + ": " + Masters.Name(speaker) + " answers");
             CloseReplies();
             return true;

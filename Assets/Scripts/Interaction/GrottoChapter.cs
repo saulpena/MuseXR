@@ -79,6 +79,7 @@ namespace MuseXR.Interaction
             Group.LineFor = id => GrottoFlow.Line(id, slot);
             Group.TurnsFinished -= OnTurnsFinished;
             Group.TurnsFinished += OnTurnsFinished;
+            MasterVoice.Follow(Group);   // voiced, each line as its turn starts (silent before, live run 4 Oct)
             Group.BeginTurns();
         }
 
