@@ -437,7 +437,11 @@ namespace MuseXR.Journey
             {
                 Company.Group.ActiveSpeaker = id;   // ring and heads too
                 var panel = TorsoPanel.Get();
-                if (panel != null) panel.ShowLine(id, Masters.Name(id), text, null, kicker);
+                // A round still running (the masters' readings on a work): NEXT MASTER (A) while another line is to come.
+                var turns = Company.Group.Turns;
+                var more = turns != null && turns.Current == MuseXR.Slots.TurnTaking.Phase.Speaking && turns.Speaker == id && turns.Index < turns.Order.Count - 1;
+                var group = Company.Group;
+                if (panel != null) panel.ShowLine(id, Masters.Name(id), text, null, kicker, more ? () => group.Confirm() : (System.Action)null);
             }
             var task = VoiceFor(id, text);
             for (float t = 0f; !task.IsCompleted && t < 10f; t += Time.deltaTime) yield return null;

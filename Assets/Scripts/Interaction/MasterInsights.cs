@@ -47,16 +47,33 @@ namespace MuseXR.Interaction
         /// then her defaults, three in all) "Tell me how you see "{title}"." - each answers through
         /// their lens, under 50 words - and play the readings in turn once the opening has finished.
         /// </summary>
+        /// <summary>A work whose live readings are on their way, and whether the card has said they are thinking.</summary>
+        InsightTarget _thinkingAbout;
+        bool _thinkingShown;
+
+        /// <summary>A different work's info card opened: the last work's question panel goes (Saul, 5 Oct).</summary>
+        public void CardOpened(InsightTarget t)
+        {
+            if (_replies != null && _replyTo != null && _replyTo != t) CloseReplies();
+        }
+
         async void AskLive(InsightTarget t)
         {
             if (_client == null || _group == null) return;
             var token = ++_asking;
+            _thinkingAbout = t; _thinkingShown = false;
             var ids = new List<string>(); foreach (var id in _group.Ids) ids.Add(ToRoster(id));
             var lenses = MusePico.Dialogue.MasterRoster.Select(_roster, ids);
             var art = new MusePico.Dialogue.ArtworkContext { Title = t.title, Artist = t.artist };
             var result = await _client.AskAsync("Tell me how you see “" + t.title + "”.", lenses, art);
             if (this == null || token != _asking) return;   // a newer insight took over
-            if (!result.Live) { Debug.LogWarning("[Insight] live readings failed: " + result.Error); return; }
+            if (!result.Live)
+            {
+                Debug.LogWarning("[Insight] live readings failed: " + result.Error);
+                if (_thinkingShown) DialogueContext.Notice("Your companions", "The masters could not answer just now. Point at the work again in a moment.", 5f);
+                _thinkingAbout = null;
+                return;
+            }
             var lines = new List<KeyValuePair<string, string>>();
             foreach (var p in result.Perspectives) lines.Add(new KeyValuePair<string, string>(FromRoster(p.speakerId), p.text));
             _pending = lines;
@@ -164,7 +181,13 @@ namespace MuseXR.Interaction
             // still in flight lands among the table's turns under their "Based on" lines.
             if (ArtworkCard.Hushed) { if (_pending != null) { _pending = null; _asking++; } return; }
             if (Group() == null || _group.Busy) return;
-            if (_pending != null) { var p = _pending; _pending = null; Voiced(p, () => _group.SayInTurn(p), cut: false); return; }
+            if (_pending != null) { var p = _pending; _pending = null; _thinkingAbout = null; Voiced(p, () => _group.SayInTurn(p), cut: false); return; }
+            // The opening has been said and the readings are still coming: say so on the card, as an asked question does.
+            if (_thinkingAbout != null && !_thinkingShown)
+            {
+                _thinkingShown = true;
+                DialogueContext.Notice("Your companions", "The masters are thinking about " + _thinkingAbout.title + "\u2026", 20f);
+            }
             if (_queued != null) { var q = _queued; _queued = null; _rule.Clicked(q.id); Speak(q); return; }
             var head = Camera.main != null ? Camera.main.transform : null;
             if (head == null) return;

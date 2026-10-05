@@ -109,8 +109,19 @@ namespace MuseXR.UI
         public static readonly System.Collections.Generic.Dictionary<string, string> BasedOn =
             new System.Collections.Generic.Dictionary<string, string>();
 
-        public void ShowLine(string masterId, string speaker, string line, string hint = null, string kicker = "Your companion answers")
+        CanvasGroup _next;
+        Collider _nextHit;
+        System.Action _onNext;
+
+        /// <summary>
+        /// <paramref name="onNext"/>: another master has a line to come in this round - the card shows NEXT MASTER (A),
+        /// clickable with the ray (Saul, 5 Oct: "so it's clear how to continue").
+        /// </summary>
+        public void ShowLine(string masterId, string speaker, string line, string hint = null, string kicker = "Your companion answers", System.Action onNext = null)
         {
+            _onNext = onNext;
+            if (_next != null) { _next.alpha = onNext != null ? 1f : 0f; _nextHit.enabled = onNext != null; }
+            if (onNext != null) hint = null;   // the button says it
             if (masterId != null && kicker == "Your companion answers" && BasedOn.TryGetValue(masterId, out var basedOn)) kicker = basedOn;
             // The topic line: what they are talking about (the work, the option, the question); masters' lines only.
             if (_topic != null) _topic.text = masterId != null ? MuseXR.Interaction.DialogueContext.Current : string.Empty;
@@ -211,6 +222,21 @@ namespace MuseXR.UI
             var wle = _line.gameObject.AddComponent<LayoutElement>();
             wle.preferredHeight = wle.minHeight = 17f * 1.35f * (MaxLines + 1) + 4f;
             wle.flexibleHeight = 0f;
+            // NEXT MASTER (A): always laid out, shown only while another line is to come, so the card keeps one size.
+            var nextRow = MuseUi.Row(card, 0f, TextAnchor.MiddleCenter, "Next Row");
+            var pill = MuseUi.Pill(nextRow, "A", "Next master", false, null);
+            _next = nextRow.gameObject.AddComponent<CanvasGroup>();
+            _next.alpha = 0f;
+            Canvas.ForceUpdateCanvases();
+            var nrt = (RectTransform)pill.transform;
+            var box = pill.gameObject.AddComponent<BoxCollider>();
+            box.isTrigger = true;
+            box.center = nrt.rect.center; box.size = new Vector3(nrt.rect.width + 6f, nrt.rect.height + 6f, 4f);
+            box.enabled = false;
+            _nextHit = box;
+            var np = MuseXR.Interaction.Pointable.Make(pill.gameObject, "next master");
+            MuseXR.Interaction.HoverTint.Bind(np, pill.targetGraphic);
+            np.Selected += (_, __) => { var go = _onNext; if (go != null && _next.alpha > 0f) go(); };
             _lineCard = card.gameObject;
             _lineCard.SetActive(false);
 

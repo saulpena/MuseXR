@@ -58,6 +58,7 @@ namespace MuseXR.Interaction
             var card = go.AddComponent<ArtworkCard>();
             card._record = record; card._work = work; card._insight = insight;
             card.Build(workSize);
+            MasterInsights.Ensure().CardOpened(insight);   // only the newly pointed-at work keeps a panel
             Appear.In(go, 0.3f);   // eased, never popped (Saul, 5 Oct)
             Current = card;
             // A and B are the card's only while nothing else holds them (a chapter's own choice keeps its A).
@@ -96,8 +97,24 @@ namespace MuseXR.Interaction
             if (!string.IsNullOrEmpty(_record.sourceUrl))
                 MuseUi.Text(glass, _record.sourceUrl.Replace("https://", "").Replace("http://", "").Replace("www.", ""), MuseUi.Face.Mono, 11f, MuseTheme.Ink2, name: "Url");
             var row = MuseUi.Row(glass, 8f, TextAnchor.MiddleLeft, "Buttons");
-            MuseUi.Pill(row, "A", "Hear companions", true, () => Confirm());
-            MuseUi.Pill(row, "B", "Close", false, () => Redo());
+            var hear = MuseUi.Pill(row, "A", "Hear companions", true, () => Confirm());
+            var close = MuseUi.Pill(row, "B", "Close", false, () => Redo());
+            // uGUI buttons do not hear the trigger ray: each pill gets its own hit box, hover and click (Saul, 5 Oct:
+            // "I had a hard time interacting with the panel").
+            Canvas.ForceUpdateCanvases();
+            Clickable(hear, "hear companions", () => Confirm());
+            Clickable(close, "close card", () => Redo());
+        }
+
+        static void Clickable(UnityEngine.UI.Button pill, string id, System.Action act)
+        {
+            var rt = (RectTransform)pill.transform;
+            var box = pill.gameObject.AddComponent<BoxCollider>();
+            box.isTrigger = true;
+            box.center = rt.rect.center; box.size = new Vector3(rt.rect.width + 6f, rt.rect.height + 6f, 4f);
+            var p = Pointable.Make(pill.gameObject, id);
+            HoverTint.Bind(p, pill.targetGraphic);
+            p.Selected += (_, __) => act();
         }
 
         /// <summary>Does another work or piece stand within a card's width of <paramref name="spot"/>?</summary>
