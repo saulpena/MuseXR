@@ -55,7 +55,8 @@ namespace MuseXR.Interaction
 
         /// <summary>Her reasons prompt (MUSE-VR-design, Palace: "Leave one reason for your choice").</summary>
         public const string ReasonsKicker = "Stop 1  ·  Your reason", ReasonsPrompt = "Leave one reason for your choice";
-        public const string ReasonsHint = "Point at a reason and pull the trigger", ReasonsKeep = "A keeps it  ·  choose another to change it";
+        public const string ReasonsHint = "Point at a reason and pull the trigger", ReasonsKeep = "Or press A  ·  choose another to change it",
+                            KeepAction = "Keep this moment";
         ChoicePanel _panel;
         readonly List<Pointable> _chips = new List<Pointable>();
         readonly Dictionary<Transform, GameObject> _glows = new Dictionary<Transform, GameObject>();
@@ -285,6 +286,7 @@ namespace MuseXR.Interaction
         /// <summary>Whether the reasons should be up: the piece is placed, the companions have spoken, nothing kept yet.</summary>
         bool ReasonsWanted => !Listening && _reasonsOpen && (Flow.Current == PalaceFlow.Phase.Placed || Flow.Current == PalaceFlow.Phase.Ready);
         bool _reasonsOpen;
+        const float ReasonsLift = 0.3f;
 
         void ShowChips(bool on)
         {
@@ -294,7 +296,8 @@ namespace MuseXR.Interaction
             if (!on) return;
             // Over the court, above the placed piece, turned to the visitor wherever they stand (Saul, 5 Oct); under
             // the cards in the card fallback.
-            var at = _courtChipsAt;
+            // Lifted clear of the seated piece: at the court mark the crane's head stood through the footer (5 Oct).
+            var at = _courtChipsAt + Vector3.up * ReasonsLift;
             if (Flow.Kind == PalaceFlow.Mode.Card && Cards != null && Cards.Cards.Length > 0)
             {
                 var mid = Vector3.zero; foreach (var c in Cards.Cards) mid += c.position; mid /= Cards.Cards.Length;
@@ -304,7 +307,8 @@ namespace MuseXR.Interaction
             var follow = _chipRoot.GetComponent<FollowVisitor>(); if (follow != null) Destroy(follow);
             TurnToVisitor.Attach(_chipRoot.gameObject);
             var reasons = PalaceFlow.ReasonsFor(Flow.Piece);
-            _panel.Build(ReasonsKicker, ReasonsPrompt, reasons, ReasonsHint, 2.2f, (i, pointer) => PickChip(i, pointer));
+            _panel.Build(ReasonsKicker, ReasonsPrompt, reasons, ReasonsHint, 2.2f, (i, pointer) => PickChip(i, pointer),
+                         KeepAction, () => { if (!Confirm()) Say("[Palace] keep refused: " + Flow.Current); });
             _chips.Clear(); _chips.AddRange(_panel.Options);
             // Already chosen (shown again after something hid it): keep the choice marked.
             var already = -1; for (var i = 0; i < reasons.Count; i++) if (reasons[i] == Flow.Reason) already = i;

@@ -46,6 +46,9 @@ namespace MuseXR.Interaction
                 _yaw = Mathf.MoveTowardsAngle(_yaw, headYaw, TurnDegreesPerSecond * Time.deltaTime);
             var off = flat - _xz;
             if (off.magnitude > HeadSlack) _xz = flat - off.normalized * HeadSlack;
+            // Height too, with the same slack: up the Grotto's slope it stayed at the eye height it was made at.
+            var dy = cam.position.y - _eyeY;
+            if (Mathf.Abs(dy) > HeadSlack) _eyeY = cam.position.y - Mathf.Sign(dy) * HeadSlack;
             var stack = Mathf.Max(0, Open.IndexOf(this)) * StackStep;
             var fwd = Quaternion.Euler(0f, _yaw, 0f) * Vector3.forward;
             var eye = new Vector3(_xz.x, _eyeY, _xz.z);

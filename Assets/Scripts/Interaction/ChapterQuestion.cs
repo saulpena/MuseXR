@@ -22,6 +22,8 @@ namespace MuseXR.Interaction
         public bool anchored;
         [Tooltip("The fixed point, in the chapter frame's space (the Palace: just above the statue's head).")]
         public Vector3 anchorPoint;
+        [Tooltip("Size on top of the reading size from the arrival point (the Grotto's, as Saul set it: 1.317).")]
+        public float anchorScale = 1f;
 
         // Further, higher and up for the whole chapter (Saul, 5 Oct: Stop 1 and Stop 2 showed for a few seconds 3 m
         // ahead and were easy to miss): the room's title, sized for reading from where the visitor arrives.
@@ -103,10 +105,16 @@ namespace MuseXR.Interaction
                 distance = Mathf.Max(Ahead, Vector3.Distance(eye.position, at));   // sized to read from where the visitor arrives
             }
             anchor.SetPositionAndRotation(at, Quaternion.LookRotation(fwd, Vector3.up));   // +Z away from the viewer reads
+            if (anchored)
+            {
+                anchor.localScale = Vector3.one * Mathf.Max(0.1f, anchorScale);
+                TurnToVisitor.Attach(anchor.gameObject);   // always turned to the visitor, wherever they walk
+            }
             var c = MuseUi.Canvas(anchor, "Question", distance, WidthPx);
             _group = c.gameObject.AddComponent<CanvasGroup>();
             _group.alpha = 0f;
-            var glass = MuseUi.Card(c, new Color32(8, 6, 10, 196), MuseTheme.PanelRadius, new Color32(238, 233, 223, 46), 1f, padX: 26f, padY: 18f, gap: 6f, name: "Glass");
+            // Darker, so it reads against any world behind it (Saul, 5 Oct).
+            var glass = MuseUi.Card(c, new Color32(6, 5, 8, 236), MuseTheme.PanelRadius, new Color32(238, 233, 223, 46), 1f, padX: 26f, padY: 18f, gap: 6f, name: "Glass");
             glass.GetComponent<UnityEngine.UI.VerticalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;
             if (!string.IsNullOrWhiteSpace(stop))
             {

@@ -51,6 +51,7 @@ namespace MuseXR.Interaction
     {
         public const string HowToHear = "point at it and pull the trigger";
         public const float ShowDistance = 9f;
+        public const float FollowScale = 0.3f, FollowAhead = 2.6f, FollowAbove = -1.0f;   // FollowVisitor's drop: negative is above
 
         public OptionsHeard Options { get; private set; }
         public bool Ready => Options == null || Options.AllHeard;
@@ -86,6 +87,11 @@ namespace MuseXR.Interaction
             p.Options = new OptionsHeard(list);
             p._kicker = kicker; p._then = then;
             p.Build();
+            // It follows the visitor high up, as the Gate's instruction card does (2.6 m ahead, 1 m above the eye),
+            // small (Saul, 5 Oct: "follow the user high up like the instruction panel in the very first world",
+            // 0.3 scale "since it will follow us, it does not need to be this big").
+            go.transform.localScale = Vector3.one * FollowScale;
+            FollowVisitor.Attach(go, FollowAhead, FollowAbove);
             return p;
         }
 
@@ -173,8 +179,8 @@ namespace MuseXR.Interaction
             if (_nudge > 0f)
             {
                 _nudge -= Time.deltaTime;
-                transform.localScale = Vector3.one * (1f + 0.06f * Mathf.Sin(_nudge * 18f) * Mathf.Clamp01(_nudge));
-                if (_nudge <= 0f) transform.localScale = Vector3.one;
+                transform.localScale = Vector3.one * FollowScale * (1f + 0.06f * Mathf.Sin(_nudge * 18f) * Mathf.Clamp01(_nudge));
+                if (_nudge <= 0f) transform.localScale = Vector3.one * FollowScale;
             }
         }
     }

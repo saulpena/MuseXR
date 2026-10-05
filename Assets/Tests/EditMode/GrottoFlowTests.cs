@@ -57,7 +57,9 @@ namespace MusePico.Tests
         [Test]
         public void SocratesAsksHerQuestionAtTheRelief()
         {
-            Assert.AreEqual("From further back, what do you see?", GrottoFlow.Line(Masters.Socrates, GrottoFlow.Detail));
+            // Her fallback line for the detail, the one spoken when the live reaction cannot be had.
+            Assert.AreEqual("You chose the detail. The Buddha is right behind you. Are you afraid the whole would make you look too small?",
+                            GrottoFlow.Line(Masters.Socrates, GrottoFlow.Detail));
         }
 
         [Test]

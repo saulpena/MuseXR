@@ -3004,6 +3004,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: MuseXR.Interaction::MuseXR.Interaction.ChapterQuestion
   stop: Stop 2
   question: Facing things that outlast me, how do I see myself?
+  anchored: 1
+  anchorPoint: {x: -1.932, y: 10.387, z: -16.805}
+  anchorScale: 1.317
 --- !u!1 &2977057383946032870
 GameObject:
   m_ObjectHideFlags: 0

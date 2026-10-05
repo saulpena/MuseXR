@@ -88,6 +88,13 @@ namespace MuseXR.Interaction
             Court.GrabGate = () => Preview.Ready;
             Court.Refused += _ => Preview.Nudge();
             Court.Cue += (s, e) => { if (e.Cue == SlotCue.Placed && Preview != null) Preview.Close(); };
+            // Once a piece is on the court the choice is made: neither piece offers its info card or a reading on
+            // approach or click any more (Saul, 5 Oct: the crane's card kept popping up on the podium). Lifted out, back.
+            Court.Cue += (s, e) =>
+            {
+                if (e.Cue == SlotCue.Placed) { Quiet(craneTalk, true); Quiet(turtleTalk, true); }
+                else if (e.Cue == SlotCue.Undone || e.Cue == SlotCue.Lifted) { Quiet(craneTalk, false); Quiet(turtleTalk, false); }
+            };
 
             // The companions where her diagram stands them; they answer in turn, they do not walk.
             // Her diagram has three marks (named for the demo trio); the visitor's chosen companions stand
@@ -257,6 +264,14 @@ namespace MuseXR.Interaction
         /// A master's mark in this chapter, hidden ones included (marks wait hidden until a group takes them):
         /// under this chapter's own root first - every chapter names its marks alike - else any whose layout is showing.
         /// </summary>
+        static void Quiet(InsightTarget t, bool quiet)
+        {
+            if (t == null) return;
+            t.enabled = !quiet;   // off the approach list
+            var p = t.GetComponent<Pointable>(); if (p != null) p.Interactive = !quiet;   // and no click
+            if (quiet && ArtworkCard.Current != null) ArtworkCard.Current.Close();
+        }
+
         static Transform FindMark(Transform from, string name)
         {
             foreach (var t in from.root.GetComponentsInChildren<Transform>(true)) if (t.name == name) return t;
