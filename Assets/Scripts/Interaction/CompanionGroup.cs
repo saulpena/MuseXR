@@ -524,6 +524,9 @@ namespace MuseXR.Interaction
             {
                 var t = h.collider.transform;
                 if (Head != null && t.IsChildOf(Head.root)) continue;
+                // A panel that follows the visitor is not a wall: its button boxes pulled Socrates in to arm's length
+                // every time a painting's reply panel opened (Saul, 5 Oct: "Socrates approached me").
+                if (t.GetComponentInParent<FollowVisitor>() != null) continue;
                 var mine = false;
                 foreach (var fig in _figures.Values) if (fig != null && t.IsChildOf(fig)) { mine = true; break; }
                 if (mine) continue;
