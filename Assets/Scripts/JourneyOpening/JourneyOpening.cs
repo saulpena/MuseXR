@@ -62,6 +62,8 @@ namespace MuseXR.Journey
         readonly Dictionary<string, System.Threading.Tasks.Task<AudioClip>> _voices =
             new Dictionary<string, System.Threading.Tasks.Task<AudioClip>>();
         AudioSource _speaking;
+        /// <summary>A master's voice is still playing (the turns can be marked done before the last clip ends).</summary>
+        public bool Speaking => _speaking != null && _speaking.isPlaying;
 
         void Start()
         {

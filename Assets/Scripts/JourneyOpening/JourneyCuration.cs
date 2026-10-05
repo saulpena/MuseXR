@@ -102,13 +102,19 @@ namespace MuseXR.Journey
             if (palaceFrame != null) palaceFrame.gameObject.SetActive(false);
         }
 
+        float _quietFor;
+
         void Update()
         {
-            if (!_begun && opening != null && opening.Company != null && opening.Company.Current == CompanyStage.Phase.Done)
+            // Saul, 5 Oct: the lanterns come only once every chosen master has finished answering the question -
+            // the round marked done, nobody's voice still playing - and a beat after.
+            if (!_begun && opening != null && opening.Company != null && opening.Company.Current == CompanyStage.Phase.Done
+                && !opening.Company.Group.Busy && !opening.Speaking)
             {
-                _begun = true;
-                StartCoroutine(Unfold());
+                _quietFor += Time.deltaTime;
+                if (_quietFor >= 1f) { _begun = true; StartCoroutine(Unfold()); }
             }
+            else _quietFor = 0f;
 
         }
 

@@ -309,6 +309,7 @@ namespace MuseXR.Interaction
             }
 
             if (!Crowd || !_walking) Face(Time.deltaTime);
+            Animate(Time.deltaTime);
             if (Turns == null) return;
             Turns.Tick(Time.deltaTime, FollowVisitor ? AngleFromGaze(Turns.Speaker) : 0f);
             if (TimeLinesByLength && Turns.Current == TurnTaking.Phase.Speaking)
@@ -408,13 +409,14 @@ namespace MuseXR.Interaction
                 var a = r > 1e-3f ? Yaw(rel) : targetYaw;
                 var da = Mathf.DeltaAngle(a, targetYaw);
                 // The short way to the new place, even across the front for a moment (Saul, 5 Oct: going round behind looked wrong).
-                if (Mathf.Abs(da) < 0.5f && Mathf.Abs(targetR - r) < 0.03f) continue;
+                if (Mathf.Abs(da) < 0.5f && Mathf.Abs(targetR - r) < 0.03f) { _speeds[_ids[i]] = 0f; continue; }
                 var step = speed * dt;
                 var na = a + Mathf.Sign(da) * Mathf.Min(Mathf.Abs(da), step / Mathf.Max(r, CrowdMinRadius) * Mathf.Rad2Deg);
                 var nr = Mathf.Max(CrowdMinRadius, Mathf.MoveTowards(Mathf.Max(r, CrowdMinRadius), targetR, step));
                 var next = feet + Quaternion.Euler(0f, na, 0f) * Vector3.forward * nr;
                 var moved = new Vector3(next.x - f.position.x, 0f, next.z - f.position.z);
                 f.position = new Vector3(next.x, feet.y, next.z);
+                _speeds[_ids[i]] = moved.magnitude / Mathf.Max(dt, 1e-5f);
                 if (moved.magnitude / Mathf.Max(dt, 1e-5f) > 0.25f)
                 {
                     _walking = true;
@@ -532,6 +534,31 @@ namespace MuseXR.Interaction
         /// <summary>On their marks, each companion turns its body (yaw only) towards the visitor.</summary>
         /// <summary>The speaker (and everyone, when nobody speaks) faces the visitor; the others turn toward
         /// the speaker. Turning in place only - nobody walks.</summary>
+        static readonly int TalkingParam = Animator.StringToHash("Talking"), SpeedParam = Animator.StringToHash("Speed");
+        readonly Dictionary<string, Animator> _anims = new Dictionary<string, Animator>();
+        readonly Dictionary<string, float> _speeds = new Dictionary<string, float>();
+
+        /// <summary>
+        /// Saul, 5 Oct: the speaker plays a talking animation (and faces the visitor - <see cref="Face"/>), the others
+        /// go back to idle; walking plays the walk. The masters' Painter controller has Talking and Speed for this.
+        /// </summary>
+        void Animate(float dt)
+        {
+            foreach (var id in _ids)
+            {
+                if (!_figures.TryGetValue(id, out var f) || f == null) continue;
+                if (!_anims.TryGetValue(id, out var an) || an == null) { an = f.GetComponentInChildren<Animator>(); _anims[id] = an; }
+                if (an == null || an.runtimeAnimatorController == null) continue;
+                _speeds.TryGetValue(id, out var v);
+                var walking = Crowd && v > 0.25f;
+                foreach (var p in an.parameters)
+                {
+                    if (p.nameHash == TalkingParam) an.SetBool(TalkingParam, id == _active && !walking);
+                    else if (p.nameHash == SpeedParam) an.SetFloat(SpeedParam, walking ? Mathf.Clamp(v, 0f, 2f) : 0f, 0.15f, dt);
+                }
+            }
+        }
+
         void Face(float dt)
         {
             _figures.TryGetValue(_active ?? string.Empty, out var speaker);
