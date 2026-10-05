@@ -778,6 +778,7 @@ namespace MuseXR.Journey
             BuildLilies();
             BuildTimeRing();
             BuildRotunda();
+            PropModels.ReplaceEasels(_layout);   // the garden's four painter's easels, baked as cubes: the generated easel
             _x = new InputAction("monet-x", InputActionType.Button); UnityEngine.InputSystem.InputActionSetupExtensions.AddBinding(_x, "<XRController>{LeftHand}/primaryButton"); UnityEngine.InputSystem.InputActionSetupExtensions.AddBinding(_x, "<Keyboard>/x"); _x.Enable();
             _y = new InputAction("monet-y", InputActionType.Button); UnityEngine.InputSystem.InputActionSetupExtensions.AddBinding(_y, "<XRController>{LeftHand}/secondaryButton"); UnityEngine.InputSystem.InputActionSetupExtensions.AddBinding(_y, "<Keyboard>/y"); _y.Enable();
         }

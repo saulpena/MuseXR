@@ -77,6 +77,35 @@ namespace MuseXR.Interaction
             return n;
         }
 
+        /// <summary>How far the easel model's canvas face stands in front of its bounds centre (measured, 5 Oct 2026).</summary>
+        public const float EaselCanvasDepth = 0.2f;
+
+        /// <summary>
+        /// The layout's baked painting easels ("Easel Water Lilies": three cube legs and a ledge, saved with no
+        /// material) shown as the easel model, blank canvas toward the visitor: the painter's easels of the
+        /// garden. Their "Work ..." paintings are never shown in the journey (checked 5 Oct: forced on, they
+        /// stood 1.8 m wide behind the easel); if they ever are, the easel steps back so its canvas face is 2 cm
+        /// behind the painting's plane.
+        /// </summary>
+        public static int ReplaceEasels(Transform root)
+        {
+            var n = 0;
+            foreach (var t in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (!t.name.StartsWith("Easel ") || t.Find("Ledge") == null) continue;
+                Transform work = null;
+                var title = t.name.Substring("Easel ".Length);
+                foreach (var w in root.GetComponentsInChildren<Transform>(true)) if (w.name == "Work " + title) { work = w; break; }
+                foreach (var r in t.GetComponentsInChildren<Renderer>(true)) r.enabled = false;
+                // A painting reads with its +Z away from the viewer; the model's front is its +Z, so it turns to face them.
+                var facing = work != null ? work.rotation : t.rotation;
+                var away = facing * Vector3.forward; away.y = 0f; away = away.sqrMagnitude > 1e-6f ? away.normalized : Vector3.forward;
+                var at = t.position + away * (EaselCanvasDepth + 0.02f);
+                if (Spawn("easel", t, at, Quaternion.LookRotation(-away, Vector3.up), new Vector3(0f, 1.8f, 0f)) != null) n++;
+            }
+            return n;
+        }
+
         static Vector3 LocalSize(GameObject go)
         {
             // Measured in the model's own turned frame, so a fit means the same thing whatever way it faces.
