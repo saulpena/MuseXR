@@ -140,9 +140,14 @@ namespace MuseXR.Interaction
             return _group;
         }
 
+        InsightTarget _lastClicked;
+        float _lastClickAt = -10f;
+
         public void Clicked(InsightTarget t)
         {
             if (Group() == null || t == null) return;
+            if (t == _lastClicked && Time.time - _lastClickAt < 1f) return;   // the ray's click and the grab's tap are one click
+            _lastClicked = t; _lastClickAt = Time.time;
             // A tap while a companion is still speaking is kept and answered when they finish: ignored, it
             // read as a broken pointer (the turtle tapped during the crane's reading, 4 Oct 2026).
             if (_group.Busy) { _queued = t; return; }
@@ -294,6 +299,7 @@ namespace MuseXR.Interaction
                 var box = hit.gameObject.AddComponent<BoxCollider>();
                 box.center = (lo + hi) * 0.5f; box.size = new Vector3(Mathf.Abs(hi.x - lo.x), Mathf.Abs(hi.y - lo.y), 0.02f);
                 var p = Pointable.Make(hit.gameObject, "reply " + axis);
+                HoverTint.Bind(p, chip);
                 var chosen = axis;
                 p.Selected += (_, __) => Reply(chosen);
             }
@@ -305,7 +311,9 @@ namespace MuseXR.Interaction
             var xlo = anchor.InverseTransformPoint(xc[0]); var xhi = anchor.InverseTransformPoint(xc[2]);
             var xb = xh.gameObject.AddComponent<BoxCollider>();
             xb.center = (xlo + xhi) * 0.5f; xb.size = new Vector3(Mathf.Abs(xhi.x - xlo.x) + 0.02f, Mathf.Abs(xhi.y - xlo.y) + 0.02f, 0.02f);
-            Pointable.Make(xh.gameObject, "replies close").Selected += (_, __) => CloseReplies();
+            var close = Pointable.Make(xh.gameObject, "replies close");
+            HoverTint.Bind(close, _closeChip);
+            close.Selected += (_, __) => CloseReplies();
             _replies = anchor.gameObject;
             FollowVisitor.Attach(_replies);   // follows you like the masters' card (Saul, 5 Oct)
             Appear.In(_replies, 0.3f);   // eased, never popped (Saul, 5 Oct)
@@ -358,7 +366,9 @@ namespace MuseXR.Interaction
                 var lo = anchor.InverseTransformPoint(corners[0]); var hi = anchor.InverseTransformPoint(corners[2]);
                 var box = h.gameObject.AddComponent<BoxCollider>();
                 box.center = (lo + hi) * 0.5f; box.size = new Vector3(Mathf.Abs(hi.x - lo.x) + 0.02f, Mathf.Abs(hi.y - lo.y) + 0.02f, 0.02f);
-                Pointable.Make(h.gameObject, name.ToLowerInvariant()).Selected += (_, __) => CloseReplies();
+                var b = Pointable.Make(h.gameObject, name.ToLowerInvariant());
+                HoverTint.Bind(b, rect);
+                b.Selected += (_, __) => CloseReplies();
             }
             _replies = anchor.gameObject;
             FollowVisitor.Attach(_replies);
@@ -456,14 +466,18 @@ namespace MuseXR.Interaction
                 var box = h.gameObject.AddComponent<BoxCollider>();
                 box.center = (lo + hi) * 0.5f; box.size = new Vector3(Mathf.Abs(hi.x - lo.x), Mathf.Abs(hi.y - lo.y), 0.02f);
                 var question = q;
-                Pointable.Make(h.gameObject, "ask question").Selected += (_, __) => AskQuestion(question);
+                var b = Pointable.Make(h.gameObject, "ask question");
+                HoverTint.Bind(b, rect);
+                b.Selected += (_, __) => AskQuestion(question);
             }
             x.GetWorldCorners(corners);
             var xh = new GameObject("Hit close").transform; xh.SetParent(anchor, false);
             var xlo = anchor.InverseTransformPoint(corners[0]); var xhi = anchor.InverseTransformPoint(corners[2]);
             var xb = xh.gameObject.AddComponent<BoxCollider>();
             xb.center = (xlo + xhi) * 0.5f; xb.size = new Vector3(Mathf.Abs(xhi.x - xlo.x) + 0.02f, Mathf.Abs(xhi.y - xlo.y) + 0.02f, 0.02f);
-            Pointable.Make(xh.gameObject, "ask close").Selected += (_, __) => CloseReplies();
+            var askClose = Pointable.Make(xh.gameObject, "ask close");
+            HoverTint.Bind(askClose, x);
+            askClose.Selected += (_, __) => CloseReplies();
             _replies = anchor.gameObject; _askOpen = true;
             FollowVisitor.Attach(_replies);
             Appear.In(_replies, 0.3f);
@@ -503,14 +517,17 @@ namespace MuseXR.Interaction
             if (Group() == null || string.IsNullOrWhiteSpace(question)) return;
             JourneyMemory.AddAsked(question);
             DialogueContext.Set("You asked  \u00b7  " + question);
-            if (_client == null) { Debug.LogWarning("[Insight] no live dialogue: the question goes unanswered"); return; }
+            // At once, on the card: the answers take a few seconds to come back, and a click that shows nothing reads
+            // as broken (Saul, 5 Oct: "when I click on an option nothing happens").
+            DialogueContext.Notice("You asked", "\u201c" + question + "\u201d  \u2014  the masters are thinking\u2026", 20f);
+            if (_client == null) { Debug.LogWarning("[Insight] no live dialogue: the question goes unanswered"); DialogueContext.Notice("You asked", "The masters cannot answer here: live dialogue is off.", 5f); return; }
             var token = ++_asking;
             var ids = new List<string>(); foreach (var id in _group.Ids) ids.Add(ToRoster(id));
             var lenses = MusePico.Dialogue.MasterRoster.Select(_roster, ids);
             var art = _lastTarget != null ? new MusePico.Dialogue.ArtworkContext { Title = _lastTarget.title, Artist = _lastTarget.artist } : default(MusePico.Dialogue.ArtworkContext);
             var result = await _client.AskAsync(question, lenses, art);
             if (this == null || token != _asking) return;
-            if (!result.Live) { Debug.LogWarning("[Insight] asked question failed: " + result.Error); return; }
+            if (!result.Live) { Debug.LogWarning("[Insight] asked question failed: " + result.Error); DialogueContext.Notice("You asked", "The masters could not answer just now. Try again in a moment.", 5f); return; }
             var lines = new List<KeyValuePair<string, string>>();
             foreach (var p in result.Perspectives) lines.Add(new KeyValuePair<string, string>(FromRoster(p.speakerId), p.text));
             DialogueContext.Set("You asked  \u00b7  " + question);

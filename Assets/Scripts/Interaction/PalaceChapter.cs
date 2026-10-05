@@ -272,6 +272,7 @@ namespace MuseXR.Interaction
                 t.enableWordWrapping = true;
                 t.color = new Color(0.2f, 0.16f, 0.12f);
                 var p = Pointable.Make(chip, "reason-" + i);
+                HoverTint.Bind(p, chip.GetComponent<Renderer>());
                 var index = i;
                 p.Selected += (_, pointer) => PickChip(index, pointer);
                 _chips.Add(p);

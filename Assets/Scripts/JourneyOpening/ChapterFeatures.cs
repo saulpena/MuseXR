@@ -925,7 +925,9 @@ namespace MuseXR.Journey
                 t.rectTransform.sizeDelta = new Vector2(0.66f, 0.2f); t.enableWordWrapping = true;
                 var box = chip.gameObject.AddComponent<BoxCollider>(); box.size = new Vector3(0.72f, 0.22f, 0.04f); box.isTrigger = true;
                 var index = i;
-                Pointable.Make(chip.gameObject, "monet work " + i).Selected += (_, __) => TapWork(index);
+                var wp = Pointable.Make(chip.gameObject, "monet work " + i);
+                HoverTint.Bind(wp, _chipBacks[_chipBacks.Count - 1], chip);
+                wp.Selected += (_, __) => TapWork(index);
             }
             Appear.In(_chips, 0.5f);   // eased, never popped (Saul, 5 Oct)
             // Saul, 5 Oct: the question follows the visitor like the masters' card, not left at the ring.

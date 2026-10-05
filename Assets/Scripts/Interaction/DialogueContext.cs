@@ -10,6 +10,12 @@ namespace MuseXR.Interaction
 
         public static void Set(string context) => Current = context ?? "";
 
+        /// <summary>A short line for the masters' card that is not a master speaking (the card listens: it lives in an
+        /// assembly this one cannot see).</summary>
+        public static event System.Action<string, string, float> Noticed;
+
+        public static void Notice(string kicker, string text, float seconds = 4f) => Noticed?.Invoke(kicker, text, seconds);
+
         /// <summary>"On The Bedroom": the works and pieces they speak about.</summary>
         public static void On(string title) => Set(string.IsNullOrEmpty(title) ? "" : "On " + title);
     }

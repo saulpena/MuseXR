@@ -70,6 +70,20 @@ namespace MuseXR.UI
         /// <summary>The panel if one exists - for clearing it, which must never build one (say, at teardown).</summary>
         public static TorsoPanel Existing => _instance;
 
+        /// <summary>Lines for the card that are not a master's (an asked question being thought about).</summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void ListenForNotices()
+        {
+            MuseXR.Interaction.DialogueContext.Noticed -= OnNotice;
+            MuseXR.Interaction.DialogueContext.Noticed += OnNotice;
+        }
+
+        static void OnNotice(string kicker, string text, float seconds)
+        {
+            var panel = Get();
+            if (panel != null) panel.Note(kicker, text, seconds);
+        }
+
         public static TorsoPanel Get()
         {
             if (_instance != null) return _instance;

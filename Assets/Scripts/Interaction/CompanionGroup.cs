@@ -433,7 +433,7 @@ namespace MuseXR.Interaction
         /// </summary>
         /// <summary>Re-form round a new facing only after the head has turned this far: turning to face one of them to
         /// talk moves nobody; turning round always does (Saul, 5 Oct).</summary>
-        public const float TurnThreshold = 70f;
+        public const float TurnThreshold = 110f;   // Saul, 5 Oct: at 70 turning to a painting brought them walking up into view
         /// <summary>Re-forming, nobody walks through this cone in front of the visitor.</summary>
         public const float FrontCone = 22f;
         public const float CrowdMinRadius = 1.2f;
@@ -467,7 +467,8 @@ namespace MuseXR.Interaction
             // From a settled formation only a real turn re-forms them (facing one of them to talk moves nobody); once
             // re-formed mid-turn, a smaller leftover still finishes the job, so a pause halfway never strands them.
             var off = Mathf.Abs(Mathf.DeltaAngle(_heading, headYaw));
-            if (_settledFor > SettleSeconds && (off > TurnThreshold || (_reforming && off > FinishDegrees))) { _heading = headYaw; _reforming = true; _settledFor = 0f; }
+            // Never while the visitor is pointing at something: they turned to it, not away from the company.
+            if (_settledFor > SettleSeconds && !Pointing() && (off > TurnThreshold || (_reforming && off > FinishDegrees))) { _heading = headYaw; _reforming = true; _settledFor = 0f; }
             else if (_settledFor > SettleSeconds * 4f) _reforming = false;   // properly settled again
             var feet = body.Feet;
             if (_slot.Count != Mathf.Min(_ids.Count, CrowdPlaces.Length)) AssignSlots();
@@ -529,6 +530,12 @@ namespace MuseXR.Interaction
                 best = Mathf.Min(best, h.distance - 0.35f);
             }
             return Mathf.Max(CrowdMinRadius, best);
+        }
+
+        static bool Pointing()
+        {
+            foreach (var p in Pointer.All) if (p.Hovered != null) return true;
+            return false;
         }
 
         static float Yaw(Vector3 v) => Mathf.Atan2(v.x, v.z) * Mathf.Rad2Deg;
