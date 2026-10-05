@@ -17,7 +17,7 @@ namespace MuseXR.Interaction
     /// </summary>
     public sealed class Satchel : MonoBehaviour
     {
-        public const float RingRadius = 0.045f, ButtonSize = 0.026f, OrbitRadius = 0.16f, ItemSize = 0.07f;
+        public const float RingRadius = 0.045f, OrbitRadius = 0.16f, ItemSize = 0.07f;
         public const float OrbitDegreesPerSecond = 22f, SpinDegreesPerSecond = 40f, TouchRange = 0.035f;
 
         public readonly struct Item
@@ -32,8 +32,7 @@ namespace MuseXR.Interaction
         public event System.Action<Item> Added;
 
         readonly List<Item> _items = new List<Item>();
-        Transform _wrist, _ring, _button, _orbit;
-        TMPro.TextMeshPro _count;
+        Transform _wrist, _ring, _orbit;
         Material _gold;
         float _orbitAngle, _touchCooldown;
         bool _desk;
@@ -116,20 +115,18 @@ namespace MuseXR.Interaction
 
         void Arrived()
         {
-            _count.text = _items.Count.ToString();
             StartCoroutine(Pulse());
         }
 
+        /// <summary>A copy has arrived: the ring swells a little and settles.</summary>
         System.Collections.IEnumerator Pulse()
         {
-            var baseScale = new Vector3(ButtonSize, 0.004f, ButtonSize);
             for (float t = 0f; t < 0.5f; t += Time.deltaTime)
             {
-                var s = 1f + 0.45f * Mathf.Sin(t / 0.5f * Mathf.PI);
-                _button.localScale = new Vector3(baseScale.x * s, baseScale.y, baseScale.z * s);
+                _ring.localScale = Vector3.one * (1f + 0.25f * Mathf.Sin(t / 0.5f * Mathf.PI));
                 yield return null;
             }
-            _button.localScale = baseScale * 1f;
+            _ring.localScale = Vector3.one;
         }
 
         public const float FlySeconds = 0.7f;
@@ -138,7 +135,6 @@ namespace MuseXR.Interaction
         {
             Open = !Open;
             foreach (var i in _items) if (i.Copy != null) Appear.Set(i.Copy, Open, 0.25f);   // eased, never popped (Saul, 5 Oct)
-            _button.localScale = Vector3.one * (Open ? 0.9f : 1f);
             foreach (var p in Pointer.All) if (p.Source != null && p.Source.Hand == Hand.Left) p.Source.Buzz(0.25f, 0.05f);
         }
 
@@ -155,28 +151,14 @@ namespace MuseXR.Interaction
             _ring.gameObject.AddComponent<MeshFilter>().sharedMesh = Torus(RingRadius, 0.006f);
             _ring.gameObject.AddComponent<MeshRenderer>().sharedMaterial = _gold;
 
-            // The button sits on top of the wrist: a small gold disc with the count on it.
-            var b = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            b.name = "Satchel Button";
-            Destroy(b.GetComponent<Collider>());
-            _button = b.transform;
-            _button.SetParent(_wrist, false);
-            _button.localPosition = new Vector3(0f, RingRadius + 0.004f, 0f);
-            _button.localScale = new Vector3(ButtonSize, 0.004f, ButtonSize);
-            b.GetComponent<Renderer>().sharedMaterial = _gold;
-            var face = new GameObject("Face").transform;
-            face.SetParent(_wrist, false);
-            face.localPosition = _button.localPosition + Vector3.up * 0.0045f;
-            face.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            _count = face.gameObject.AddComponent<TMPro.TextMeshPro>();
-            _count.text = "0"; _count.fontSize = 0.12f; _count.alignment = TMPro.TextAlignmentOptions.Center;
-            _count.color = new Color(0.16f, 0.12f, 0.09f);
-            _count.rectTransform.sizeDelta = new Vector2(0.03f, 0.02f);
-            var hit = new GameObject("Button Target").transform;   // a generous target for the ray and the mouse
+            // No button (Saul, 5 Oct: "get rid of the button, keep the ring"): its open/close scaled it to a metre
+            // across, Vector3.one * 0.9 instead of its 2.6 cm - the giant object round the visitor's head. The ring
+            // itself is the target now: point at it, or touch it with the other hand.
+            var hit = new GameObject("Ring Target").transform;   // a generous target for the ray and the mouse
             hit.SetParent(_wrist, false);
-            hit.localPosition = _button.localPosition;
             var box = hit.gameObject.AddComponent<BoxCollider>();
-            box.size = new Vector3(0.045f, 0.03f, 0.045f);
+            box.size = new Vector3(RingRadius * 2.6f, 0.03f, RingRadius * 2.6f);
+            box.isTrigger = true;
             var p = Pointable.Make(hit.gameObject, "satchel");
             p.Selected += (_, __) => Toggle();
 
@@ -197,7 +179,7 @@ namespace MuseXR.Interaction
             foreach (var p in Pointer.All)
             {
                 if (p.Source == null || p.Source.Hand != Hand.Right || p.Source.Aim == null || _desk) continue;
-                if (_touchCooldown <= 0f && Vector3.Distance(p.Source.Aim.position, _button.position) < TouchRange)
+                if (_touchCooldown <= 0f && Vector3.Distance(p.Source.Aim.position, _ring.position) < TouchRange)
                 {
                     Toggle(); _touchCooldown = 0.8f; p.Source.Buzz(0.3f, 0.04f);
                 }
