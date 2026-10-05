@@ -90,6 +90,9 @@ namespace MuseXR.UI
                     sv.Shown = state; sv.ShownUndo = undo;
                 }
                 HangCard(sv);
+                // While a chapter holds its own panel over the slot (the Palace's reasons), the placed card's
+                // "A keep · lift out to change" goes with the strip: one panel at the court, not three that disagree.
+                if (sv.Card != null) MuseXR.Interaction.Appear.Set(sv.Card.gameObject, !(st.HideStrip && state == SlotState.Placed), 0.3f);
             }
 
             var phase = st.Board.Choice.Current;

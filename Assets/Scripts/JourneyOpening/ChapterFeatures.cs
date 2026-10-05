@@ -736,8 +736,7 @@ namespace MuseXR.Journey
         };
         readonly HashSet<TimeOfDay> _seen = new HashSet<TimeOfDay>();
         readonly bool[] _workHeard = new bool[4];
-        readonly List<Renderer> _chipBacks = new List<Renderer>();
-        TextMeshPro _chipQuestion;
+        ChoicePanel _choice;
         Component _ringPlate;
         bool AllWorksHeard => _workHeard[0] && _workHeard[1] && _workHeard[2] && _workHeard[3];
 
@@ -938,7 +937,7 @@ namespace MuseXR.Journey
             }
             else if (!_turned)
                 Note(t + "  ·  " + _seen.Count + " / 3 moments\nTurn the ring to each moment and hear the companions");
-            if (_chipQuestion != null) _chipQuestion.text = Question();
+            if (_choice != null) _choice.SetPrompt(Question());   // the moment named in the question follows the ring
         }
 
         /// <summary>"At this moment, which painting did you stop for?" - her four Monets as chips over the pedestal.</summary>
@@ -948,39 +947,25 @@ namespace MuseXR.Journey
             var root = _dial.transform.parent;
             _chips = new GameObject("Which painting").gameObject;
             _chips.transform.SetParent(root, false);
-            _chips.transform.localPosition = new Vector3(0f, 2.15f, 0.1f);
-            var q = _chips.AddComponent<TextMeshPro>(); _chipQuestion = q;
-            q.text = Question(); q.fontSize = 0.8f; q.alignment = TextAlignmentOptions.Center;
-            q.color = new Color(0.98f, 0.95f, 0.88f); q.rectTransform.sizeDelta = new Vector2(2.4f, 0.3f);
-            for (var i = 0; i < Works.Length; i++)
-            {
-                var chip = new GameObject("Chip " + Works[i]).transform;
-                chip.SetParent(_chips.transform, false);
-                chip.localPosition = new Vector3((i % 2 - 0.5f) * 0.78f, -0.32f - (i / 2) * 0.27f, 0f);   // two by two: readable close up
-                _chipBacks.Add(ChapterFeatures.Quad(chip, "Back", new Vector3(0f, 0f, 0.004f), Quaternion.identity, new Vector2(0.72f, 0.22f), ChapterFeatures.Unlit(new Color(0.08f, 0.07f, 0.09f, 1f))).GetComponent<Renderer>());
-                var textGo = new GameObject("Text"); textGo.transform.SetParent(chip, false);   // not on the chip: adding TMP swaps its Transform and kills `chip`
-                var t = textGo.AddComponent<TextMeshPro>();
-                t.text = Works[i]; t.fontSize = 0.42f; t.alignment = TextAlignmentOptions.Center; t.color = new Color(0.95f, 0.92f, 0.86f);
-                t.rectTransform.sizeDelta = new Vector2(0.66f, 0.2f); t.enableWordWrapping = true;
-                var box = chip.gameObject.AddComponent<BoxCollider>(); box.size = new Vector3(0.72f, 0.22f, 0.04f); box.isTrigger = true;
-                var index = i;
-                var wp = Pointable.Make(chip.gameObject, "monet work " + i);
-                HoverTint.Bind(wp, _chipBacks[_chipBacks.Count - 1], chip);
-                wp.Selected += (_, __) => TapWork(index);
-            }
+            // Over the time ring it is about, turned to the visitor wherever they stand, in her panel style - the same
+            // as the Palace's reasons (Saul, 5 Oct: the quad chips looked bad; choices belong over what they are about).
+            _chips.transform.localPosition = new Vector3(0f, 1.95f, 0f);
+            TurnToVisitor.Attach(_chips);
+            _choice = ChoicePanel.Make(_chips.transform, "Paintings");
+            _choice.Build("Stop 4  ·  Which painting", Question(), Works, Footer(), 2.2f, (i, _) => TapWork(i));
+            for (var i = 0; i < _workHeard.Length; i++) if (_workHeard[i]) _choice.MarkHeard(i);
             Appear.In(_chips, 0.5f);   // eased, never popped (Saul, 5 Oct)
-            // Saul, 5 Oct: the question follows the visitor like the masters' card, not left at the ring.
-            _chips.transform.localScale = Vector3.one * 0.6f;
-            FollowVisitor.Attach(_chips, 1.3f, 0.12f);
             Note("Turn back to the moment you stop at, if you like\nTap each painting and hear the companions on it");
         }
 
-        string Question()
+        string Question() => (_time == TimeOfDay.Mist ? "In the morning mist" : _time == TimeOfDay.Dusk ? "At dusk" : "In the afternoon light")
+                             + ", which painting did you stop for?";
+
+        string Footer()
         {
-            if (!_turned) return "";
             var heard = 0; foreach (var h in _workHeard) if (h) heard++;
-            return AllWorksHeard ? "At " + _time.ToString().ToLowerInvariant() + ", which painting did you stop for?  Tap it"
-                                 : "Tap each painting and hear the companions  ·  " + heard + " / 4";
+            return AllWorksHeard ? "Point at the one you stopped for and pull the trigger"
+                                 : "Pull the trigger on each to hear your companions  ·  " + heard + " / 4";
         }
 
         /// <summary>The first tap on each painting is for hearing it; once all four are heard, a tap chooses.</summary>
@@ -990,10 +975,10 @@ namespace MuseXR.Journey
             if (!AllWorksHeard || !_workHeard[i])
             {
                 _workHeard[i] = true;
-                if (i < _chipBacks.Count && _chipBacks[i] != null) _chipBacks[i].sharedMaterial = ChapterFeatures.Unlit(new Color(0.24f, 0.2f, 0.12f, 1f));   // heard: warmed
+                if (_choice != null) _choice.MarkHeard(i);   // heard: its number becomes a gold dot
                 var at = i;
                 ChapterFeatures.Take(this, _group, id => WorkTakes[at].TryGetValue(id, out var l) ? l : null, "On " + Works[at]);
-                if (_chipQuestion != null) _chipQuestion.text = Question();
+                if (_choice != null) { _choice.SetPrompt(Question()); _choice.SetFooter(Footer()); }
                 if (AllWorksHeard) Note("You have heard all four\nTap the painting you stopped for");
                 return;
             }
@@ -1006,6 +991,7 @@ namespace MuseXR.Journey
             _picked = true; _pickedWork = i;
             if (_group != null && _group.Busy) _group.StopTurns();   // chosen: the takes on the others are moot (they ran on into the round table)
             JourneyMemory.Record.SetMonet(new JourneyRecord.MonetChoice { Preset = _time.ToString().ToLowerInvariant(), ArtworkId = WorkIds[i], Reason = Works[i] });
+            if (_choice != null) _choice.Mark(i);
             if (_chips != null) Appear.Out(_chips, 0.3f);
             // Her water chime comes from ChapterChimes when the choice reaches the record.
             // Her undo: 3 s to take it back with B; A keeps it at once.
