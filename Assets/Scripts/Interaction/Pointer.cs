@@ -167,6 +167,47 @@ namespace MuseXR.Interaction
                 if (p is Pointable plain && !plain.Interactive) continue;
                 best = p; nearest = _hits[i].distance; HitPoint = _hits[i].point;
             }
+            // A panel in front stops the ray: its buttons take the trigger (through the UI system), and whatever
+            // stands behind it must not take it too. Pointing at a menu's option started an interaction with the
+            // painting behind it (Saul, 5 Oct). A pointable that is itself on the panel is a hair nearer than it.
+            if (best != null && UiDistance(new Ray(aim.position, aim.forward), nearest) < nearest - 0.02f) best = null;
+            return best;
+        }
+
+        static readonly List<Canvas> _canvases = new List<Canvas>();
+        static float _canvasesAt = -1f;
+
+        /// <summary>
+        /// How far along <paramref name="ray"/> the nearest visible, clickable piece of world-space UI lies (a card,
+        /// a button, a panel's backing), or infinity. Only what the UI itself would take a click on counts:
+        /// raycast targets showing on an active canvas.
+        /// </summary>
+        static float UiDistance(Ray ray, float within)
+        {
+            if (Time.unscaledTime - _canvasesAt > 0.15f || _canvasesAt < 0f)
+            {
+                _canvasesAt = Time.unscaledTime;
+                _canvases.Clear();
+                foreach (var c in FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+                    if (c.isRootCanvas && c.renderMode == RenderMode.WorldSpace) _canvases.Add(c);
+            }
+            var best = float.PositiveInfinity;
+            foreach (var canvas in _canvases)
+            {
+                if (canvas == null || !canvas.isActiveAndEnabled) continue;
+                var graphics = UnityEngine.UI.GraphicRegistry.GetRaycastableGraphicsForCanvas(canvas);
+                for (var i = 0; i < graphics.Count; i++)
+                {
+                    var g = graphics[i];
+                    if (g == null || !g.isActiveAndEnabled || !g.raycastTarget || g.canvasRenderer.cull) continue;
+                    if (g.canvasRenderer.GetInheritedAlpha() < 0.05f) continue;   // faded out: not there to click
+                    var rt = g.rectTransform;
+                    var plane = new Plane(rt.forward, rt.position);
+                    if (!plane.Raycast(ray, out var d) || d <= 0f || d >= within || d >= best) continue;
+                    var local = rt.InverseTransformPoint(ray.GetPoint(d));
+                    if (rt.rect.Contains(new Vector2(local.x, local.y))) best = d;
+                }
+            }
             return best;
         }
 

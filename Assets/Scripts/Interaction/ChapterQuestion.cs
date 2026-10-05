@@ -17,6 +17,11 @@ namespace MuseXR.Interaction
         public string stop;
         [Tooltip("Her chapter question, e.g. 'What can my feeling become as expression?'")]
         public string question;
+        [Tooltip("Stand it at a fixed point of the chapter (its frame's space), turned to the visitor, and keep it up - " +
+                 "the Palace's above the throne statue. Off: ahead of the visitor's gaze on arrival, fading after a few seconds.")]
+        public bool anchored;
+        [Tooltip("The fixed point, in the chapter frame's space (the Palace: just above the statue's head).")]
+        public Vector3 anchorPoint;
 
         public const float ShowSeconds = 8f, FadeSeconds = 1.2f, Ahead = 3.2f, Above = 0.55f;
 
@@ -45,6 +50,8 @@ namespace MuseXR.Interaction
             }
             if (_group == null) return;
             _t += Time.deltaTime;
+            // Anchored over the room it stays, as the room's title (Saul, 5 Oct: mid-room it was walked past unseen).
+            if (anchored) { _group.alpha = Mathf.Clamp01(_t / 0.6f); return; }
             _group.alpha = _t < ShowSeconds ? Mathf.Clamp01(_t / 0.6f) : 1f - Mathf.Clamp01((_t - ShowSeconds) / FadeSeconds);
             if (_t > ShowSeconds + FadeSeconds) { Destroy(_group.transform.parent.gameObject); _group = null; }
         }
@@ -56,8 +63,16 @@ namespace MuseXR.Interaction
             var anchor = new GameObject("Chapter Question").transform;
             anchor.SetParent(transform, true);
             var at = eye.position + fwd * Ahead + Vector3.up * Above;
+            var distance = Ahead;
+            if (anchored)
+            {
+                at = transform.root.TransformPoint(anchorPoint);
+                var toIt = at - eye.position; toIt.y = 0f;
+                if (toIt.sqrMagnitude > 1e-4f) fwd = toIt.normalized;
+                distance = Mathf.Max(Ahead, Vector3.Distance(eye.position, at));   // sized to read from where the visitor arrives
+            }
             anchor.SetPositionAndRotation(at, Quaternion.LookRotation(fwd, Vector3.up));   // +Z away from the viewer reads
-            var c = MuseUi.Canvas(anchor, "Question", Ahead, 640f);
+            var c = MuseUi.Canvas(anchor, "Question", distance, 640f);
             _group = c.gameObject.AddComponent<CanvasGroup>();
             _group.alpha = 0f;
             var glass = MuseUi.Card(c, new Color32(8, 6, 10, 196), 0f, new Color32(238, 233, 223, 46), 1f, padX: 26f, padY: 18f, gap: 6f, name: "Glass");

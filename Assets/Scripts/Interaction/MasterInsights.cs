@@ -40,6 +40,25 @@ namespace MuseXR.Interaction
                 new MusePico.Tripo.TripoWebRequestTransport(key, MusePico.Dialogue.DialogueClient.DefaultEndpoint), _roster);
         }
 
+        /// <summary>
+        /// Live lines from <paramref name="ids"/> (our master ids) on <paramref name="question"/> about a thing: each
+        /// master answers through their own lens. Null when live dialogue is off or the call fails, so the caller
+        /// can fall back honestly. Waits a moment for the client if the scene has only just started.
+        /// </summary>
+        public async System.Threading.Tasks.Task<Dictionary<string, string>> AskMasters(string question, IReadOnlyList<string> ids, string title, string about)
+        {
+            for (var i = 0; i < 30 && _client == null && _roster != null; i++) await System.Threading.Tasks.Task.Delay(100);
+            if (_client == null || ids == null || ids.Count == 0) { Debug.LogWarning("[Insight] no live dialogue for: " + title); return null; }
+            var roster = new List<string>(); foreach (var id in ids) roster.Add(ToRoster(id));
+            var lenses = MusePico.Dialogue.MasterRoster.Select(_roster, roster);
+            var result = await _client.AskAsync(question, lenses, new MusePico.Dialogue.ArtworkContext { Title = title, Artist = about });
+            if (!result.Live || result.Perspectives.Count == 0) { Debug.LogWarning("[Insight] live lines failed for " + title + ": " + result.Error); return null; }
+            var lines = new Dictionary<string, string>();
+            foreach (var p in result.Perspectives) if (!string.IsNullOrWhiteSpace(p.text)) lines[FromRoster(p.speakerId)] = p.text;
+            Debug.Log("[Insight] " + lines.Count + " live lines on " + title + " in " + result.Seconds.ToString("F1") + " s");
+            return lines;
+        }
+
         // Our master ids -> the roster's (masters.json) and back.
         static string ToRoster(string id) => id == Masters.Frida ? "frida" : id == Masters.Hilma ? "hilma" : id == Masters.Morisot ? "morisot" : id;
         static string FromRoster(string id) => id == "frida" ? Masters.Frida : id == "hilma" ? Masters.Hilma : id == "morisot" ? Masters.Morisot : id;

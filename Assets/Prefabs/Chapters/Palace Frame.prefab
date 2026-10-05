@@ -3623,6 +3623,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: MuseXR.Interaction::MuseXR.Interaction.ChapterQuestion
   stop: Stop 1
   question: Of what I inherited, what is worth keeping?
+  anchored: 1
+  anchorPoint: {x: 0, y: 8.0, z: -8.4}
 --- !u!1 &7934313242802533581
 GameObject:
   m_ObjectHideFlags: 0

@@ -169,27 +169,68 @@ namespace MuseXR.Interaction
 
         void StartTurns() => StartTurns(Company.Group);
 
-        void StartTurns(CompanionGroup group)
+        int _asked;
+
+        /// <summary>
+        /// Her "companions respond in turn" - genuinely: each master answers the visitor's choice live, in their own
+        /// voice, knowing what was kept, how it was set, and the question the visitor came in with (Saul, 5 Oct: "the
+        /// response from the masters should be genuine"). The fixed lines are only the fallback when there is no live
+        /// dialogue. Starts when the lines are in; dropped if the piece was lifted out meanwhile.
+        /// </summary>
+        async void StartTurns(CompanionGroup group)
         {
             _turnsPending = false;
             var piece = Flow.Piece;
-            group.LineFor = id => LineFor(id, piece);
+            var token = ++_asked;
+            DialogueContext.Set("You kept the " + piece.ToLowerInvariant());
+            System.Collections.Generic.Dictionary<string, string> live = null;
+            try { live = await MasterInsights.Ensure().AskMasters(ReactionQuestion(piece, Flow.YawDeg), group.Ids, "the bronze " + piece.ToLowerInvariant(), PieceAbout(piece)); }
+            catch (Exception ex) { Debug.LogWarning("[Palace] live reactions: " + ex.Message); }
+            if (this == null || token != _asked || group == null || Flow.Piece != piece || Flow.Current != PalaceFlow.Phase.Placed) return;
+            group.LineFor = id => live != null && live.TryGetValue(id, out var l) ? l : LineFor(id, piece);
             group.TurnsFinished -= OnTurnsFinished;
             group.TurnsFinished += OnTurnsFinished;
             MasterVoice.Follow(group);   // voiced, each line as its turn starts (silent before, live run 4 Oct)
             group.BeginTurns();   // the group takes A while they speak: A is "next"
         }
 
+        /// <summary>What the masters are asked: the room's question, the visitor's choice and how they set it, and the
+        /// question they came in with - so the answer is to this visitor, not to the object.</summary>
+        static string ReactionQuestion(string piece, int yawDeg)
+        {
+            var crane = !string.Equals(piece, "Turtle", StringComparison.OrdinalIgnoreCase);
+            var other = crane ? "turtle" : "crane";
+            var yaw = ((yawDeg % 360) + 360) % 360;
+            // In words, not degrees: read as a number it came back as "turned 71 degrees from your gaze" (live run, 5 Oct).
+            var facing = yaw <= 30 || yaw >= 330 ? "facing them" : yaw >= 150 && yaw <= 210 ? "turned away from them" : "turned aside, half away from them";
+            var asked = JourneyMemory.Record != null ? JourneyMemory.Record.Question : "";
+            return "In the Palace, the Court of Keeping, the room asks: 'Of what I inherited, what is worth keeping?' "
+                 + "Of two bronzes the visitor kept the " + piece.ToLowerInvariant() + ", not the " + other + ", and set it in the court " + facing + ". "
+                 + (string.IsNullOrWhiteSpace(asked) ? "" : "They came into the museum asking: \"" + asked.Trim() + "\". ")
+                 + "Respond to that choice, to them, in one or two short sentences, under 35 words. "
+                 + "No numbers, dates, dynasties or catalogue details.";
+        }
+
+        // What the piece means, not where it comes from: given its catalogue sources, the masters recited them.
+        static string PieceAbout(string piece) =>
+            string.Equals(piece, "Turtle", StringComparison.OrdinalIgnoreCase)
+                ? "a small bronze turtle - slow, enduring, a home carried on its back"
+                : "a small bronze crane - long life, standing still, looking up";
+
+        /// <summary>Only when there is no live dialogue (offline, no key, the call failed): fixed lines, never presented
+        /// as more than that.</summary>
         public static string CannedLine(string master, string piece)
         {
             var crane = !string.Equals(piece, "Turtle", StringComparison.OrdinalIgnoreCase);
             switch (master)
             {
+                // The turtle's are hers, word for word (MUSE-VR-design, the Palace storyboard); the crane's are ours.
                 case Masters.Monet: return crane ? "Bronze holds the hour. By dusk this crane will be a darker thing than now."
-                                                 : "Its shell has caught this same light for a thousand evenings.";
+                                                 : "In the hall the light on its shell is gold. Out under the open sky it turns back to stone grey. What you keep is the version of it that never stops changing";
                 case Masters.VanGogh: return crane ? "You turned it until it faced you. What were you looking for?"
-                                                   : "You chose the slow one. You know what it costs to keep going.";
-                case Masters.Socrates: return crane ? "It still looks up." : "What does it carry that you would carry too?";
+                                                   : "Your hand slowed down as you set it down. You are carrying all those years of weight for it, and that weight is on your shoulders now too";
+                case Masters.Socrates: return crane ? "You kept the one that looks up. Is that who you are, or who you were told to be?"
+                                                    : "You say it is worth keeping. Because it lasts, or because it is yours? If you had not inherited it, would you still choose it?";
                 default: return Masters.Name(master) + " considers what you kept.";
             }
         }
@@ -302,9 +343,12 @@ namespace MuseXR.Interaction
                 _chipRoot.SetPositionAndRotation(_courtChipsAt,
                     away.sqrMagnitude > 1e-6f ? Quaternion.LookRotation(away.normalized, Vector3.up) : _courtChipsRot);
             }
-            // Saul, 5 Oct: the reasons follow the visitor like the masters' card, at a reading size for 1.3 m.
-            _chipRoot.localScale = Vector3.one * 0.6f;
-            FollowVisitor.Attach(_chipRoot.gameObject, 1.3f, 0.15f);
+            // Saul, 5 Oct (second word): the reasons belong to the court, so they stand over it - above the placed
+            // piece - and turn to face the visitor wherever they stand, rather than following them about.
+            var follow = _chipRoot.GetComponent<FollowVisitor>(); if (follow != null) Destroy(follow);
+            _chipRoot.localScale = Vector3.one;
+            if (AtCourt) TurnToVisitor.Attach(_chipRoot.gameObject);
+            else { _chipRoot.localScale = Vector3.one * 0.6f; FollowVisitor.Attach(_chipRoot.gameObject, 1.3f, 0.15f); }
             var reasons = PalaceFlow.ReasonsFor(Flow.Piece);
             for (var i = 0; i < _chipText.Count; i++)
             {

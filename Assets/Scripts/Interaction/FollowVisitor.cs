@@ -53,4 +53,32 @@ namespace MuseXR.Interaction
             transform.SetPositionAndRotation(at, Quaternion.LookRotation(at - eye, Vector3.up));
         }
     }
+    /// <summary>
+    /// Stands where it is and turns about the vertical to face the visitor (+Z away from them, the way flat things
+    /// read here), smoothly: the Palace's reason chips over the court (Saul, 5 Oct).
+    /// </summary>
+    public sealed class TurnToVisitor : MonoBehaviour
+    {
+        public const float DegreesPerSecond = 180f;
+
+        public static TurnToVisitor Attach(GameObject go)
+        {
+            var t = go.GetComponent<TurnToVisitor>();
+            if (t == null) t = go.AddComponent<TurnToVisitor>();
+            t.Face(true);
+            return t;
+        }
+
+        void LateUpdate() => Face(false);
+
+        void Face(bool snap)
+        {
+            var cam = Camera.main != null ? Camera.main.transform : null;
+            if (cam == null) return;
+            var away = transform.position - cam.position; away.y = 0f;
+            if (away.sqrMagnitude < 1e-4f) return;
+            var want = Quaternion.LookRotation(away.normalized, Vector3.up);
+            transform.rotation = snap ? want : Quaternion.RotateTowards(transform.rotation, want, DegreesPerSecond * Time.deltaTime);
+        }
+    }
 }

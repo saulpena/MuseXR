@@ -267,29 +267,13 @@ namespace MuseXR.Interaction
         enum Step { None, Hear, TakeLamp, SetLamp, Listen, Keep, GoThrough, Done }
         Step _step = Step.None;
         Vector3 _standFloor, _detailFloor, _wholeFloor;
-        TMPro.TextMeshPro _guideText;
-        Transform _guide;
         readonly List<Renderer> _rings = new List<Renderer>();
         Material _ringMat;
 
         void BuildGuide()
         {
-            _guide = new GameObject("Guide").transform;
-            _guide.SetParent(transform, false);
-            var plate = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            plate.name = "Guide Plate";
-            DestroyImmediate(plate.GetComponent<Collider>());
-            plate.transform.SetParent(_guide, false);
-            plate.transform.localPosition = new Vector3(0f, 0f, 0.005f);
-            plate.transform.localScale = new Vector3(1.0f, 0.3f, 1f);
-            plate.GetComponent<Renderer>().sharedMaterial = Unlit(new Color(0.13f, 0.1f, 0.08f));
-            _guideText = new GameObject("Guide Text").AddComponent<TMPro.TextMeshPro>();
-            _guideText.transform.SetParent(_guide, false);
-            _guideText.rectTransform.sizeDelta = new Vector2(0.92f, 0.25f);
-            _guideText.enableAutoSizing = true; _guideText.fontSizeMin = 0.25f; _guideText.fontSizeMax = 0.45f;
-            _guideText.alignment = TMPro.TextAlignmentOptions.Center;
-            _guideText.color = new Color(1f, 0.93f, 0.78f);
-
+            // Rings only (Saul, 5 Oct): the instruction plate that stood beside them repeated the compass on the waist
+            // panel, which now gives every chapter's next step, and showed as an empty black card when it had no words.
             _ringMat = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
             _ringMat.SetFloat("_Surface", 1f); _ringMat.SetFloat("_Blend", 2f);
             _ringMat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
@@ -313,105 +297,32 @@ namespace MuseXR.Interaction
 
         void UpdateGuide()
         {
-            if (_guide == null) return;
+            if (_ringMat == null) return;
             var step = CurrentStep();
             if (step != _step) { _step = step; ShowStep(step); }
-            else if (!_reseating && _guide.gameObject.activeSelf && GuideInTheWay()) StartCoroutine(Reseat());
             // the rings pulse in brightness only: nothing moves
             var k = 0.55f + 0.45f * Mathf.Sin(Time.time * 3f);
             _ringMat.SetColor("_BaseColor", new Color(1f, 0.74f, 0.3f) * k);
         }
 
+        /// <summary>Where to go for this step: a pulsing gold ring on the floor at each place (the compass says what).</summary>
         void ShowStep(Step step)
         {
             foreach (var r in _rings) if (r != null) Appear.Out(r.gameObject, 0.4f, destroy: true);
             _rings.Clear();
-            string text = null;
             switch (step)
             {
                 case Step.Hear:
-                    // No plate: the choice card already says this, and the two said it twice, one through the other
-                    // (blind review, 4 Oct). The rings still show where the stands are.
+                case Step.SetLamp:
                     Ring(_detailFloor); Ring(_wholeFloor);
                     break;
                 case Step.TakeLamp:
-                    text = "<b>Take the lamp</b> from the brass stand on your left.\nPoint at it and hold GRIP.";
                     Ring(_standFloor);
                     break;
-                case Step.SetLamp:
-                    text = "Hold the lamp up to the <b>carved relief</b> on the left wall.\nThen set it on a stand: <b>DETAIL</b> by the relief, or <b>WHOLE</b> at the rail for the cliff Buddha.";
-                    Ring(_detailFloor); Ring(_wholeFloor);
-                    break;
-                case Step.Listen:
-                    text = "Your companions are speaking.\n<b>A</b>: next.";
-                    break;
-                case Step.Keep:
-                    text = "<b>A</b> keeps the lamp here.\nOr lift it out and set it on the other stand.";
-                    break;
                 case Step.GoThrough:
-                    text = "An <b>arch</b> has risen on your right, with Van Gogh's studio inside it.\nWalk through it.";
                     if (arch != null) Ring(arch.transform.position - arch.transform.forward * (MuseXR.Worlds.MoonGate.StepDepth * 0.5f));
                     break;
             }
-            if (text == null) { Appear.Set(_guide.gameObject, false, 0.3f); return; }
-            StartCoroutine(Swap(text, step));
-        }
-
-        bool _reseating;
-
-        /// <summary>A new instruction: the old one fades, the plate is seated where the visitor now looks, the new one fades up.</summary>
-        IEnumerator Swap(string text, Step step)
-        {
-            _reseating = true;
-            if (_guide.gameObject.activeSelf) { Appear.Out(_guide.gameObject, 0.25f); yield return new WaitForSeconds(0.27f); }
-            if (_step != step) { _reseating = false; yield break; }   // overtaken by a newer step
-            _guideText.text = text;
-            Seat(step);
-            Appear.In(_guide.gameObject, 0.35f);
-            _reseating = false;
-        }
-
-        /// <summary>Walked into or left behind: it fades, moves, and fades up again rather than jumping.</summary>
-        IEnumerator Reseat()
-        {
-            _reseating = true;
-            Appear.Out(_guide.gameObject, 0.25f);
-            yield return new WaitForSeconds(0.27f);
-            Seat(_step);
-            Appear.In(_guide.gameObject, 0.35f);
-            _reseating = false;
-        }
-
-        /// <summary>Off the gaze to the left, below eye level, and then still (moving text made Saul sick).</summary>
-        public const float GuideBearing = -32f, GuideDistance = 1.7f, GuideDrop = 0.35f;
-        /// <summary>Nearer than this (flat) the plate is in the visitor's face; further, or out of view, it is left behind.</summary>
-        public const float GuideTooClose = 1.0f, GuideLeftBehind = 4f, GuideOutOfView = 75f;
-
-        /// <summary>
-        /// Where the visitor is looking now, off to the left: the answer panel and the previews are straight
-        /// ahead, and straight ahead the plate cut through them and was walked into (live run, 4 Oct). It stays
-        /// put; it is only seated again when walked into or left behind, never slid while it is read.
-        /// </summary>
-        void Seat(Step step)
-        {
-            var head = Camera.main != null ? Camera.main.transform : null;
-            if (head == null) return;
-            var fwd = Flat(head.forward);
-            var bearing = step == Step.GoThrough ? -35f : GuideBearing;   // the arch rises on the right: never across its opening
-            var at = head.position + (Quaternion.Euler(0f, bearing, 0f) * fwd) * GuideDistance + Vector3.up * -GuideDrop;
-            _guide.SetPositionAndRotation(at, Quaternion.LookRotation(Flat(at - head.position), Vector3.up));
-        }
-
-        bool GuideInTheWay()
-        {
-            var head = Camera.main != null ? Camera.main.transform : null;
-            if (head == null) return false;
-            var to = _guide.position - head.position; to.y = 0f;
-            if (to.magnitude < GuideTooClose) return true;   // walked into
-            if (to.magnitude > GuideLeftBehind) return true;   // walked away from
-            // Seated before the rig settled at the spawn: 1.04 m below the eye and 93 degrees off (Grotto test, 4 Oct).
-            if (Mathf.Abs(head.position.y - _guide.position.y - GuideDrop) > 0.4f) return true;
-            return Vector3.Angle(Flat(head.forward), to) > GuideOutOfView;   // outside the headset's view: re-seated unseen
         }
 
         void Ring(Vector3 floorAt)
