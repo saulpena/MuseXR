@@ -27,6 +27,7 @@ namespace MuseXR.Journey
         {
             Attach<VanGoghFeatures>("Van Gogh Frame", "Chapter Features VanGogh");
             Attach<MonetFeatures>("Monet Frame", "Chapter Features Monet");
+            Attach<YourWorldAnswer>("Your World Frame", "Chapter Features YourWorld");   // B at the answer stone
         }
 
         static void Attach<T>(string frameName, string childName) where T : Component
@@ -855,6 +856,34 @@ namespace MuseXR.Journey
         }
 
         void OnDestroy() { _x?.Dispose(); _y?.Dispose(); if (_tableStarted) ArtworkCard.Hushed = false; }   // never leave the gallery muted
+        void OnEnable() => YourWorldMiniature.Regretted += Regret;
+        void OnDisable() => YourWorldMiniature.Regretted -= Regret;
+
+        /// <summary>
+        /// Her regret path, from the miniature's B: the kept answer is let go and the table asks again, with the same
+        /// draft and Socrates' rewrite still there to choose between. Nothing is saved until A is pressed again.
+        /// </summary>
+        void Regret()
+        {
+            if (!_tableDone) return;
+            _tableDone = false;
+            var rec = JourneyMemory.Record;
+            rec.FinalAnswer.Final = null; rec.FinalAnswer.RewrittenBy = null;
+            ArtworkCard.Hushed = true;
+            if (!string.IsNullOrEmpty(_rewrite) && _keptRewrite) ShowRewrite(); else ShowDraft();
+            Note("Back at the table\nKeep it, rewrite it, or say your own");
+        }
+
+        bool _keptRewrite;
+
+        void ShowRewrite()
+        {
+            _answerStage = 2;
+            var panel = TorsoPanel.Get();
+            if (panel != null) panel.ShowLine(Masters.Socrates, "Rewrite  ·  through Socrates' question", "\"" + _rewrite + "\"", "A use this one  ·  B back to the first", "Your answer");
+            if (_tableSign != null) _tableSign.text = "A use this one  ·  B back to the first";
+            ConfirmInput.Take(this);
+        }
 
         bool Arrived => transform.parent.position.sqrMagnitude < 0.01f && transform.parent.rotation == Quaternion.identity;
 
@@ -1417,11 +1446,12 @@ namespace MuseXR.Journey
             else Debug.Log("[Roundtable] live " + rt.Live + " success " + rt.Success + " threads " + (rt.threads != null ? rt.threads.Count : 0) + " error " + rt.Error);
             var company = Masters.Company;
             System.Threading.Tasks.Task<string> answer = null;
+            var cited = new Dictionary<string, string>();   // master -> the record id their line answers
             if (rt != null && rt.Success)
             {
                 foreach (var th in rt.threads)
                     foreach (var id in company)
-                        if (RosterId(id) == th.speakerId) lines.Add(new KeyValuePair<string, string>(id, th.text));
+                        if (RosterId(id) == th.speakerId) { lines.Add(new KeyValuePair<string, string>(id, th.text)); if (!string.IsNullOrEmpty(th.basedOn)) cited[id] = th.basedOn; }
                 _draft = string.IsNullOrWhiteSpace(rt.synthesis) ? LocalDraft() : rt.synthesis;
                 // Her draft is the visitor's ANSWER in one sentence ("A life not wasted is a slow one where every
                 // stretch was stopped for and looked at"), not the round table's summary of the walk: asked for
@@ -1432,7 +1462,10 @@ namespace MuseXR.Journey
             if (lines.Count == 0) { lines = LocalThreads(); _draft = LocalDraft() + "   (local fallback)"; }
             // A line still running (the time ring's) would make the round refuse to start: wait it out.
             while (_group != null && _group.Busy) yield return null;
-            AssignBasedOn(lines);
+            // Her "Based on" line is the record the master actually answered (the model cites it by id); the old
+            // guess by each master's usual subject is only for the local fallback, which cites nothing.
+            if (cited.Count > 0) LabelFromCitations(cited);
+            else AssignBasedOn(lines);
             if (_group != null) ChapterFeatures.SayVoiced(this, _group, lines);
             else if (lines.Count > 0) ChapterFeatures.Voice(this, lines[0].Key, lines[0].Value);
             while (_group != null && _group.Busy) yield return null;
@@ -1471,7 +1504,9 @@ namespace MuseXR.Journey
                 session.RecordAnswer(work, "stopped for it at " + rec.Monet.Preset + (string.IsNullOrWhiteSpace(rec.Monet.Reason) ? "" : ", because: " + rec.Monet.Reason), "visitor");
             }
             var client = new RoundtableClient(new MusePico.Tripo.TripoWebRequestTransport(key, ResponsesCall.DefaultEndpoint), roster);
-            return await client.AskAsync(session, masters);
+            var records = new List<RoundtableRecord>();
+            foreach (var r in Records(rec)) records.Add(new RoundtableRecord(r.id, r.forModel));
+            return await client.AskAsync(session, masters, default, records);
         }
 
         /// <summary>
@@ -1479,6 +1514,43 @@ namespace MuseXR.Journey
         /// record nearest their lens - Monet the garden, Van Gogh the stroke, Socrates the Palace reason - and
         /// any other companion the next one left.
         /// </summary>
+        /// <summary>
+        /// What the visitor did, one record per chapter done, plus the question they came in with: an id the roundtable
+        /// cites, the words it is given, and the "Based on" label the visitor reads. Only records that exist are offered,
+        /// so every citation resolves to a real field of the journey record (her check).
+        /// </summary>
+        internal static List<(string id, string forModel, string label)> Records(JourneyRecord rec)
+        {
+            var l = new List<(string, string, string)>();
+            if (rec == null) return l;
+            if (rec.Palace != null && !string.IsNullOrEmpty(rec.Palace.Object))
+                l.Add(("palace", "In the Palace they kept the " + rec.Palace.Object + (string.IsNullOrWhiteSpace(rec.Palace.Reason) ? "" : ", because: " + rec.Palace.Reason),
+                       "Based on: Palace  ·  the " + rec.Palace.Object + (string.IsNullOrWhiteSpace(rec.Palace.Reason) ? "" : "  ·  “" + rec.Palace.Reason.Trim() + "”")));
+            if (rec.Grotto != null && !string.IsNullOrEmpty(rec.Grotto.LampSlot))
+                l.Add(("grotto", "In the Grotto they set the lamp on the " + (rec.Grotto.LampSlot == "detail" ? "carved detail, up close" : "whole, from the rail"),
+                       "Based on: Grotto  ·  lamp on the " + (rec.Grotto.LampSlot == "detail" ? "detail" : "whole")));
+            if (rec.VanGogh != null && (rec.VanGogh.Points.Count > 0 || !string.IsNullOrEmpty(rec.VanGogh.Color)))
+                l.Add(("vangogh", "In Van Gogh's studio, after The Bedroom, they painted one " + YourWorldEnding.PotName(rec.VanGogh.Color).ToLowerInvariant() + " stroke in the air",
+                       "Based on: Van Gogh studio  ·  your " + YourWorldEnding.PotName(rec.VanGogh.Color).ToLowerInvariant() + " stroke"));
+            if (rec.Monet != null && !string.IsNullOrEmpty(rec.Monet.Preset))
+                l.Add(("monet", "In Monet's garden, at " + rec.Monet.Preset + ", they stopped for " + MonetFeatures.WorkTitle(rec.Monet.ArtworkId)
+                                + (string.IsNullOrWhiteSpace(rec.Monet.Reason) ? "" : ", because: " + rec.Monet.Reason),
+                       "Based on: Monet garden  ·  " + Cap(rec.Monet.Preset) + "  ·  " + MonetFeatures.WorkTitle(rec.Monet.ArtworkId)));
+            if (!string.IsNullOrWhiteSpace(rec.Question))
+                l.Add(("question", "The question they carried in: " + rec.Question.Trim(), "Based on: your question  ·  “" + rec.Question.Trim() + "”"));
+            return l;
+        }
+
+        static void LabelFromCitations(Dictionary<string, string> cited)
+        {
+            TorsoPanel.BasedOn.Clear();
+            var labels = new Dictionary<string, string>();
+            foreach (var r in Records(JourneyMemory.Record)) labels[r.id] = r.label;
+            foreach (var kv in cited)
+                if (labels.TryGetValue(kv.Value, out var label)) TorsoPanel.BasedOn[kv.Key] = label;
+            Debug.Log("[Roundtable] cited: " + string.Join(", ", new List<string>(System.Linq.Enumerable.Select(cited, kv => kv.Key + " -> " + kv.Value))));
+        }
+
         static void AssignBasedOn(List<KeyValuePair<string, string>> lines)
         {
             var rec = JourneyMemory.Record;
@@ -1600,7 +1672,7 @@ namespace MuseXR.Journey
             return JsonUtility.FromJson<RewriteReply>(text).answer;
         }
 
-        static async System.Threading.Tasks.Task<string> RewriteLive(JourneyRecord rec, string draft)
+        internal static async System.Threading.Tasks.Task<string> RewriteLive(JourneyRecord rec, string draft)
         {
             var key = await MusePico.Generation.FallbackKeySource.ForOpenAi().GetKeyAsync();
             if (string.IsNullOrEmpty(key)) return null;
@@ -1626,19 +1698,104 @@ namespace MuseXR.Journey
         void SayOwn()
         {
             var dialogue = FindAnyObjectByType<MuseumDialogue>();
-            if (dialogue == null) return;
+            if (dialogue == null) { OfferOwnOptions("no dialogue"); return; }
             Note("Hold X and say your answer");
             dialogue.TextDictated -= OnOwn; dialogue.TextDictated += OnOwn;
+            dialogue.DictationFailed -= OnOwnFailed; dialogue.DictationFailed += OnOwnFailed;
             dialogue.ListenForText();
         }
 
         void OnOwn(string text)
         {
             var dialogue = FindAnyObjectByType<MuseumDialogue>();
-            if (dialogue != null) dialogue.TextDictated -= OnOwn;
-            if (string.IsNullOrWhiteSpace(text)) return;
+            if (dialogue != null) { dialogue.TextDictated -= OnOwn; dialogue.DictationFailed -= OnOwnFailed; }
+            if (string.IsNullOrWhiteSpace(text)) { OfferOwnOptions("no words"); return; }
             _draft = text.Trim();
             ShowDraft();
+        }
+
+        void OnOwnFailed(string why)
+        {
+            var dialogue = FindAnyObjectByType<MuseumDialogue>();
+            if (dialogue != null) { dialogue.TextDictated -= OnOwn; dialogue.DictationFailed -= OnOwnFailed; }
+            OfferOwnOptions(why);
+        }
+
+        // Her Y fallback: "the fallback is three rewrite chips" - there is no keyboard, so when the spoken answer does not
+        // come through (nothing heard, no transcript, the visitor would rather not say it aloud) three short rewrites of
+        // the draft are offered over the table, each a different turn of it. One is picked; it becomes the draft.
+        GameObject _ownRoot;
+        List<string> _ownOptions;
+
+        async void OfferOwnOptions(string why)
+        {
+            if (_tableDone || _ownRoot != null) return;
+            Debug.Log("[Roundtable] say my own fell through (" + why + "): three rewrites offered");
+            Note("Your words did not come through\nChoose the one closest to yours");
+            List<string> options = null;
+            try { options = await OwnOptionsLive(JourneyMemory.Record, _draft); }
+            catch (System.Exception ex) { Debug.LogWarning("[Roundtable] own options: " + ex.Message); }
+            if (this == null || _tableDone) return;
+            var live = options != null && options.Count == 3;
+            if (!live) options = OwnOptionsLocal(_draft);
+            _ownOptions = options;
+            _ownRoot = new GameObject("Say my own");
+            _ownRoot.transform.SetParent(_rotunda, false);
+            _ownRoot.transform.localPosition = new Vector3(0f, 1.85f, 0f);
+            TurnToVisitor.Attach(_ownRoot);
+            var panel = ChoicePanel.Make(_ownRoot.transform, "Own words");
+            panel.Build("Your answer  ·  in your words", "Which is closest to what you would say?", options,
+                        live ? "Point at one and pull the trigger" : "Point at one and pull the trigger  ·  local fallback", 2.2f,
+                        (i, _) => PickOwn(i));
+            Appear.In(_ownRoot, 0.4f);
+        }
+
+        void PickOwn(int i)
+        {
+            if (_ownOptions == null || i < 0 || i >= _ownOptions.Count) return;
+            _draft = _ownOptions[i];
+            if (_ownRoot != null) { Destroy(_ownRoot); _ownRoot = null; }
+            ShowDraft();
+        }
+
+        /// <summary>Offline only: three turns of the draft that keep its words - plainer, bolder, gentler.</summary>
+        internal static List<string> OwnOptionsLocal(string draft)
+        {
+            var d = string.IsNullOrWhiteSpace(draft) ? "what I stopped for" : draft.Trim().TrimEnd('.', '!', '?').Replace("   (local fallback)", "");
+            var lower = d.Length > 1 ? char.ToLowerInvariant(d[0]) + d.Substring(1) : d;
+            return new List<string>
+            {
+                "Simply: " + lower + ".",
+                "I am sure of this now: " + lower + ".",
+                "Maybe, and I am still learning it: " + lower + ".",
+            };
+        }
+
+        [System.Serializable] class OwnReply { public string[] answers; }
+
+        internal static async System.Threading.Tasks.Task<List<string>> OwnOptionsLive(JourneyRecord rec, string draft)
+        {
+            var key = await MusePico.Generation.FallbackKeySource.ForOpenAi().GetKeyAsync();
+            if (string.IsNullOrEmpty(key)) return null;
+            var call = new ResponsesCall(new MusePico.Tripo.TripoWebRequestTransport(key, ResponsesCall.DefaultEndpoint));
+            var arr = new JsonBuilder().Add("type", "array").Add("items", new JsonBuilder().Add("type", "string")).Add("minItems", 3).Add("maxItems", 3);
+            var props = new JsonBuilder().Add("answers", arr);
+            var schema = new JsonBuilder().Add("type", "object").Add("properties", props)
+                .AddStringArray("required", new[] { "answers" }).Add("additionalProperties", false);
+            const string instructions =
+                "A museum visitor's drafted answer to the question they carried through the museum is below. Their own words did not come " +
+                "through, so offer three ways they might say it themselves: one plainer, one bolder, one gentler. Keep their meaning, first " +
+                "person, one sentence each, under 20 words, no quotation marks.";
+            var text = await call.SendAsync(instructions, "Question: " + rec.Question + "\nDraft answer: " + draft,
+                ResponsesCall.TextFormat("own_words", schema), raw =>
+                {
+                    try { var r = JsonUtility.FromJson<OwnReply>(raw); return r != null && r.answers != null && r.answers.Length == 3 ? null : "need three"; }
+                    catch (System.Exception ex) { return ex.Message; }
+                });
+            var reply = JsonUtility.FromJson<OwnReply>(text);
+            var list = new List<string>();
+            foreach (var a in reply.answers) if (!string.IsNullOrWhiteSpace(a)) list.Add(a.Trim().Trim('"'));
+            return list;
         }
 
         public bool Confirm()
@@ -1649,6 +1806,7 @@ namespace MuseXR.Journey
             var final = _answerStage == 2 ? _rewrite : _draft;
             var rec = JourneyMemory.Record;
             rec.FinalAnswer.Draft = _draft; rec.FinalAnswer.Final = final; rec.FinalAnswer.RewrittenBy = _answerStage == 2 ? "socrates" : "self";
+            _keptRewrite = _answerStage == 2;
             _tableDone = true; _answerStage = 0;
             ArtworkCard.Hushed = false;
             ConfirmInput.Drop(this);

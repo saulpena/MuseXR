@@ -15,7 +15,18 @@ namespace MusePico.Dialogue
         public string speakerId;
         public string speaker;
         public string text;
+        /// <summary>The id of the one record this remark answers (her "Based on: ..."), from the records sent; empty when none were.</summary>
+        public string basedOn;
         public override string ToString() => speaker + ": " + text;
+    }
+
+    /// <summary>One thing the visitor did that a closing remark may cite: an id the model copies back, and the words.</summary>
+    [Serializable]
+    public struct RoundtableRecord
+    {
+        public string id;
+        public string text;
+        public RoundtableRecord(string id, string text) { this.id = id; this.text = text; }
     }
 
     /// <summary>The closing itself: a title for the visit, a synthesis, and one thread per master.</summary>
@@ -81,10 +92,17 @@ namespace MusePico.Dialogue
             _roster = roster ?? throw new ArgumentNullException(nameof(roster));
         }
 
+        /// <summary>
+        /// The closing. With <paramref name="records"/>, each thread must cite exactly one of them by id
+        /// (<see cref="RoundtableThread.basedOn"/>, her "Based on: ..." line): the schema allows only those ids,
+        /// so a label can never name a record that does not exist, nor disagree with what the master said
+        /// (it used to be assigned afterwards by each master's usual subject - Saul, 5 Oct).
+        /// </summary>
         public async Task<RoundtableResult> AskAsync(
             VisitSession session,
             IReadOnlyList<MasterLens> masters,
-            CancellationToken ct = default)
+            CancellationToken ct = default,
+            IReadOnlyList<RoundtableRecord> records = null)
         {
             var result = new RoundtableResult { Model = _call.Model };
             var stopwatch = Stopwatch.StartNew();
@@ -97,12 +115,13 @@ namespace MusePico.Dialogue
 
             try
             {
-                var instructions = RoundtablePrompt.Instructions(masters.Count);
-                var input = RoundtablePrompt.BuildInput(session, masters);
-                var format = SchemaFor(masters.Count);
+                var ids = RecordIds(records);
+                var instructions = RoundtablePrompt.Instructions(masters.Count) + CiteInstructions(ids, masters.Count);
+                var input = RoundtablePrompt.BuildInput(session, masters) + RecordsInput(records);
+                var format = SchemaFor(masters.Count, ids);
 
                 var text = await _call.SendAsync(instructions, input, format,
-                    raw => DescribeInvalid(raw, masters.Count), ct);
+                    raw => DescribeInvalid(raw, masters.Count, ids), ct);
 
                 var parsed = JsonUtility.FromJson<RoundtablePayload>(text);
                 result.worldTitle = (parsed.worldTitle ?? string.Empty).Trim();
@@ -118,6 +137,7 @@ namespace MusePico.Dialogue
                         speakerId = master.id,
                         speaker = master.fullName,
                         text = (parsed.threads[i].text ?? string.Empty).Trim(),
+                        basedOn = (parsed.threads[i].basedOn ?? string.Empty).Trim(),
                     });
                 }
 
@@ -139,7 +159,33 @@ namespace MusePico.Dialogue
         /// Her <c>validate()</c>, ported. Every one of these is retryable — the model can produce a
         /// conforming closing on a second attempt, and a malformed one must never reach a visitor.
         /// </summary>
-        public static string DescribeInvalid(string rawJson, int expectedThreads)
+        static List<string> RecordIds(IReadOnlyList<RoundtableRecord> records)
+        {
+            var ids = new List<string>();
+            if (records != null) foreach (var r in records) if (!string.IsNullOrWhiteSpace(r.id) && !ids.Contains(r.id)) ids.Add(r.id);
+            return ids;
+        }
+
+        static string CiteInstructions(List<string> ids, int threads)
+        {
+            if (ids.Count == 0) return string.Empty;
+            return " Each thread must answer ONE of the visitor's records listed under 'Records', and name it in basedOn by its id"
+                 + (ids.Count >= threads ? "; no two threads may cite the same record" : string.Empty)
+                 + ". The remark must clearly be about that record.";
+        }
+
+        static string RecordsInput(IReadOnlyList<RoundtableRecord> records)
+        {
+            if (records == null || records.Count == 0) return string.Empty;
+            var sb = new System.Text.StringBuilder("\nRecords (cite one per thread, by id):\n");
+            foreach (var r in records) sb.Append("- ").Append(r.id).Append(": ").Append(r.text).Append('\n');
+            return sb.ToString();
+        }
+
+        public static string DescribeInvalid(string rawJson, int expectedThreads) => DescribeInvalid(rawJson, expectedThreads, null);
+
+        /// <summary>As above, and with <paramref name="recordIds"/> each thread must cite one of them - distinct ones when there are enough.</summary>
+        public static string DescribeInvalid(string rawJson, int expectedThreads, IReadOnlyList<string> recordIds)
         {
             RoundtablePayload p;
             try { p = JsonUtility.FromJson<RoundtablePayload>(rawJson); }
@@ -163,6 +209,18 @@ namespace MusePico.Dialogue
                     return "two threads share the speakerId '" + t.speakerId.Trim() + "'";
             }
 
+            if (recordIds != null && recordIds.Count > 0)
+            {
+                var cited = new HashSet<string>();
+                for (var i = 0; i < p.threads.Length; i++)
+                {
+                    var b = (p.threads[i].basedOn ?? string.Empty).Trim();
+                    var known = false; foreach (var id in recordIds) if (id == b) known = true;
+                    if (!known) return "thread " + i + " cites '" + b + "', which is not one of the records";
+                    if (recordIds.Count >= expectedThreads && !cited.Add(b)) return "two threads cite the same record '" + b + "'";
+                }
+            }
+
             return null;
         }
 
@@ -171,17 +229,20 @@ namespace MusePico.Dialogue
         /// rather than only in <see cref="DescribeInvalid"/>, so a wrong count is usually refused
         /// before it costs a second attempt.
         /// </summary>
-        static string SchemaFor(int threadCount)
+        static string SchemaFor(int threadCount, List<string> recordIds = null)
         {
+            var cites = recordIds != null && recordIds.Count > 0;
             var threadProps = new JsonBuilder()
                 .Add("speakerId", new JsonBuilder().Add("type", "string"))
                 .Add("speaker", new JsonBuilder().Add("type", "string"))
                 .Add("text", new JsonBuilder().Add("type", "string"));
+            // Only the ids sent: a label can name nothing the visitor did not do.
+            if (cites) threadProps.Add("basedOn", new JsonBuilder().Add("type", "string").AddStringArray("enum", recordIds.ToArray()));
 
             var thread = new JsonBuilder()
                 .Add("type", "object")
                 .Add("properties", threadProps)
-                .AddStringArray("required", new[] { "speakerId", "speaker", "text" })
+                .AddStringArray("required", cites ? new[] { "speakerId", "speaker", "text", "basedOn" } : new[] { "speakerId", "speaker", "text" })
                 .Add("additionalProperties", false);
 
             var threads = new JsonBuilder()
