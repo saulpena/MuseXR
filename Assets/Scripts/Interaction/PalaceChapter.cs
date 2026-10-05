@@ -65,6 +65,12 @@ namespace MuseXR.Interaction
         Quaternion _courtChipsRot;
         float _light;
         bool _wantFocus, _turnsPending;
+        /// <summary>The masters' live lines are being fetched (StartTurns is awaiting them).</summary>
+        bool _awaiting, _keeping;
+        /// <summary>How long the Palace has been "listening" with nobody speaking and nothing on its way.</summary>
+        float _silentFor;
+        /// <summary>Listening with nobody speaking for this long means their turns ended without saying so: the reasons come.</summary>
+        public const float SilentListening = 2.5f;
 
         public static PalaceChapter Make(GameObject host, SlotStation court, CardChoiceStation cards,
                                          CompanyStage company, JourneyRecord record, Vector3 chipsAt, Quaternion chipsAwayFromViewer)
@@ -90,6 +96,14 @@ namespace MuseXR.Interaction
                     // bare "Keep this moment?" read as if A could skip the choice).
                     s.Board.Choice.Retitle(Flow.Summary + " · pick a reason above");
                     Respond(s.Pieces[e.Piece].Id);
+                    break;
+                case SlotCue.Confirmed:
+                    // The court's own choice was confirmed (A reached the station, not this chapter). With a reason
+                    // in, that IS the keep; without one, the station's choice goes back to pending so the keep can
+                    // still happen once a reason is chosen - a spent choice under an unsaved Palace was a soft-lock.
+                    if (_keeping) break;   // this chapter's own keep asked the court: already saving
+                    if (Flow.CanSave) { Debug.Log("[Palace] the court confirmed: keeping"); Keep("court"); }
+                    else if (Flow.Current == PalaceFlow.Phase.Placed) { Debug.Log("[Palace] the court confirmed before a reason: reopened"); s.Board.Reopen(); }
                     break;
                 case SlotCue.Undone:
                 case SlotCue.Lifted:
@@ -173,10 +187,12 @@ namespace MuseXR.Interaction
             _turnsPending = false;
             var piece = Flow.Piece;
             var token = ++_asked;
+            _awaiting = true;
             DialogueContext.Set("You kept the " + piece.ToLowerInvariant());
             System.Collections.Generic.Dictionary<string, string> live = null;
             try { live = await MasterInsights.Ensure().AskMasters(ReactionQuestion(piece, Flow.YawDeg), group.Ids, "the bronze " + piece.ToLowerInvariant(), PieceAbout(piece)); }
             catch (Exception ex) { Debug.LogWarning("[Palace] live reactions: " + ex.Message); }
+            if (token == _asked) _awaiting = false;
             if (this == null || token != _asked || group == null || Flow.Piece != piece || Flow.Current != PalaceFlow.Phase.Placed) return;
             group.LineFor = id => live != null && live.TryGetValue(id, out var l) ? l : LineFor(id, piece);
             group.TurnsFinished -= OnTurnsFinished;
@@ -322,6 +338,11 @@ namespace MuseXR.Interaction
         /// </summary>
         void KeepReasonsUp()
         {
+            // While a Palace choice is open, A belongs to this chapter or to the masters speaking - never to the court's
+            // own station underneath: one A there spent the court's choice and every later keep was refused (musexr-b-3e
+            // reproduced it, 5 Oct). The station's confirm is caught in OnCourtCue too; this keeps A from going there.
+            if ((Flow.Current == PalaceFlow.Phase.Placed || Flow.Current == PalaceFlow.Phase.Ready) && Court != null &&
+                ReferenceEquals(ConfirmInput.Focus, Court)) ConfirmInput.Take(this);
             if (_chipRoot == null || !ReasonsWanted) return;
             if (!_chipRoot.gameObject.activeSelf || _panel.Options.Count == 0) { Debug.Log("[Palace] the reasons were hidden while one is wanted: shown again"); ShowChips(true); }
             if (ConfirmInput.Focus == null) ConfirmInput.Take(this);
@@ -367,7 +388,9 @@ namespace MuseXR.Interaction
                 // While the companions speak, A is "next"; before anyone has started, it is refused.
                 var g = Company != null ? Company.Group : Group;
                 if (g != null && g.Turns != null) return g.Confirm();
+                if (!_awaiting && !_turnsPending) { Refused("listening, but nobody is speaking: the reasons now"); AskForReason(); return false; }
                 ChimePlayer.Play(ChimePlayer.RefuseClip(), transform.position, 0.5f);
+                Refused("the companions' lines are still on their way");
                 return false;
             }
             if (Flow.Current == PalaceFlow.Phase.Placed)
@@ -376,9 +399,23 @@ namespace MuseXR.Interaction
                 Say("[Palace] pick a reason first");
                 return false;
             }
-            if (!Flow.CanSave) return false;
-            var kept = Flow.Kind == PalaceFlow.Mode.Card ? Cards != null && Cards.Confirm() : Court != null && Court.Confirm();
-            if (!kept) return false;
+            if (!Flow.CanSave) { Refused("nothing to keep"); return false; }
+            return Keep("A");
+        }
+
+        /// <summary>
+        /// The keep, whichever way it came. Once a reason is chosen nothing the station thinks can stop it (Saul, 5 Oct:
+        /// "the most major bug": A and Keep both did nothing, not every time): the court is asked to confirm, and if
+        /// its own choice is already spent or out of step, the Palace keeps anyway and says why in the log.
+        /// </summary>
+        bool Keep(string how)
+        {
+            if (!Flow.CanSave || _keeping) return false;
+            _keeping = true;
+            bool kept;
+            try { kept = Flow.Kind == PalaceFlow.Mode.Card ? Cards != null && Cards.Confirm() : Court != null && Court.Confirm(); }
+            finally { _keeping = false; }
+            if (!kept) Refused("the " + (Flow.Kind == PalaceFlow.Mode.Card ? "cards" : "court") + " would not confirm (" + how + "): keeping anyway");
             Flow.Save();
             Record.SetPalace(new JourneyRecord.PalaceChoice
             {
@@ -389,6 +426,17 @@ namespace MuseXR.Interaction
             Say("[Palace] saved: palace{object " + Flow.Piece.ToLowerInvariant() + ", yaw " + Flow.YawDeg + ", mode " + Flow.ModeName + ", reason \"" + Flow.Reason + "\"}");
             Saved?.Invoke(Flow);
             return true;
+        }
+
+        /// <summary>Every refused keep, with the whole state, so a headset log says why.</summary>
+        void Refused(string why)
+        {
+            var g = Company != null ? Company.Group : Group;
+            var f = ConfirmInput.Focus;
+            Debug.Log("[Palace] keep refused: " + why + " | flow " + Flow.Current + " reason \"" + Flow.Reason + "\" listening " + Listening +
+                      " awaiting " + _awaiting + " pending " + _turnsPending + " turns " + (g == null ? "no group" : g.Turns == null ? "none" : g.Turns.Current.ToString()) +
+                      " | court " + (Court == null ? "-" : "piece " + Court.Board.PlacedPiece + " choice " + Court.Board.Choice.Current) +
+                      " | focus " + (f == null ? "nobody" : f.GetType().Name));
         }
 
         public bool Redo() => Flow.Kind == PalaceFlow.Mode.Card ? Cards != null && Cards.Redo() : Court != null && Court.Redo();
@@ -452,7 +500,24 @@ namespace MuseXR.Interaction
             if (CourtLight != null) CourtLight.intensity = CourtLightIntensity * k;
             if (CourtGlow != null) CourtGlow.sharedMaterial.SetColor("_BaseColor", new Color(1f, 0.72f, 0.38f) * (0.85f * k));
             if (_turnsPending && Company != null && Company.Current == CompanyStage.Phase.Done) StartTurns();
+            ListeningWatchdog();
             KeepReasonsUp();
+        }
+
+        /// <summary>
+        /// "Listening" ends when the masters' turns finish - but their group is shared (a master speaking about a
+        /// painting, a closed card hushing them) and a turn can end without this chapter hearing it. Then the reasons
+        /// never came and A was refused for good. Nobody speaking, nothing on its way, for a moment: the reasons come.
+        /// </summary>
+        void ListeningWatchdog()
+        {
+            var g = Company != null ? Company.Group : Group;
+            var quiet = Listening && !_awaiting && !_turnsPending && (g == null || !g.Busy) && !MasterVoice.Speaking && !MusePico.Dialogue.VoiceGate.Speaking;
+            _silentFor = quiet ? _silentFor + Time.deltaTime : 0f;
+            if (_silentFor < SilentListening) return;
+            _silentFor = 0f;
+            Debug.Log("[Palace] the companions stopped without finishing their turns: the reasons now");
+            AskForReason();
         }
 
         void LateUpdate()
