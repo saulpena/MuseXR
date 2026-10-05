@@ -76,6 +76,17 @@ namespace MuseXR.Interaction
         public bool Discussing(InsightTarget t) =>
             t != null && t == _lastTarget && ((_group != null && _group.Busy) || _pending != null || _thinkingAbout != null);
 
+        /// <summary>
+        /// The visitor closed the card of <paramref name="t"/> while the masters were on it: they stop, voice and all, and
+        /// nothing still to come about it lands (Saul, 5 Oct: a closed box keeps no audio playing).
+        /// </summary>
+        public void Hush(InsightTarget t)
+        {
+            if (t == null || !Discussing(t)) return;
+            Debug.Log("[Insight] card of " + t.title + " closed: the masters stop");
+            Interrupt();
+        }
+
         /// <summary>Everything still to come about the last piece: gone, so a new one starts clean.</summary>
         void Interrupt()
         {
