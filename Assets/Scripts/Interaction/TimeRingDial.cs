@@ -37,8 +37,10 @@ namespace MuseXR.Interaction
         void SetDetent(int detent)
         {
             // DialDetents starts at Afternoon; align it with whatever the driver started on.
+            // A turn is relative to where the dial stands: turning BY the target angle left it stuck once it was off
+            // the top (from Mist, "to Afternoon" turned by 0 degrees and stayed on Mist - the desktop keys, 5 Oct).
             var target = DialDetents.AngleOf(detent);
-            Detents.Grab(0f); Detents.Turn(target); Detents.Release();
+            Detents.Grab(0f); Detents.Turn(target - Detents.Angle); Detents.Release();
         }
 
         /// <summary>The wrist's roll about the dial's axis, degrees, positive clockwise as the visitor sees it.</summary>

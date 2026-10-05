@@ -105,11 +105,10 @@ namespace MuseXR.Interaction
                 distance = Mathf.Max(Ahead, Vector3.Distance(eye.position, at));   // sized to read from where the visitor arrives
             }
             anchor.SetPositionAndRotation(at, Quaternion.LookRotation(fwd, Vector3.up));   // +Z away from the viewer reads
-            if (anchored)
-            {
-                anchor.localScale = Vector3.one * Mathf.Max(0.1f, anchorScale);
-                TurnToVisitor.Attach(anchor.gameObject);   // always turned to the visitor, wherever they walk
-            }
+            if (anchored) anchor.localScale = Vector3.one * Mathf.Max(0.1f, anchorScale);
+            // Every title turns to the visitor, wherever they walk: one left facing its arrival read backwards from the far
+            // side of the garden ("What is worth stopping for?", mirrored over the time ring, 5 Oct).
+            TurnToVisitor.Attach(anchor.gameObject);
             var c = MuseUi.Canvas(anchor, "Question", distance, WidthPx);
             _group = c.gameObject.AddComponent<CanvasGroup>();
             _group.alpha = 0f;

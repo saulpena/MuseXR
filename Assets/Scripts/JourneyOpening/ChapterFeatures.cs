@@ -172,6 +172,26 @@ namespace MuseXR.Journey
             SayVoiced(host, group, lines);
         }
 
+        /// <summary>
+        /// <see cref="Take"/>, live: the companions answer <paramref name="question"/> now, and the fixed lines stand in
+        /// only when there is no live answer (offline, no key, a failed call). <paramref name="stillWanted"/> is checked
+        /// when the answer lands, so a moment the visitor has already turned past is not spoken late.
+        /// </summary>
+        internal static async void TakeLive(MonoBehaviour host, CompanionGroup group, string question, string title, string about,
+                                            System.Func<string, string> fallback, string context, System.Func<bool> stillWanted = null)
+        {
+            if (context != null) DialogueContext.Set(context);
+            var ids = new List<string>();
+            if (group != null) foreach (var id in group.Ids) ids.Add(id);
+            if (ids.Count == 0) ids.AddRange(Masters.DefaultTrio);
+            Dictionary<string, string> live = null;
+            try { live = await MasterInsights.Ensure().AskMasters(question, ids, title, about); }
+            catch (System.Exception ex) { Debug.LogWarning("[Live] " + title + ": " + ex.Message); }
+            if (host == null || (stillWanted != null && !stillWanted())) return;
+            Debug.Log("[Live] " + title + ": " + (live != null ? live.Count + " live" : "fallback lines"));
+            Take(host, group, id => live != null && live.TryGetValue(id, out var l) && !string.IsNullOrWhiteSpace(l) ? l : fallback(id), null);
+        }
+
         /// <summary>The group says these in turn, and each line is voiced as its own turn starts, never all at
         /// once (the round table started three clips together and they talked over each other).</summary>
         internal static bool SayVoiced(MonoBehaviour host, CompanionGroup group, List<KeyValuePair<string, string>> lines)
@@ -763,7 +783,7 @@ namespace MuseXR.Journey
                 { Masters.VanGogh, "Full light. The greens are shouting. I like it when they shout." },
                 { Masters.Socrates, "Everything is visible now. Does seeing everything mean you have understood anything?" } } },
             { TimeOfDay.Dusk, new Dictionary<string, string> {
-                { Masters.Monet, "The pink on the water has only just come out. In a quarter of an hour it will sink to violet and the edges of the lilies will be gone" },
+                { Masters.Monet, "An hour on, this water is gone." },   // her line (chapter D)
                 { Masters.VanGogh, "Dusk is when colour gets heavy. I would paint it before it goes." },
                 { Masters.Socrates, "You turned it to the end of the day. Is what is ending more worth stopping for?" } } },
         };
@@ -810,7 +830,6 @@ namespace MuseXR.Journey
         Vector3 _rotundaLocal = RotundaAt;
         string _draft = "", _rewrite = "";
         int _answerStage;   // 0 none, 1 draft shown (A keep · X rewrite · Y say), 2 rewrite shown (A use · B back)
-        float _undoUntil;   // her 3 s undo after the painting is chosen
         int _pickedWork = -1;
         bool _rewriting;
         InputAction _x, _y;
@@ -961,9 +980,58 @@ namespace MuseXR.Journey
 
             _driver = new GameObject("Time Ring Driver").AddComponent<TimeRingDriver>();
             _driver.transform.SetParent(root, false);
+            _driver.particles = GardenMotes(root);
             _dial = TimeRingDial.Make(dial, ring.transform, _driver);
             _dial.Clicked += OnTime;
             CompassTarget.Add(dial, 21, "The time ring", "Grip it and turn");
+        }
+
+        /// <summary>
+        /// Her ring changes the particles too: motes drifting over the garden, thick in the mist, a little dust at dusk,
+        /// none in the clear afternoon (TimeRing's looks: 1, 0.35, 0). The driver sets the rate; this is only the system.
+        /// Soft discs, additive, unlit, slow and buoyant over the path between the ring and the pond.
+        /// </summary>
+        ParticleSystem GardenMotes(Transform ring)
+        {
+            var go = new GameObject("Garden motes");
+            go.transform.SetParent(transform, false);
+            var mid = transform.InverseTransformPoint(ring.position);
+            go.transform.localPosition = new Vector3((mid.x + LiliesAt.x) * 0.5f, 1.4f, (mid.z + LiliesAt.z) * 0.5f);
+            var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main;
+            main.loop = true; main.playOnAwake = true; main.maxParticles = 400;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(7f, 11f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.02f, 0.07f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.012f, 0.035f);
+            main.startColor = new Color(1f, 0.97f, 0.9f, 0.55f);
+            main.gravityModifier = -0.004f;   // buoyant: they rise, barely
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(Mathf.Abs(mid.x - LiliesAt.x) + 8f, 2.6f, Mathf.Abs(mid.z - LiliesAt.z) + 8f);
+            var col = ps.colorOverLifetime; col.enabled = true;
+            var g = new Gradient();
+            g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                      new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.25f), new GradientAlphaKey(1f, 0.7f), new GradientAlphaKey(0f, 1f) });
+            col.color = g;
+            var noise = ps.noise; noise.enabled = true; noise.strength = 0.05f; noise.frequency = 0.3f; noise.scrollSpeed = 0.1f;
+            var emission = ps.emission; emission.rateOverTime = 0f;   // the clear afternoon it starts in; the driver sets it from the ring
+            var r = go.GetComponent<ParticleSystemRenderer>();
+            r.renderMode = ParticleSystemRenderMode.Billboard;
+            var m = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+            m.SetFloat("_Surface", 1f); m.SetFloat("_Blend", 2f);
+            m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            m.SetFloat("_ZWrite", 0f);
+            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            var disc = UiSprites.Disc();
+            if (disc != null) m.SetTexture("_BaseMap", disc.texture);
+            r.sharedMaterial = m;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; r.receiveShadows = false;
+            ps.Play();
+            return ps;
         }
 
         void OnTime(TimeOfDay t)
@@ -980,7 +1048,13 @@ namespace MuseXR.Journey
             var target = _dial.GetComponent<CompassTarget>(); if (target != null) target.MarkDone();
             if (_picked) return;
             // Each moment heard the first time the ring reaches it; the paintings wait until all three have been.
-            if (_seen.Add(t)) ChapterFeatures.Take(this, _group, id => MomentTakes[t].TryGetValue(id, out var l) ? l : null, "The moment  ·  " + t);
+            if (_seen.Add(t))
+            {
+                var moment = t;
+                ChapterFeatures.TakeLive(this, _group, MomentQuestion(moment), "the garden at " + MomentWord(moment), "Monet's water garden, " + MomentWord(moment),
+                                         id => MomentTakes[moment].TryGetValue(id, out var l) ? l : null, "The moment  ·  " + moment,
+                                         () => _time == moment && !_picked);
+            }
             if (!_turned && _seen.Count == 3)
             {
                 _turned = true;
@@ -991,6 +1065,27 @@ namespace MuseXR.Journey
                 Note(t + "  ·  " + _seen.Count + " / 3 moments\nTurn the ring to each moment and hear the companions");
             if (_choice != null) _choice.SetPrompt(Question());   // the moment named in the question follows the ring
         }
+
+        static string MomentWord(TimeOfDay t) => t == TimeOfDay.Mist ? "morning mist" : t == TimeOfDay.Dusk ? "dusk" : "afternoon";
+
+        /// <summary>Her response: "Monet stages how this moment changes an hour later" - live, to this visitor.</summary>
+        static string MomentQuestion(TimeOfDay t)
+        {
+            var asked = JourneyMemory.Record != null ? JourneyMemory.Record.Question : "";
+            return "In Monet's water garden the room asks: 'What is worth stopping for?' The visitor has turned the time ring to "
+                 + MomentWord(t) + ", and the garden has changed around them. "
+                 + (string.IsNullOrWhiteSpace(asked) ? "" : "They came into the museum asking: \"" + asked.Trim() + "\". ")
+                 + "Monet: stage how this very moment will have changed an hour from now - the light, the water, what will be gone. "
+                 + "The others: answer it through your own way of seeing. Each one or two short sentences, under 30 words, to the visitor. No numbers.";
+        }
+
+        /// <summary>Her saved record is monet{preset, artworkId, reason}: after the work, why they stopped for it.</summary>
+        static readonly string[] MonetReasons =
+        {
+            "Because it will not look like this again",
+            "Because the light was on it",
+            "Because it made the moment slow down",
+        };
 
         /// <summary>"At this moment, which painting did you stop for?" - her four Monets as chips over the pedestal.</summary>
         IEnumerator ShowChips()
@@ -1037,41 +1132,80 @@ namespace MuseXR.Journey
             PickWork(i);
         }
 
+        // Her flow after the paintings (chapter D): "Stopped at Water Lilies · dusk", A keep · B turn again; then the
+        // reason; then saved. 0 choosing, 1 stopped (A or B), 2 the reason, 3 saved.
+        int _stage;
+        int _reason = -1;
+        ChoicePanel _reasons;
+
         void PickWork(int i)
         {
             if (_picked) return;
-            _picked = true; _pickedWork = i;
+            _picked = true; _pickedWork = i; _stage = 1;
             if (_group != null && _group.Busy) _group.StopTurns();   // chosen: the takes on the others are moot (they ran on into the round table)
-            JourneyMemory.Record.SetMonet(new JourneyRecord.MonetChoice { Preset = _time.ToString().ToLowerInvariant(), ArtworkId = WorkIds[i], Reason = Works[i] });
             if (_choice != null) _choice.Mark(i);
-            if (_chips != null) Appear.Out(_chips, 0.3f);
-            // Her water chime comes from ChapterChimes when the choice reaches the record.
-            // Her undo: 3 s to take it back with B; A keeps it at once.
-            _undoUntil = Time.time + 3f;
             var panel = TorsoPanel.Get();
-            if (panel != null) panel.ShowLine(null, "Saved", _time + "  ·  " + Works[i], "B undo  ·  3 s", "Monet garden");
+            if (panel != null) panel.ShowLine(null, "Stopped at", Works[i] + "  ·  " + MomentWord(_time), "A keep  ·  B turn again", "Monet garden");
             ConfirmInput.Take(this);
+        }
+
+        /// <summary>A on "Stopped at": the work stands; now why they stopped for it, over the ring, with a Keep button.</summary>
+        void AskReason()
+        {
+            _stage = 2; _reason = -1;
+            var panel = TorsoPanel.Get(); if (panel != null) panel.ClearLine();
+            if (_choice != null) { Destroy(_choice.gameObject); _choice = null; }
+            _reasons = ChoicePanel.Make(_chips.transform, "Reasons");
+            _reasons.Build("Stop 4  ·  Your reason", "Why did you stop for " + Works[_pickedWork] + "?", MonetReasons,
+                           "Point at a reason and pull the trigger", 2.2f, (r, pointer) => PickReason(r, pointer),
+                           "Keep this moment", () => SaveMonet());
+            Appear.In(_chips, 0.3f);
+        }
+
+        void PickReason(int r, Pointer pointer)
+        {
+            if (_stage != 2) return;
+            _reason = r;
+            _reasons.Mark(r, "Or press A  ·  choose another to change it");
+            ChimePlayer.Play(ChimePlayer.TickClip(), _chips.transform.position, 0.4f);
+            pointer?.Source.Buzz(SlotRules.LightAmplitude * 1.5f, SlotRules.LightSeconds);
+        }
+
+        /// <summary>Saved: her monet{preset, artworkId, reason}. Her water chime comes from ChapterChimes as it reaches the record.</summary>
+        bool SaveMonet()
+        {
+            if (_stage != 2 || _reason < 0) return false;
+            JourneyMemory.Record.SetMonet(new JourneyRecord.MonetChoice { Preset = _time.ToString().ToLowerInvariant(), ArtworkId = WorkIds[_pickedWork], Reason = MonetReasons[_reason] });
+            Debug.Log("[Monet] saved: " + _time + " · " + Works[_pickedWork] + " · " + MonetReasons[_reason]);
+            _stage = 3;
+            KeepWork();
+            return true;
+        }
+
+        /// <summary>B: turn the ring again - the choice is let go and the paintings come back, following the ring.</summary>
+        void TurnAgain()
+        {
+            _stage = 0; _picked = false; _pickedWork = -1; _reason = -1;
+            ConfirmInput.Drop(this);
+            if (_reasons != null) { Destroy(_reasons.gameObject); _reasons = null; }
+            var panel = TorsoPanel.Get(); if (panel != null) panel.ClearLine();
+            if (_chips != null) Destroy(_chips);
+            _chips = null; _choice = null;
+            StartCoroutine(ShowChips());
+            Note("Turn the ring again\nThen choose the painting you stop for");
         }
 
         /// <summary>The undo window has closed (or A kept it): the choice stands and the rotunda calls.</summary>
         void KeepWork()
         {
-            _undoUntil = 0f;
             ConfirmInput.Drop(this);
             JourneyMemory.Record.MarkChapterDone(VrStage.Monet);
             if (_chips != null) Destroy(_chips);
-            Note("Saved  ·  " + _time + "  ·  " + Works[_pickedWork] + "\nEnd of the garden  ·  Form my answer");
+            var saved = TorsoPanel.Get();
+            if (saved != null) saved.ShowLine(null, "Saved", Works[_pickedWork] + "  ·  " + MomentWord(_time) + "  ·  " + MonetReasons[_reason], null, "Monet garden");
+            Note("Saved  ·  " + MomentWord(_time) + "  ·  " + Works[_pickedWork] + "\nEnd of the garden  ·  Form my answer");
             if (_tableSign != null) _tableSign.text = "Form my answer";
             var ct = _rotunda.GetComponent<CompassTarget>(); if (ct == null) CompassTarget.Add(_rotunda.gameObject, 28, "Form my answer", "The rotunda · they are waiting");
-        }
-
-        void UndoWork()
-        {
-            _undoUntil = 0f; _picked = false; _pickedWork = -1;
-            ConfirmInput.Drop(this);
-            if (_chips != null) Appear.In(_chips, 0.3f);
-            var panel = TorsoPanel.Get();
-            if (panel != null) panel.ClearLine();
         }
 
         void Note(string text)
@@ -1181,11 +1315,10 @@ namespace MuseXR.Journey
             }
             var flat = new Vector3(cam.transform.position.x, _rotunda.position.y, cam.transform.position.z);
             // Only once the garden's choice is kept: walking past it on the way to the time ring starts nothing.
-            var ready = _picked && _undoUntil <= 0f && JourneyMemory.Record.Monet != null;
+            var ready = _stage == 3 && JourneyMemory.Record.Monet != null;
             UpdateRotundaGlow(ready);
             KeepSeatsClear();
             if (!_tableStarted && Arrived && ready && Vector3.Distance(flat, _rotunda.position) < 2.4f) StartCoroutine(Roundtable());
-            if (_undoUntil > 0f && Time.time > _undoUntil) KeepWork();
             if (_answerStage == 1 && _x != null && _x.WasPressedThisFrame()) Rewrite();
             if (_answerStage == 1 && _y != null && _y.WasPressedThisFrame()) SayOwn();
         }
@@ -1433,7 +1566,8 @@ namespace MuseXR.Journey
 
         public bool Confirm()
         {
-            if (_undoUntil > 0f) { KeepWork(); return true; }
+            if (_stage == 1) { AskReason(); return true; }
+            if (_stage == 2) return SaveMonet();
             if (_answerStage == 0 || _tableDone) return false;
             var final = _answerStage == 2 ? _rewrite : _draft;
             var rec = JourneyMemory.Record;
@@ -1451,7 +1585,7 @@ namespace MuseXR.Journey
 
         public bool Redo()
         {
-            if (_undoUntil > 0f) { UndoWork(); return true; }
+            if (_stage == 1 || _stage == 2) { TurnAgain(); return true; }
             if (_answerStage != 2) return false;
             ShowDraft();
             return true;
