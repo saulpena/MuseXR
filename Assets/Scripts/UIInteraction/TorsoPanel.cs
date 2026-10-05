@@ -21,12 +21,10 @@ namespace MuseXR.UI
         // About 29 deg below the eye line for the card and 43 deg for the compass: a natural glance down
         // (15-25 deg) brings the card into view; looking ahead it stays below the view. At 45 deg the
         // card needed a deliberate stare down and sat cut off at the frame's lower edge (review, 4 Oct).
-        public const float LineAhead = 0.62f, LineDrop = 0.34f, CompassAhead = 0.52f, CompassDrop = 0.5f;
+        public const float LineAhead = 0.62f, LineDrop = 0.62f, CompassAhead = 0.52f, CompassDrop = 1.0f;   // Saul, 4 Oct: half a metre lower
         /// <summary>The panel re-centres on the view direction once the head is this far off it, easing over -
         /// following the body alone (40 deg dead zone) left it at the lower left of the view.</summary>
-        public const float RecentreDegrees = 60f, RecentreDegreesPerSecond = 110f;   // a glance or a look round moves nothing (Saul, 4 Oct)
-        /// <summary>Heights above the floor, fixed: the card and the compass do not bob with the head (Saul, 4 Oct: lower, constant Y).</summary>
-        public const float LineHeight = 1.05f, CompassHeight = 0.85f;
+        public const float RecentreDegrees = 20f, RecentreDegreesPerSecond = 110f;
         /// <summary>Lines shown at once; longer readings page through (live readings run ~50 words).</summary>
         public const int MaxLines = 3;
         public const float SecondsPerWord = 0.36f, MinPageSeconds = 3.5f;
@@ -49,6 +47,10 @@ namespace MuseXR.UI
         TextMeshProUGUI _kicker, _speaker, _line, _hint, _stop, _target, _detail;
         RawImage _portrait;
         float _yaw;
+        float _eyeHeight; int _eyeSamples;
+        Vector3 _anchorXZ, _lastRig; bool _anchorSet;
+        /// <summary>How far the head may move (lean, nod) before the card and compass follow.</summary>
+        public const float HeadSlack = 0.3f;
         bool _yawStarted;
         float _pageTimer;
         string _hintBase;
@@ -221,9 +223,25 @@ namespace MuseXR.UI
             var fwd = Quaternion.Euler(0f, _yaw, 0f) * Vector3.forward;
 
             // Each card faces the eye squarely, so nothing reads keystoned (it was tilted 25-30 deg off).
+            // Saul, 4 Oct: a fixed height - looking up or down never moves them. The eye height is measured over the
+            // first second and held; only turning (the yaw above) and walking move them.
             var floor = body.Feet.y;
-            var linePos = new Vector3(eye.x, floor + LineHeight, eye.z) + fwd * LineAhead;
-            var compassPos = new Vector3(eye.x, floor + CompassHeight, eye.z) + fwd * CompassAhead;
+            if (_eyeSamples < 60) { _eyeHeight = Mathf.Max(_eyeHeight, eye.y - floor); _eyeSamples++; }
+            // Nor forward and back with the head: leaning or nodding within HeadSlack moves nothing; walking drags
+            // the anchor along behind the head, and a teleport moves it at once (Saul, 4 Oct).
+            var flatEye = new Vector3(eye.x, 0f, eye.z);
+            if (!_anchorSet || (flatEye - _anchorXZ).magnitude > 2f) { _anchorXZ = flatEye; _anchorSet = true; }
+            var off = flatEye - _anchorXZ;
+            if (off.magnitude > HeadSlack) _anchorXZ = flatEye - off.normalized * HeadSlack;
+            // Walking is the RIG moving (the stick), never the head: then keep right up, so the compass does not tip
+            // under you. The head's parent (the rig's camera offset) moves only with locomotion.
+            var rig = body.Head.parent != null ? body.Head.parent.position : flatEye;
+            var rigStep = new Vector3(rig.x - _lastRig.x, 0f, rig.z - _lastRig.z).magnitude;
+            _lastRig = rig;
+            if (rigStep > 0.002f && rigStep < 1f) _anchorXZ = Vector3.MoveTowards(_anchorXZ, flatEye, rigStep + 1.2f * Time.deltaTime);
+            var held = new Vector3(_anchorXZ.x, floor + (_eyeHeight > 0.5f ? _eyeHeight : eye.y - floor), _anchorXZ.z);
+            var linePos = held + fwd * LineAhead - Vector3.up * LineDrop;
+            var compassPos = held + fwd * CompassAhead - Vector3.up * CompassDrop;
             _lineAnchor.SetPositionAndRotation(linePos, Quaternion.LookRotation(linePos - eye, Vector3.up));
             _compassAnchor.SetPositionAndRotation(compassPos, Quaternion.LookRotation(compassPos - eye, Vector3.up));
 
