@@ -75,6 +75,33 @@ namespace MuseXR.Journey
         const float PortalOpenSeconds = 1.0f;   // the opening widens over the morph's last second                                    // a wider opening to see the Palace through
         const float GateCentre = ModelOpeningRadius * GateScale + 0.05f;   // the opening's foot just above the floor
 
+        // The new gate (Saul, 5 Oct): the Palace lantern flies to the Palace's front door and fades out; once it
+        // is gone Skylar's Forbidden City hall fades in; once the hall is whole the moon gate's frame fades in on
+        // its front door and the Palace world opens inside it. Walking through the gate is the way in: the world
+        // and the crossing moved from the walk to the hall's door. False: the old lantern-becomes-gate morph.
+        public static bool PalaceGate = true;
+        const float FlySeconds = 1.8f, LanternFadeSeconds = 1.0f, PalaceFadeSeconds = 1.6f, GateFadeSeconds = 1.0f;
+        // The moon gate's frame as Saul placed it on the door in Play (5 Oct), kept in the hall's own model space
+        // so it follows the hall when the hall is moved or scaled: turned to face out, scaled with it.
+        static readonly Vector3 GateInPalace = new Vector3(-0.01153f, 0.05285f, 0.17937f);
+        const float GateScaleInPalace = 0.032025f;
+        // The gate is lower than a standing head (its opening ~1.3 m across at this scale), and the portal counts a
+        // walk-through only when the eye passes inside the opening. Within this distance of the plane, inside its
+        // width, the visitor is carried HopDistance through: a jump across the plane, which the portal counts at any
+        // height (PortalSequence.TeleportedThrough).
+        const float HopWithin = 0.35f, HopDistance = 0.7f;
+        // Where Saul stood and scaled the hall in Play (5 Oct, second pass: larger, so its door is tall enough),
+        // in this object's space: fixed, the same every run.
+        static readonly Vector3 PalaceAt = new Vector3(-0.040f, -0.510f, -30.500f);
+        const float PalaceYaw = 358.70f, PalaceScale = 18.9066f;
+        // Skylar's hall (Resources/Heroes/palace-gate, a Tripo model ~1 unit across, front +Z), measured on
+        // orthographic front and side renders: the front door is the bay between the two central columns,
+        // from the terrace top to the beam, its face at z 0.176; the front stairs are a 33-degree ramp from
+        // the ground at z 0.414 to the terrace at z 0.308.
+        static readonly Vector3 DoorCentre = new Vector3(0.008f, 0.117f, 0.176f);
+        const float DoorWidth = 0.146f, DoorHeight = 0.090f, TerraceTop = 0.072f;
+        const float StairsFoot = 0.414f, StairsTop = 0.308f, StairsLeft = -0.049f, StairsRight = 0.063f, StairsGround = 0.002f;
+
         readonly string[] _lines = new string[4];
         bool _fallback = true, _begun, _crossed;
         readonly List<Transform> _lanterns = new List<Transform>();
@@ -100,9 +127,11 @@ namespace MuseXR.Journey
             for (var i = 0; i < 4; i++) _lines[i] = HerLines[i];
             _fallback = false;   // her script, not a stand-in
             if (palaceFrame != null) palaceFrame.gameObject.SetActive(false);
+            Shader.SetGlobalFloat("_PortalKeepBehind", 0f);   // a gate fade cut short must not leave every portal see-through
         }
 
-        float _quietFor;
+        float _quietFor, _companyFor;
+        bool _waitLogged, _hopped;
 
         void Update()
         {
@@ -115,6 +144,17 @@ namespace MuseXR.Journey
                 if (_quietFor >= 1f) { _begun = true; StartCoroutine(Unfold()); }
             }
             else _quietFor = 0f;
+            HopThrough();
+            // Why the lanterns have not come, said once after the company has stood 20 s (Saul, 5 Oct: "the
+            // lanterns now never appear", and the log could not say which of the three waits held them).
+            if (!_begun && !_waitLogged && opening != null && opening.Company != null && (_companyFor += Time.deltaTime) > 20f)
+            {
+                _waitLogged = true;
+                var g = opening.Company.Group;
+                Debug.LogWarning("[Curation] lanterns still waiting: company " + opening.Company.Current
+                    + ", group busy " + (g != null && g.Busy) + (g != null && g.Turns != null ? " (turns " + g.Turns.Current + ")" : "")
+                    + ", opening speaking " + opening.Speaking);
+            }
 
         }
 
@@ -448,10 +488,13 @@ namespace MuseXR.Journey
             // On the walk's centre line beyond the lanterns, and always ahead of the visitor wherever they
             // now stand - never on top of them.
             var along = Mathf.Max(firstLantern + lanternStep + 2.4f, Vector3.Dot(_eye.position - _from, toDoor) + 4f);
+            // The Palace's stairs reach ~7.4 m in front of its door: the visitor stands before them, not on them
+            // between the railings (first run, 5 Oct: the gate 8 m ahead put the railings beside the visitor).
             var at = _from + toDoor * along; at.y = _from.y;
             // Stand it on the floor that is actually there (measured 0.4 m above the spawn at this spot).
             if (Physics.Raycast(at + Vector3.up * 3f, Vector3.down, out var floorHit, 6f, ~0, QueryTriggerInteraction.Ignore))
                 at.y = floorHit.point.y;
+            if (PalaceGate) { yield return PalaceRises(first); yield break; }
             CutTunnel(at, Quaternion.LookRotation(toDoor, Vector3.up));
             if (_card != null)
             {
@@ -546,6 +589,203 @@ namespace MuseXR.Journey
             StartCoroutine(RetireCard());
             _gate = mg;
             Debug.Log("[Curation] the moon gate stands; the Palace is behind it");
+        }
+
+        /// <summary>
+        /// The new gate, as far as it goes: the lantern flies to the Palace's front door and fades out; then the
+        /// hall fades in where Saul placed it; then the moon gate's frame fades in on its front door.
+        /// </summary>
+        IEnumerator PalaceRises(Transform lantern)
+        {
+            if (_card != null)
+            {
+                _cardKicker.text = "Palace  ·  Court of Keeping";
+                _cardLine.text = "The Palace lantern shows the way";
+                _cardNote.text = "";
+                PlaceCard();
+            }
+            var palace = PlacePalace();
+            if (palace == null) yield break;
+            var pt = palace.transform;
+            var door = pt.TransformPoint(DoorCentre);
+            var glow = lantern.GetComponentInChildren<Light>();
+            // Its name card stays behind: it flew along as a white tile (5 Oct). Out of _tags, which re-shows them.
+            var tag = lantern.Find("Name");
+            if (tag != null) { _tags.Remove(tag); Appear.Out(tag.gameObject, 0.3f); }
+            // Its glow (1.42 m up the lantern) arrives at the door's centre, just in front of it.
+            Vector3 p0 = lantern.position, p1 = door + pt.forward * 0.6f - Vector3.up * 1.42f;
+            for (float t = 0f; t < FlySeconds; t += Time.deltaTime)
+            {
+                var k = Mathf.SmoothStep(0f, 1f, t / FlySeconds);
+                lantern.position = Vector3.Lerp(p0, p1, k) + Vector3.up * Mathf.Sin(k * Mathf.PI) * 1.2f;   // an arc, so the flight reads
+                if (glow != null) glow.intensity = Mathf.Lerp(1.6f, 4f, k);
+                yield return null;
+            }
+            lantern.position = p1;
+            Appear.Out(lantern.gameObject, LanternFadeSeconds);
+            for (float t = 0f; t < LanternFadeSeconds; t += Time.deltaTime)
+            {
+                if (glow != null) glow.intensity = 4f * (1f - t / LanternFadeSeconds);
+                yield return null;
+            }
+            Appear.In(palace, PalaceFadeSeconds);
+            yield return new WaitForSeconds(PalaceFadeSeconds);
+            var gate = PlaceMoonGate(pt);
+            if (gate == null) { Debug.LogError("[Curation] no moon gate model: no way into the Palace"); yield break; }
+            // The frame and the world inside it fade in together (Saul, 5 Oct: the gate "just appeared"). The
+            // opening is there at once; what comes up is the Palace splat's opacity, with the frame's.
+            var mg = OpenPalaceGate(gate.transform, pt);
+            var world = mg != null ? mg.NextWorld : null;
+            // The hall's red door shows through the circle until the Palace has come up over it: the portal's
+            // erase cross-fades (PortalMask.shader, _PortalKeepBehind) instead of cutting it to black first.
+            var keepBehind = Shader.PropertyToID("_PortalKeepBehind");
+            Shader.SetGlobalFloat(keepBehind, 1f);
+            if (world != null) world.m_OpacityScale = 0f;
+            Appear.In(gate, GateFadeSeconds);
+            if (mg != null) mg.Door.Sequence.RequestOpen();
+            for (float t = 0f; t < GateFadeSeconds; t += Time.deltaTime)
+            {
+                var k = Mathf.SmoothStep(0f, 1f, t / GateFadeSeconds);
+                if (world != null) world.m_OpacityScale = k;
+                Shader.SetGlobalFloat(keepBehind, 1f - k);
+                yield return null;
+            }
+            if (world != null) world.m_OpacityScale = 1f;
+            Shader.SetGlobalFloat(keepBehind, 0f);
+            foreach (var l in _lanterns) if (l != null) { var lt = l.GetComponent<CompassTarget>(); if (lt != null) lt.MarkDone(); }
+            Debug.Log("[Curation] the Palace stands, the moon gate on its door, the Palace world inside it" + (mg != null ? "" : " - THE GATE DID NOT OPEN"));
+        }
+
+        /// <summary>
+        /// The Palace world behind the moon gate on the hall's door: the shared MoonGate set on the terrace under
+        /// the frame's opening, its keyhole the frame's own circle. On the way through, the hall and the frame go
+        /// with the conservatory; on arrival the Palace chapter takes over (Arrive).
+        /// </summary>
+        MoonGate OpenPalaceGate(Transform frame, Transform palace)
+        {
+            var s = frame.lossyScale.x;
+            var centre = frame.position + Vector3.up * (ModelOpeningCentre * s);
+            var through = frame.forward; through.y = 0f; through.Normalize();   // +Z into the next world
+            var threshold = centre; threshold.y = palace.TransformPoint(new Vector3(0f, TerraceTop, DoorCentre.z)).y;
+            CutTunnel(threshold, Quaternion.LookRotation(through, Vector3.up));
+            if (_card != null)
+            {
+                _cardKicker.text = "Palace  ·  Court of Keeping";
+                _cardLine.text = "The Palace lantern becomes a moon gate";
+                _cardNote.text = "Walk through the moon gate. The exhibition begins.";
+            }
+
+            WorldDefinition def = null;
+            foreach (var w in WorldCatalog.Small) if (w.key.StartsWith("palace-court-of-keeping")) def = w;
+            var mg = Instantiate(moonGatePrefab, threshold, Quaternion.LookRotation(through, Vector3.up), transform);
+            mg.nextWorldAsset = palaceWorld.m_Asset;
+            mg.nextWorldKey = def != null ? def.key : "palace-court-of-keeping-500k";
+            mg.radius = ModelOpeningRadius * s;
+            mg.centreHeight = centre.y - threshold.y;
+            mg.passageWidth = 0f;   // the round opening only: the frame's circle is the keyhole
+            var props = new List<GameObject>();
+            foreach (var g in gateLeftovers) if (g != null) props.Add(g);
+            foreach (var l in _lanterns) if (l != null) props.Add(l.gameObject);
+            if (_card != null) props.Add(_card);
+            if (this.opening != null && this.opening.Company != null) props.Add(this.opening.Company.gameObject);
+            props.Add(palace.gameObject);   // the hall and its frame are the outside of the gate: behind the visitor once through
+            props.Add(frame.gameObject);
+            if (!mg.Open(conservatoryWorld, props, _eye)) return null;
+
+            // Her Palace chapter stands on the gate's Palace, as with the old gate.
+            var pivot = mg.NextWorld.transform.parent;
+            palaceFrame.SetPositionAndRotation(pivot.position, pivot.rotation);
+            palaceWorld.gameObject.SetActive(false);
+            foreach (var c in palaceContent) if (c != null) c.SetActive(false);
+            palaceFrame.gameObject.SetActive(true);
+            pivot.SetParent(palaceFrame, true);
+            var sequence = mg.Door.Sequence;
+            sequence.AppearSeconds = 0.01f;
+            sequence.OpenSeconds = 0.05f;   // open at once: the world fades in by its opacity, not as a widening circle
+            sequence.CloseSeconds = 0.6f;
+            sequence.TriggerDistance = 0f;   // the fade opens it, not a look
+            foreach (var c in palaceContent) if (c != null && c.name.StartsWith("Chapter")) c.SetActive(true);
+            ShowMarks(false);
+            mg.Crossed += () => { ShowMarks(true); if (this.opening != null && this.opening.Companions.Count > 0) SwapFigures(this.opening.Companions); };
+            mg.Arrived += () => StartCoroutine(Arrive());
+            CompassTarget.Add(mg.gameObject, 20, "The moon gate", "Walk through to the Palace");
+            StartCoroutine(RetireCard());
+            _gate = mg; _hopped = false;
+            return mg;
+        }
+
+        /// <summary>
+        /// The step through the low gate: the eye within <see cref="HopWithin"/> of the plane, inside the
+        /// opening's width, once the gate is passable - carried <see cref="HopDistance"/> through.
+        /// </summary>
+        void HopThrough()
+        {
+            if (!PalaceGate || _gate == null || _hopped || _crossed || _gate.Door == null || _eye == null) return;
+            if (_gate.Door.Sequence.Opening < MoonGate.PassableOpening) return;
+            var local = _gate.transform.InverseTransformPoint(_eye.position);
+            if (local.z >= 0f || local.z < -HopWithin || Mathf.Abs(local.x) > _gate.radius) return;
+            var rig = FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>();
+            if (rig == null) return;
+            _hopped = true;
+            var cc = rig.GetComponent<CharacterController>();
+            var had = cc != null && cc.enabled;
+            if (had) cc.enabled = false;
+            var through = _gate.transform.forward; through.y = 0f;
+            rig.transform.position += through.normalized * HopDistance;
+            Physics.SyncTransforms();
+            if (had) cc.enabled = true;
+            Debug.Log("[Curation] stepped through the moon gate");
+        }
+
+        /// <summary>Skylar's hall where Saul placed it, inactive (Appear.In shows it), with the walkable ramp and terrace.</summary>
+        GameObject PlacePalace()
+        {
+            var model = Resources.Load<GameObject>("Heroes/palace-gate");
+            if (model == null) { Debug.LogError("[Curation] no palace model at Resources/Heroes/palace-gate"); return null; }
+            var go = Instantiate(model, transform);
+            go.name = "Palace Hall (Skylar)";
+            go.transform.localPosition = PalaceAt;
+            go.transform.localRotation = Quaternion.Euler(0f, PalaceYaw, 0f);
+            go.transform.localScale = Vector3.one * PalaceScale;
+            Walkable(go.transform);
+            go.SetActive(false);
+            return go;
+        }
+
+        /// <summary>
+        /// Colliders for smooth locomotion up the front: a slab along the stairs (33 degrees, under the
+        /// CharacterController's 45-degree limit) and one over the terrace to the door. In the model's own
+        /// units; the walls get none, so the door stays open to walk through.
+        /// </summary>
+        static void Walkable(Transform palace)
+        {
+            const float slab = 0.01f;   // 16 cm at Saul's scale, under the surface
+            var run = StairsFoot - StairsTop; var rise = TerraceTop - StairsGround;
+            var ramp = new GameObject("Walk Ramp").transform;
+            ramp.SetParent(palace, false);
+            var tilt = Mathf.Atan2(rise, run) * Mathf.Rad2Deg;
+            ramp.localRotation = Quaternion.Euler(tilt, 0f, 0f);   // +Z runs down the stairs toward the visitor
+            var mid = new Vector3((StairsLeft + StairsRight) / 2f, (StairsGround + TerraceTop) / 2f, (StairsFoot + StairsTop) / 2f);
+            ramp.localPosition = mid - ramp.localRotation * Vector3.up * (slab / 2f);
+            var rb = ramp.gameObject.AddComponent<BoxCollider>();
+            rb.size = new Vector3(StairsRight - StairsLeft, slab, Mathf.Sqrt(run * run + rise * rise) + 0.004f);
+            var terrace = new GameObject("Walk Terrace").transform;
+            terrace.SetParent(palace, false);
+            terrace.localPosition = new Vector3(DoorCentre.x, TerraceTop - slab / 2f, (StairsTop + DoorCentre.z) / 2f - 0.01f);
+            var tb = terrace.gameObject.AddComponent<BoxCollider>();
+            tb.size = new Vector3(DoorWidth, slab, StairsTop - DoorCentre.z + 0.03f);   // a little past the door face
+        }
+
+        /// <summary>Her moon gate's frame on the Palace's front door, where Saul placed it on the hall; inactive (Appear.In shows it).</summary>
+        GameObject PlaceMoonGate(Transform palace)
+        {
+            if (moonGateModel == null) return null;
+            var frame = Instantiate(moonGateModel, transform);
+            frame.name = "Moon Gate (on the Palace door)";
+            frame.transform.SetPositionAndRotation(palace.TransformPoint(GateInPalace), palace.rotation * Quaternion.Euler(0f, 180f, 0f));
+            frame.transform.localScale = Vector3.one * (palace.lossyScale.x * GateScaleInPalace);
+            frame.SetActive(false);
+            return frame;
         }
 
         /// <summary>
