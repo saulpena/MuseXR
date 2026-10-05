@@ -981,6 +981,7 @@ namespace MuseXR.Journey
             _driver = new GameObject("Time Ring Driver").AddComponent<TimeRingDriver>();
             _driver.transform.SetParent(root, false);
             _driver.particles = GardenMotes(root);
+            _driver.particlesAtFull = MotesAtFull;
             _dial = TimeRingDial.Make(dial, ring.transform, _driver);
             _dial.Clicked += OnTime;
             CompassTarget.Add(dial, 21, "The time ring", "Grip it and turn");
@@ -991,6 +992,10 @@ namespace MuseXR.Journey
         /// none in the clear afternoon (TimeRing's looks: 1, 0.35, 0). The driver sets the rate; this is only the system.
         /// Soft discs, additive, unlit, slow and buoyant over the path between the ring and the pond.
         /// </summary>
+        // Saul, 5 Oct: "add more motes, make it more obvious". Four times the first rate, soft-edged so a near one is a blur,
+        // not a white disc (hard discs read as snow), and capped on screen.
+        const float MotesAtFull = 160f;
+
         ParticleSystem GardenMotes(Transform ring)
         {
             var go = new GameObject("Garden motes");
@@ -1000,12 +1005,12 @@ namespace MuseXR.Journey
             var ps = go.AddComponent<ParticleSystem>();
             ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = ps.main;
-            main.loop = true; main.playOnAwake = true; main.maxParticles = 400;
+            main.loop = true; main.playOnAwake = true; main.maxParticles = 1500;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.startLifetime = new ParticleSystem.MinMaxCurve(7f, 11f);
             main.startSpeed = new ParticleSystem.MinMaxCurve(0.02f, 0.07f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.012f, 0.035f);
-            main.startColor = new Color(1f, 0.97f, 0.9f, 0.55f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.02f, 0.05f);
+            main.startColor = new Color(1f, 0.99f, 0.96f, 0.7f);
             main.gravityModifier = -0.004f;   // buoyant: they rise, barely
             var shape = ps.shape;
             shape.shapeType = ParticleSystemShapeType.Box;
@@ -1019,6 +1024,7 @@ namespace MuseXR.Journey
             var emission = ps.emission; emission.rateOverTime = 0f;   // the clear afternoon it starts in; the driver sets it from the ring
             var r = go.GetComponent<ParticleSystemRenderer>();
             r.renderMode = ParticleSystemRenderMode.Billboard;
+            r.maxParticleSize = 0.012f;   // a mote passing the eye stays a fleck
             var m = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
             m.SetFloat("_Surface", 1f); m.SetFloat("_Blend", 2f);
             m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
@@ -1026,12 +1032,32 @@ namespace MuseXR.Journey
             m.SetFloat("_ZWrite", 0f);
             m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-            var disc = UiSprites.Disc();
-            if (disc != null) m.SetTexture("_BaseMap", disc.texture);
+            m.SetTexture("_BaseMap", SoftDot());
             r.sharedMaterial = m;
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; r.receiveShadows = false;
             ps.Play();
             return ps;
+        }
+
+        static Texture2D _softDot;
+
+        /// <summary>A soft round blur, white, its alpha a gaussian: what a mote looks like out of focus.</summary>
+        static Texture2D SoftDot()
+        {
+            if (_softDot != null) return _softDot;
+            const int n = 64;
+            _softDot = new Texture2D(n, n, TextureFormat.RGBA32, false) { name = "soft-dot", wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.DontSave };
+            var px = new Color32[n * n];
+            for (var y = 0; y < n; y++)
+            for (var x = 0; x < n; x++)
+            {
+                float dx = (x + 0.5f) / n - 0.5f, dy = (y + 0.5f) / n - 0.5f;
+                var r = Mathf.Sqrt(dx * dx + dy * dy) * 2f;
+                var a = Mathf.Exp(-r * r * 5f) * Mathf.Clamp01((1f - r) * 4f);
+                px[y * n + x] = new Color32(255, 255, 255, (byte)(a * 255));
+            }
+            _softDot.SetPixels32(px); _softDot.Apply();
+            return _softDot;
         }
 
         void OnTime(TimeOfDay t)
@@ -1079,13 +1105,46 @@ namespace MuseXR.Journey
                  + "The others: answer it through your own way of seeing. Each one or two short sentences, under 30 words, to the visitor. No numbers.";
         }
 
-        /// <summary>Her saved record is monet{preset, artworkId, reason}: after the work, why they stopped for it.</summary>
+        /// <summary>
+        /// Her saved record is monet{preset, artworkId, reason}: after the work, why they stopped for it. Three different
+        /// answers to the garden's question, "What is worth stopping for?" - attention (what we nearly miss), time (what
+        /// will not come back) and feeling (what quiets the mind) - so each master has something of their own to say to
+        /// it: Socrates the first, Monet the second, Van Gogh the third (Saul, 5 Oct: ours, Skylar has none).
+        /// </summary>
         static readonly string[] MonetReasons =
         {
-            "Because it will not look like this again",
-            "Because the light was on it",
-            "Because it made the moment slow down",
+            "Because I almost walked past it",
+            "Because it will never look this way again",
+            "Because it let me stop thinking",
         };
+
+        /// <summary>Only when there is no live answer: each master on each reason, in their own lens.</summary>
+        static readonly Dictionary<string, string>[] ReasonTakes =
+        {
+            new Dictionary<string, string> {
+                { Masters.Socrates, "You almost walked past it. Then what else did you walk past today without knowing?" },
+                { Masters.Monet, "Most of my life went into the things people walk past. The pond was there for years before I looked." },
+                { Masters.VanGogh, "The best things never call out. You have to turn round for them." } },
+            new Dictionary<string, string> {
+                { Masters.Monet, "That is the only reason I ever painted. Tomorrow the same water is a different picture." },
+                { Masters.Socrates, "If it will never look this way again, will you? What changes, the painting or the one who stops?" },
+                { Masters.VanGogh, "Then hold it now, hard, the way you would hold a hand." } },
+            new Dictionary<string, string> {
+                { Masters.VanGogh, "Yes. When the thinking stops, the seeing starts. That is when I could paint." },
+                { Masters.Monet, "The water does that. It asks for nothing, and you give it all your attention anyway." },
+                { Masters.Socrates, "And is a quiet mind empty, or only listening? I have never been sure which." } },
+        };
+
+        /// <summary>What the companions are asked once the reason is kept: the moment, the work and the reason, to this visitor.</summary>
+        string ReasonQuestion()
+        {
+            var asked = JourneyMemory.Record != null ? JourneyMemory.Record.Question : "";
+            return "In Monet's water garden the room asks: 'What is worth stopping for?' At " + MomentWord(_time) + " the visitor stopped for "
+                 + Works[_pickedWork] + ", and gave this reason: '" + MonetReasons[_reason] + "'. "
+                 + (string.IsNullOrWhiteSpace(asked) ? "" : "They came into the museum asking: \"" + asked.Trim() + "\". ")
+                 + "Answer their reason, each through your own way of seeing - agree, push back, or ask. "
+                 + "Each one or two short sentences, under 30 words, to the visitor. No numbers.";
+        }
 
         /// <summary>"At this moment, which painting did you stop for?" - her four Monets as chips over the pedestal.</summary>
         IEnumerator ShowChips()
@@ -1179,6 +1238,11 @@ namespace MuseXR.Journey
             Debug.Log("[Monet] saved: " + _time + " · " + Works[_pickedWork] + " · " + MonetReasons[_reason]);
             _stage = 3;
             KeepWork();
+            // The companions answer the reason itself, live; their own lines on it only when there is no live answer.
+            var reason = _reason;
+            ChapterFeatures.TakeLive(this, _group, ReasonQuestion(), "your reason", "why the visitor stopped for " + Works[_pickedWork],
+                                     id => ReasonTakes[reason].TryGetValue(id, out var l) ? l : null, "Your reason  ·  " + MonetReasons[reason],
+                                     () => !_tableStarted);
             return true;
         }
 
