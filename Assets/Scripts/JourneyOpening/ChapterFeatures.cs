@@ -184,18 +184,10 @@ namespace MuseXR.Journey
         /// once (the round table started three clips together and they talked over each other).</summary>
         internal static bool SayVoiced(MonoBehaviour host, CompanionGroup group, List<KeyValuePair<string, string>> lines)
         {
-            var mine = new Dictionary<string, string>();
-            foreach (var kv in lines) mine[kv.Key] = kv.Value;
-            System.Action<string, string> speak = null;
-            speak = (id, line) =>
-            {
-                if (mine.TryGetValue(id, out var l) && l == line) { mine.Remove(id); if (host != null) Voice(host, id, line); }
-                if (mine.Count == 0) group.LineStarted -= speak;
-            };
-            group.LineStarted += speak;
-            if (group.SayInTurn(lines)) return true;
-            group.LineStarted -= speak;
-            return false;
+            // The shared voice (MasterVoice): one source, a new round stops the last, so a take never talks over
+            // a reading. Followed before the turns begin, so the first line is caught.
+            MasterVoice.Follow(group);
+            return group.SayInTurn(lines);
         }
 
         /// <summary>A companion outside her scripted trio speaks from their lens.</summary>
@@ -214,8 +206,10 @@ namespace MuseXR.Journey
         /// <summary>The voice of the scene's MuseumDialogue, if any: speaks a line in a master's voice.</summary>
         internal static void Voice(MonoBehaviour host, string masterId, string line)
         {
-            var dialogue = FindAnyObjectByType<MuseumDialogue>();
-            if (dialogue != null && dialogue.HasVoice) host.StartCoroutine(Play(dialogue, masterId, line));
+            // One voice for everything the masters say (MasterVoice): this line starts its own round.
+            var voice = MasterVoice.Get();
+            voice.NewRound();
+            voice.Say(masterId, line);
         }
 
         static IEnumerator Play(MuseumDialogue dialogue, string masterId, string line)
