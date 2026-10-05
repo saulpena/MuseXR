@@ -38,7 +38,7 @@ namespace MusePico.Journey
         public Vector3 doorwayWorld;
         [System.NonSerialized] public float archYawOffset = -3f;
         [System.NonSerialized] public float archDistance = 50f;
-        [System.NonSerialized] public float letteringHeight = 15f;   // above the masters' name cards and clear of the company panel (Saul, 4 Oct)
+        [System.NonSerialized] public float letteringHeight = 17.5f;   // above the masters' name cards and clear of the company panel (Saul, 4 Oct)
         [Tooltip("Cap height of the lettering, metres. Her rule: body text >= 1 degree; at 50 m that is 0.87 m.")]
         [System.NonSerialized] public float letteringCapHeight = 1.6f;   // read at 50 m: ~1.8 degrees of cap height
         [System.NonSerialized] public float letteringWidth = 24f;
@@ -518,9 +518,13 @@ namespace MusePico.Journey
                     false, 14f, WebInk2, 0f, false, 1.5f, "Lede");
 
             var panel = MuseUi.Card(cols, WebGlass, 0f, WebLine, 1f, padX: 30f, padY: 30f, gap: 16f, name: "Question Panel");
-            panel.gameObject.AddComponent<LayoutElement>().preferredWidth = 540f;
+            var ple = panel.gameObject.AddComponent<LayoutElement>(); ple.preferredWidth = ple.minWidth = 540f; ple.flexibleWidth = 0f;
             WebText(panel, "Your question", false, 8f, WebAccent, 0.22f, true, name: "Label");
             _draftText = WebText(panel, Placeholder, true, 40f, WebInkFaint, 0f, false, 1.15f, "Question");
+            // One size whatever the question: room for three lines, so choosing a longer one never resizes the menu (Saul, 4 Oct).
+            var dle = _draftText.gameObject.AddComponent<LayoutElement>();
+            dle.minHeight = dle.preferredHeight = 40f * 1.15f * 3f + 6f; dle.flexibleHeight = 0f;
+            dle.preferredWidth = 480f; dle.flexibleWidth = 0f;
             var chips = MuseUi.Row(panel, 8f, TextAnchor.MiddleLeft, "Chips");
             for (var k = 0; k < GateFlow.Samples.Count; k++)   // her three samples (MUSE-VR-design, 2 Oct 2026)
             {

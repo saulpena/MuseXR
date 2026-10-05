@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using MusePico.Dialogue;
 using MusePico.Journey;
@@ -80,6 +81,46 @@ namespace MuseXR.Journey
             }
             if (gate != null) gate.Flow.PhaseChanged += OnGatePhase;
             HerLight();
+            // Saul, 4 Oct: nothing to walk to and nothing to touch until the companions are chosen. Walking and
+            // the Gate's works come with them; the works fade in rather than pop.
+            Walking(false);
+            StartCoroutine(HideGateWorks());
+        }
+
+        bool _revealed;
+
+        /// <summary>Walking on or off: the rig's continuous move (a turn still turns) and the desk's WASD.</summary>
+        static void Walking(bool on)
+        {
+            MuseXR.Worlds.DesktopMove.Suspended = !on;
+            foreach (var m in FindObjectsByType<UnityEngine.XR.Interaction.Toolkit.Locomotion.Movement.ContinuousMoveProvider>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                m.enabled = on;
+        }
+
+        static IEnumerable<GameObject> GateWorks()
+        {
+            foreach (var r in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
+                if (r.name == "Gate Paintings") yield return r;
+            foreach (var t in FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (t.name == "Hero · Mona Lisa" || t.name == "Hero · Venus de Milo") yield return t.gameObject;
+        }
+
+        /// <summary>The hung works and the heroes are built over the first frames: keep them hidden until revealed.</summary>
+        IEnumerator HideGateWorks()
+        {
+            for (var f = 0; f < 120 && !_revealed; f++)
+            {
+                foreach (var go in GateWorks()) if (go.activeSelf) go.SetActive(false);
+                yield return null;
+            }
+        }
+
+        void RevealGateWorks()
+        {
+            if (_revealed) return;
+            _revealed = true;
+            Walking(true);
+            foreach (var go in new List<GameObject>(GateWorks())) FadeIn.Reveal(go, 1.6f);
         }
 
         /// <summary>
@@ -172,17 +213,20 @@ namespace MuseXR.Journey
                 pointable.Hovering += _ =>
                 {
                     _hovered.Add(id); RefreshMarks();
-                    // Her "point at one to hear a one-line introduction": once each, while choosing.
-                    if (Company.Current == CompanyStage.Phase.Choosing && _introduced.Add(id))
+                    // Her "point at one to hear a one-line introduction", while choosing (Saul, 4 Oct): only a master
+                    // not yet chosen, after a deliberate point (the ray resting 0.4 s), and pointing at another stops
+                    // this one - voice and card - at once.
+                    if (Company.Current == CompanyStage.Phase.Choosing && id != _introId)
                     {
-                        var intro = Masters.Intro(id);
-                        if (!string.IsNullOrEmpty(intro)) StartCoroutine(Say(id, intro, "Meet your companion  ·  " + Masters.Tagline(id)));
+                        StopIntro();
+                        if (!Company.Invitation.IsChosen(id)) { _introId = id; _intro = StartCoroutine(IntroAfterDwell(id)); }
                     }
                 };
                 pointable.Unhovered += _ => { _hovered.Remove(id); RefreshMarks(); };
             }
             Company.Toggled += (id, r) =>
             {
+                if (id == _introId) StopIntro();
                 RefreshMarks();
                 RefreshPrompt(r == Invitation.Result.Refused ? "Three is the most. Point at one you have invited to release them first." : null);
             };
@@ -269,7 +313,7 @@ namespace MuseXR.Journey
             var visitorRight = Vector3.Cross(Vector3.up, toRow).normalized;
             // Centred over the row, above the name cards and above eye level: instructions stand above the
             // view (Saul, 3 Oct). At 40 degrees right it hung half off the edge of the view (4 Oct).
-            var at = spawn + toRow * rowFromSpawn + Vector3.up * 3.9f;   // and clear below the question engraved on the far arch   // clear of the name cards, which now stand at two heights
+            var at = spawn + toRow * rowFromSpawn + Vector3.up * 4.6f;   // and clear below the question engraved on the far arch   // clear of the name cards, which now stand at two heights
             var toEye = spawn - at; toEye.y = 0f;
             anchor.SetPositionAndRotation(at, Quaternion.LookRotation(-toEye.normalized, Vector3.up));
             // Her web dark glass (as the Gate's question panel): cream ink, lavender eyebrow, Gilda title.
@@ -324,6 +368,7 @@ namespace MuseXR.Journey
             RefreshPrompt();
             // Once chosen they walk with the visitor as a crowd: beside, never in front (Saul, 3 Oct).
             if (phase == CompanyStage.Phase.Answering) Company.Group.Crowd = true;
+            if (phase != CompanyStage.Phase.Choosing) RevealGateWorks();   // the company is confirmed: walking and the works
             if (phase == CompanyStage.Phase.Stepping)
                 foreach (var kv in _marks) { kv.Value.ring.gameObject.SetActive(false); kv.Value.state.transform.parent.parent.parent.gameObject.SetActive(false); }
             if (phase != CompanyStage.Phase.Stepping || _asked) return;
@@ -407,6 +452,31 @@ namespace MuseXR.Journey
                 var panel = TorsoPanel.Get();
                 if (panel != null) panel.ClearLine();
             }
+        }
+
+        string _introId;
+        Coroutine _intro;
+
+        System.Collections.IEnumerator IntroAfterDwell(string id)
+        {
+            yield return new WaitForSeconds(0.4f);
+            if (!_hovered.Contains(id) || Company == null || Company.Current != CompanyStage.Phase.Choosing) { _introId = null; yield break; }
+            var intro = Masters.Intro(id);
+            if (!string.IsNullOrEmpty(intro)) yield return Say(id, intro, "Meet your companion  ·  " + Masters.Tagline(id));
+            if (_introId == id) _introId = null;
+        }
+
+        /// <summary>The intro playing now, voice and card, stops: the visitor pointed at someone else (or chose).</summary>
+        void StopIntro()
+        {
+            if (_intro != null) StopCoroutine(_intro);
+            _intro = null;
+            if (_introId == null) return;
+            if (_speaking != null) _speaking.Stop();
+            if (Company != null && Company.Group.ActiveSpeaker == _introId) Company.Group.ActiveSpeaker = null;
+            var panel = TorsoPanel.Existing;
+            if (panel != null) panel.ClearLine();
+            _introId = null;
         }
 
         System.Collections.IEnumerator SpeakTurn(string id, string line)
