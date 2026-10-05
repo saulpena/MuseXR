@@ -22,6 +22,9 @@ namespace MuseXR.Interaction
 
         public static YourWorldMiniature Current { get; private set; }
 
+        /// <summary>Her regret path: B at the miniature - it sinks back into the table and the answer is open again.</summary>
+        public static event System.Action Regretted;
+
         Vector3 _top;
         bool _entering;
 
@@ -93,14 +96,15 @@ namespace MuseXR.Interaction
             var rec = JourneyMemory.Record;
             var anchor = new GameObject("Label").transform; anchor.SetParent(transform, false);
             // Clear above the model's arch (0.64 high in these units; at 0.42 the label cut across it, 5 Oct).
-            anchor.localPosition = new Vector3(0f, Mathf.Max(0.42f, _modelTop + 0.14f), 0f);
+            // Well clear of the arch: seen from standing height, close, the arch still crossed it at +0.14 (5 Oct).
+            anchor.localPosition = new Vector3(0f, Mathf.Max(0.5f, _modelTop + 0.32f), 0f);
             anchor.rotation = Quaternion.LookRotation(-toEye, Vector3.up);
             var c = MuseUi.Canvas(anchor, "Miniature", 1.8f, 300f);
             var card = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Gold, 1f, padX: 12f, padY: 9f, gap: 3f, name: "Card");
             card.GetComponent<UnityEngine.UI.VerticalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;
             var t = MuseUi.Text(card, "Your world" + (string.IsNullOrWhiteSpace(rec.WorldTitle) ? "" : "  ·  " + rec.WorldTitle.Trim()), MuseUi.Face.Serif, 15f, MuseTheme.Ink, name: "Title");
             t.alignment = TextAlignmentOptions.Center;
-            var h = MuseUi.Text(card, "Point at its door and press A to enter", MuseUi.Face.Sans, 10f, MuseTheme.Ink3, name: "Hint");
+            var h = MuseUi.Text(card, "Point at its door and press A to enter  ·  B back to your answer", MuseUi.Face.Sans, 10f, MuseTheme.Ink3, name: "Hint");
             h.alignment = TextAlignmentOptions.Center;
             foreach (var r in GetComponentsInChildren<Renderer>()) r.enabled = false;   // shown as it rises
         }
@@ -133,7 +137,39 @@ namespace MuseXR.Interaction
             return true;
         }
 
-        public bool Redo() => false;
+        /// <summary>
+        /// B: not yet. The miniature sinks back into the table and the answer opens again with its draft and rewrite
+        /// (her "regret path: at the miniature stage you can go back and edit"). Never once the visitor is entering.
+        /// </summary>
+        public bool Redo()
+        {
+            if (_entering || _sinking) return false;
+            _sinking = true;
+            ConfirmInput.Drop(this);
+            StopAllCoroutines();
+            StartCoroutine(Sinking());
+            return true;
+        }
+
+        bool _sinking;
+
+        IEnumerator Sinking()
+        {
+            var from = transform.position; var scale = transform.localScale.x;
+            var to = _top - Vector3.up * 0.6f;
+            const float seconds = 1.0f;
+            for (float t = 0f; t < seconds; t += Time.deltaTime)
+            {
+                var k = Mathf.SmoothStep(0f, 1f, t / seconds);
+                transform.position = Vector3.Lerp(from, to, k);
+                transform.localScale = Vector3.one * Mathf.Lerp(scale, 0.2f, k);
+                yield return null;
+            }
+            if (Current == this) Current = null;
+            Debug.Log("[Miniature] back to the answer");
+            Regretted?.Invoke();
+            Destroy(gameObject);
+        }
 
         IEnumerator Enter()
         {

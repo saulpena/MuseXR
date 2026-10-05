@@ -40,6 +40,22 @@ namespace MuseXR.Interaction
         readonly List<(Vector3 at, AudioClip chime, bool played)> _chimes = new List<(Vector3, AudioClip, bool)>();
         AudioSource _audio;
         CanvasGroup _memento;
+        TextMeshPro _engraving;
+        TMPro.TextMeshProUGUI _mementoAnswer, _saveStatus;
+        RectTransform _mementoCard;
+        GameObject _statusPill, _buttonRow;
+        Transform _stone;
+
+        /// <summary>The kept answer changed (B at the answer stone, her "returns to the table"): re-engrave it, rewrite the memento.</summary>
+        public void SetAnswer(string answer)
+        {
+            if (string.IsNullOrWhiteSpace(answer)) return;
+            if (_engraving != null) _engraving.text = "“" + answer.Trim() + "”";
+            if (_mementoAnswer != null) _mementoAnswer.text = "“" + answer.Trim() + "”";
+        }
+
+        /// <summary>Where the answer stone stands (the visitor's B reopens the answer near it).</summary>
+        public Transform Stone => _stone;
         float _waited;
         Transform _palacePiece;
 
@@ -218,15 +234,20 @@ namespace MuseXR.Interaction
             foreach (var p in pts) { var v = new Vector3(p[0], p[1], p[2]); min = Vector3.Min(min, v); max = Vector3.Max(max, v); }
             var centre = (min + max) * 0.5f;
             var at = new Vector3(0f, 2.4f + (max.y - min.y) * 0.75f, 3.2f);
-            line.useWorldSpace = false;
-            line.positionCount = pts.Count;
-            for (var i = 0; i < pts.Count; i++)
-                line.SetPosition(i, at + (new Vector3(pts[i][0], pts[i][1], pts[i][2]) - centre) * 1.5f);
-            if (ColorUtility.TryParseHtmlString(rec.VanGogh.Color, out var c)) { line.startColor = c; line.endColor = c; if (line.sharedMaterial != null) line.material.color = c; }
-            // A brush stroke, not a wire: at 6 cm wide with square ends it read as a stray line in the air
-            // (live run, 4 Oct). Her stroke is the visitor's own work, so it is labelled like the others.
-            line.widthMultiplier = StrokeWidth; line.numCapVertices = 6; line.numCornerVertices = 4;
-            line.enabled = true;
+            // The same ribbon the studio drew (StrokeBrush): smoothed, swelling and tapering, here 1.5x as long and as
+            // broad, in the stroke's colour, lit like wet paint. The layout's line renderer is only where it hangs.
+            line.enabled = false;
+            var local = new List<Vector3>(pts.Count);
+            for (var i = 0; i < pts.Count; i++) local.Add(at + (new Vector3(pts[i][0], pts[i][1], pts[i][2]) - centre) * 1.5f);
+            var ribbon = new GameObject("Stroke ribbon", typeof(MeshFilter), typeof(MeshRenderer));
+            ribbon.transform.SetParent(strokeT, false);
+            var mesh = new Mesh { name = "your stroke" };
+            StrokeBrush.BuildRibbon(mesh, local, StrokeBrush.LevelUps(local), 4, 1.5f);
+            ribbon.GetComponent<MeshFilter>().sharedMesh = mesh;
+            var colour = ColorUtility.TryParseHtmlString(rec.VanGogh.Color, out var c) ? c : new Color(0.18f, 0.31f, 0.56f);
+            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            mat.SetColor("_BaseColor", colour); mat.SetFloat("_Smoothness", 0.55f); mat.SetFloat("_Cull", 0f);
+            var mr = ribbon.GetComponent<MeshRenderer>(); mr.sharedMaterial = mat; mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             // Its plate just under the stroke's lower end, so it hangs from the thing it names.
             var a0 = at + (new Vector3(pts[0][0], pts[0][1], pts[0][2]) - centre) * 1.5f;
             var a1 = at + (new Vector3(pts[pts.Count - 1][0], pts[pts.Count - 1][1], pts[pts.Count - 1][2]) - centre) * 1.5f;
@@ -295,7 +316,9 @@ namespace MuseXR.Interaction
                        : sample ? "A life not wasted is one where I know why I keep walking" : null;
             if (answer == null) return;
             // Engraved on the stone's face toward the visitor (-Z: the stone faces the spawn).
+            _stone = stone;
             var face = new GameObject("Engraving").AddComponent<TextMeshPro>();
+            _engraving = face;
             face.transform.SetParent(stone, false);
             face.transform.localPosition = new Vector3(0f, 0f, -0.51f);
             face.transform.localRotation = Quaternion.identity;
@@ -341,9 +364,75 @@ namespace MuseXR.Interaction
             var letters = "ABCD";
             for (var i = 0; i < lines.Count && i < 4; i++)
                 MuseUi.Text(glass, letters[i] + "   " + lines[i].line, MuseUi.Face.Sans, 11.5f, MuseTheme.Ink, name: "Choice " + letters[i]);
-            if (answer != null) MuseUi.Text(glass, "“" + answer + "”", MuseUi.Face.Serif, 14f, MuseTheme.Ink, name: "Answer");
+            if (answer != null) _mementoAnswer = MuseUi.Text(glass, "“" + answer + "”", MuseUi.Face.Serif, 14f, MuseTheme.Ink, name: "Answer");
             MuseUi.Text(glass, "With " + string.Join(" · ", companions) + " (AI interpretations)", MuseUi.Face.Sans, 9.5f, MuseTheme.Ink3, name: "Company");
             if (title == null) MuseUi.Text(glass, "The roundtable did not answer: a generic ending, not a generated one.", MuseUi.Face.Sans, 9f, MuseTheme.Ink3, name: "Notice");
+            _mementoCard = glass;
+            Buttons(c, card);
+        }
+
+        /// <summary>
+        /// Her 4.5: in the headset only Save and Start again, under the card (not on it, so a saved memento is the card
+        /// alone). Save writes memento.png; Start again opens the entry arch behind the visitor at once and says to turn
+        /// round - restarting is a deliberate turn and walk, never one press.
+        /// </summary>
+        void Buttons(RectTransform canvas, Transform card)
+        {
+            var row = MuseUi.Row(canvas, 10f, TextAnchor.MiddleCenter, "Buttons");
+            _buttonRow = row.gameObject;
+            var save = Button(row, "Save", MuseTheme.Gold, Color.white);
+            var again = Button(row, "Start again", MuseTheme.Paper, MuseTheme.Ink);
+            // Its own dark pill under the buttons, hidden until there is something to say: off the card, so a saved
+            // memento never carries "Saved to ..." in it.
+            var pill = MuseUi.Card(canvas, new Color(0.09f, 0.08f, 0.07f, 0.8f), MuseTheme.OptionRadius, null, 0f, padX: 14f, padY: 6f, gap: 0f, name: "Status");
+            _saveStatus = MuseUi.Text(pill, "", MuseUi.Face.Sans, 10f, MuseTheme.Paper, 0.04f, name: "Words");
+            _saveStatus.alignment = TextAlignmentOptions.Center;
+            _statusPill = pill.gameObject;
+            _statusPill.SetActive(false);
+            Canvas.ForceUpdateCanvases();
+            Hit(save, card, "save memento", SaveMemento);
+            Hit(again, card, "start again", StartAgain);
+        }
+
+        static RectTransform Button(Transform row, string label, Color fill, Color ink)
+        {
+            var chip = MuseUi.Card(row, fill, MuseTheme.OptionRadius, MuseTheme.Gold, 1f, padX: 18f, padY: 8f, gap: 0f, name: label);
+            var le = chip.gameObject.AddComponent<UnityEngine.UI.LayoutElement>(); le.preferredWidth = le.minWidth = 140f;
+            var t = MuseUi.Text(chip, label, MuseUi.Face.Sans, 12f, ink, name: "Label");
+            t.alignment = TextAlignmentOptions.Center; t.fontStyle = FontStyles.Bold;
+            return chip;
+        }
+
+        static void Hit(RectTransform chip, Transform parent, string name, System.Action onPress)
+        {
+            var corners = new Vector3[4];
+            chip.GetWorldCorners(corners);
+            var hit = new GameObject("Hit " + name).transform;
+            hit.SetParent(parent, false);
+            var lo = parent.InverseTransformPoint(corners[0]); var hi = parent.InverseTransformPoint(corners[2]);
+            var box = hit.gameObject.AddComponent<BoxCollider>();
+            box.center = (lo + hi) * 0.5f; box.size = new Vector3(Mathf.Abs(hi.x - lo.x), Mathf.Abs(hi.y - lo.y), 0.02f);
+            var p = Pointable.Make(hit.gameObject, name);
+            HoverTint.Bind(p, chip.GetComponent<UnityEngine.UI.Image>());
+            p.Selected += (_, __) => onPress();
+        }
+
+        public void SaveMemento()
+        {
+            var path = MementoSaver.Save(_mementoCard, MuseTheme.Paper, _buttonRow, _statusPill);
+            if (_statusPill != null) _statusPill.SetActive(true);
+            if (_saveStatus != null)
+                _saveStatus.text = path != null ? "Saved to Pictures/MUSE  ·  " + System.IO.Path.GetFileName(path) : "Could not save the memento";
+            ChimePlayer.Play(ChimePlayer.TickClip(), _mementoCard != null ? _mementoCard.position : transform.position, 0.6f);
+        }
+
+        public void StartAgain()
+        {
+            var exit = transform.root.GetComponentInChildren<ChapterExit>(true);
+            if (exit != null) exit.Complete();
+            if (_statusPill != null) _statusPill.SetActive(true);
+            if (_saveStatus != null) _saveStatus.text = "Turn round: the arch behind you is open. Walk through it to begin again";
+            DialogueContext.Notice("Start again", "Turn round\nThe arch behind you is open. Walk through it to begin again", 6f);
         }
 
         static string ShortName(string id) => id switch

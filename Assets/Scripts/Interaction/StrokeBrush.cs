@@ -92,18 +92,21 @@ namespace MuseXR.Interaction
         /// The band's width at <paramref name="t"/> (0 start .. 1 end): it swells over the first tenth as the brush is
         /// pressed, holds, and tapers over the last third as it lifts - the shape of a loaded brush stroke.
         /// </summary>
-        public static float WidthAt(float t)
+        public static float WidthAt(float t) => WidthAt(t, 1f);
+
+        /// <summary>As above, <paramref name="scale"/> times as wide: the stroke at 1.5x in Your world is 1.5x as broad.</summary>
+        public static float WidthAt(float t, float scale)
         {
             var press = Mathf.SmoothStep(0.35f, 1f, Mathf.Clamp01(t / 0.1f));
             var lift = Mathf.SmoothStep(0.15f, 1f, Mathf.Clamp01((1f - t) / 0.33f));
-            return Width * press * lift;
+            return Width * scale * press * lift;
         }
 
         /// <summary>
         /// Fill <paramref name="mesh"/> with the stroke as a flat band: two vertices per spline sample, spread across
         /// the brush's flat side (its up), bent away from the direction of travel so it never folds edge-on.
         /// </summary>
-        public static void BuildRibbon(Mesh mesh, IReadOnlyList<Vector3> pts, IReadOnlyList<Vector3> ups, int perSegment = 4)
+        public static void BuildRibbon(Mesh mesh, IReadOnlyList<Vector3> pts, IReadOnlyList<Vector3> ups, int perSegment = 4, float widthScale = 1f)
         {
             mesh.Clear();
             if (pts == null || pts.Count < 2) return;
@@ -127,7 +130,7 @@ namespace MuseXR.Interaction
                 if (Vector3.Dot(side, lastSide) < 0f && i > 0) side = -side;   // no half twists
                 lastSide = side;
                 var t = length > 1e-5f ? along[i] / length : 0f;
-                var half = WidthAt(t) * 0.5f;
+                var half = WidthAt(t, widthScale) * 0.5f;
                 verts[i * 2] = c[i] - side * half; verts[i * 2 + 1] = c[i] + side * half;
                 var normal = Vector3.Cross(fwd, side).normalized;
                 norms[i * 2] = norms[i * 2 + 1] = normal;
@@ -141,6 +144,25 @@ namespace MuseXR.Interaction
             }
             mesh.vertices = verts; mesh.normals = norms; mesh.uv = uv; mesh.triangles = tris;
             mesh.RecalculateBounds();
+        }
+
+        /// <summary>
+        /// A brush's flat side for a stroke that was saved without one (the journey record keeps points only): level,
+        /// across the direction of travel, so a stroke hung overhead shows its full breadth to someone under it.
+        /// </summary>
+        public static List<Vector3> LevelUps(IReadOnlyList<Vector3> pts)
+        {
+            var ups = new List<Vector3>(pts.Count);
+            var last = Vector3.right;
+            for (var i = 0; i < pts.Count; i++)
+            {
+                var d = pts[Mathf.Min(i + 1, pts.Count - 1)] - pts[Mathf.Max(i - 1, 0)];
+                var side = Vector3.Cross(Vector3.up, d);
+                if (side.sqrMagnitude < 1e-8f) side = last;
+                side.Normalize(); last = side;
+                ups.Add(side);
+            }
+            return ups;
         }
 
         /// <summary>

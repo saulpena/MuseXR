@@ -182,6 +182,26 @@ namespace MuseXR.Interaction
             }
             _placedOnce = false;
             _slot.Clear();
+            HideUnusedMarks();
+        }
+
+        /// <summary>
+        /// A chapter's other master figures go: its prefab is saved with all three of her default masters standing on the
+        /// layout's marks, and with a smaller company the unused ones stayed where they were saved, beside the arrival
+        /// (Saul, 5 Oct: one master chosen at the Gate, others standing in the Grotto). Only inside a chapter's frame -
+        /// the Gate's company stage keeps its standees to choose from.
+        /// </summary>
+        void HideUnusedMarks()
+        {
+            var root = transform.root;
+            if (root == null || !root.name.EndsWith(" Frame")) return;
+            var used = new HashSet<Transform>(_figures.Values);
+            foreach (var t in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (!t.name.StartsWith("Mark ") || used.Contains(t)) continue;
+                foreach (var id in Masters.Row)
+                    if (t.name == "Mark " + id) { t.gameObject.SetActive(false); break; }
+            }
         }
 
         /// <summary>Put every companion on its mark around the visitor now.</summary>

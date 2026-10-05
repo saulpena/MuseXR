@@ -143,6 +143,15 @@ namespace MusePico.Dialogue
         /// until the visitor presses the button that sends it, exactly as typing works.
         /// </summary>
         public event System.Action<string> TextDictated;
+        /// <summary>Dictation ended with no words (nothing heard, too short, no transcript, no microphone): the caller offers another way.</summary>
+        public event System.Action<string> DictationFailed;
+
+        void FailDictation(string why)
+        {
+            if (!_dictating) return;
+            _dictating = false;
+            DictationFailed?.Invoke(why);
+        }
 
         /// <summary>True while the open microphone is filling a text field rather than asking.</summary>
         bool _dictating;
@@ -167,7 +176,9 @@ namespace MusePico.Dialogue
         public void Listen()
         {
             if (IsBusy || voice == null) return;
-            Report(voice.StartRecording() ? "Listening…" : "Microphone unavailable. " + voice.Describe());
+            var started = voice.StartRecording();
+            Report(started ? "Listening…" : "Microphone unavailable. " + voice.Describe());
+            if (!started) FailDictation("microphone unavailable");
         }
 
         void OnUtteranceEnded(byte[] wav, SilenceDetector.StopReason reason)
@@ -175,20 +186,21 @@ namespace MusePico.Dialogue
             if (reason == SilenceDetector.StopReason.NeverHeardAnything)
             {
                 Report("Nothing heard — the microphone is open but no audio is reaching it.");
+                FailDictation("nothing heard");
                 return;
             }
-            if (wav == null) { Report("Too short to send."); return; }
+            if (wav == null) { Report("Too short to send."); FailDictation("too short"); return; }
 
             _ = TranscribeAndAskAsync(wav);
         }
 
         async Task TranscribeAndAskAsync(byte[] wav)
         {
-            if (_speech == null) { Report("No transcription provider configured."); return; }
+            if (_speech == null) { Report("No transcription provider configured."); FailDictation("no transcription"); return; }
 
             Report("Transcribing…");
             var text = await _speech.TranscribeAsync(wav);
-            if (string.IsNullOrWhiteSpace(text)) { Report("No transcript."); return; }
+            if (string.IsNullOrWhiteSpace(text)) { Report("No transcript."); FailDictation("no transcript"); return; }
 
             LastTranscript = text;
 

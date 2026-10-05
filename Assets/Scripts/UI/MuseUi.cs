@@ -196,6 +196,9 @@ namespace MuseXR.UI
             t.enableWordWrapping = true;
             t.raycastTarget = false;
             t.margin = Vector4.zero;
+            // The serif's kerning table pulls a space shut before some letters ("notwasted", "onewhereI knowwhyI" on the
+            // memento, 5 Oct); measured with kerning off it reads correctly, so the serif faces go without it.
+            if (face == Face.Serif || face == Face.SerifMedium || face == Face.SerifItalic) t.fontFeatures.Clear();
             return t;
         }
 
