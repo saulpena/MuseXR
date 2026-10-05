@@ -62,6 +62,79 @@ namespace MuseXR.Interaction
         public static readonly CompanionMarks.Mark[] CrowdPlaces =
             { new CompanionMarks.Mark(-42f, 2.0f), new CompanionMarks.Mark(42f, 2.0f), new CompanionMarks.Mark(-26f, 3.4f) };   // Saul, 5 Oct: on screen, off-centre, each in its own place
         public const float CrowdCatchUpSpeed = 3.2f, CrowdCatchUpPerMetre = 1.1f, CrowdArrive = 0.12f;
+        /// <summary>Saul, 5 Oct: they ran to their places. A walk (m/s), a little faster the further behind, plus the
+        /// visitor's own speed so they keep up; never above <see cref="CrowdWalkMax"/> over the visitor's speed.</summary>
+        public const float CrowdWalk = 1.4f, CrowdWalkPerMetre = 0.25f, CrowdWalkMax = 2.0f;
+
+        /// <summary>Which of <see cref="CrowdPlaces"/> each companion keeps. Chosen once from where they stand, the
+        /// arrangement with the least walking and nobody crossing the front (Saul, 5 Oct: the third one always cut
+        /// across the view to a place on the far side).</summary>
+        readonly Dictionary<string, int> _slot = new Dictionary<string, int>();
+
+        int SlotOf(int i) => _slot.TryGetValue(_ids[i], out var s) ? s : Mathf.Min(i, CrowdPlaces.Length - 1);
+
+        /// <summary>Give each companion the place on their own side: of every arrangement, the one with the least
+        /// turning round the visitor, any that sweeps in front costing half a circle more.</summary>
+        public void AssignSlots()
+        {
+            var body = BodyFrame.Get();
+            if (body == null) return;
+            body.Step(0f);
+            if (float.IsNaN(_heading)) _heading = GazeYaw(Yaw(body.Forward));
+            var n = Mathf.Min(_ids.Count, CrowdPlaces.Length);
+            var feet = body.Feet;
+            var bearings = new float[n];
+            for (var i = 0; i < n; i++)
+            {
+                var f = _figures[_ids[i]];
+                var rel = f != null ? new Vector3(f.position.x - feet.x, 0f, f.position.z - feet.z) : Vector3.zero;
+                bearings[i] = rel.sqrMagnitude > 1e-4f ? Yaw(rel) : _heading + CrowdPlaces[i].Bearing;
+            }
+            int[] best = null; var bestCost = float.MaxValue;
+            foreach (var perm in Permutations(CrowdPlaces.Length, n))
+            {
+                var cost = 0f;
+                for (var i = 0; i < n; i++)
+                {
+                    var target = _heading + CrowdPlaces[perm[i]].Bearing;
+                    var d = Mathf.DeltaAngle(bearings[i], target);
+                    cost += Mathf.Abs(d) + (Sweeps(bearings[i], d) ? 180f : 0f);
+                }
+                if (cost < bestCost) { bestCost = cost; best = perm; }
+            }
+            _slot.Clear();
+            for (var i = 0; i < n && best != null; i++) _slot[_ids[i]] = best[i];
+        }
+
+        static IEnumerable<int[]> Permutations(int of, int take)
+        {
+            var used = new bool[of]; var cur = new int[take];
+            IEnumerable<int[]> Go(int k)
+            {
+                if (k == take) { yield return (int[])cur.Clone(); yield break; }
+                for (var v = 0; v < of; v++)
+                {
+                    if (used[v]) continue;
+                    used[v] = true; cur[k] = v;
+                    foreach (var p in Go(k + 1)) yield return p;
+                    used[v] = false;
+                }
+            }
+            return Go(0);
+        }
+
+        /// <summary>Where <paramref name="id"/>'s crowd place is now, on the floor (assigns the places if not yet).</summary>
+        public Vector3 CrowdPlaceOf(string id)
+        {
+            if (_slot.Count == 0) AssignSlots();
+            var body = BodyFrame.Get();
+            var i = _ids.IndexOf(id);
+            if (body == null || i < 0) return _figures.TryGetValue(id, out var f) && f != null ? f.position : Vector3.zero;
+            var place = CrowdPlaces[SlotOf(i)];
+            var yaw = _heading + place.Bearing;
+            var at = body.Feet + Quaternion.Euler(0f, yaw, 0f) * Vector3.forward * Clear(body.Feet, yaw, place.Distance);
+            return new Vector3(at.x, body.Feet.y, at.z);
+        }
 
         public string ActiveSpeaker
         {
@@ -108,6 +181,7 @@ namespace MuseXR.Interaction
                 _ids.Add(id); _figures[id] = f;
             }
             _placedOnce = false;
+            _slot.Clear();
         }
 
         /// <summary>Put every companion on its mark around the visitor now.</summary>
@@ -396,12 +470,13 @@ namespace MuseXR.Interaction
             if (_settledFor > SettleSeconds && (off > TurnThreshold || (_reforming && off > FinishDegrees))) { _heading = headYaw; _reforming = true; _settledFor = 0f; }
             else if (_settledFor > SettleSeconds * 4f) _reforming = false;   // properly settled again
             var feet = body.Feet;
-            var speed = Mathf.Max(CrowdCatchUpSpeed, body.Velocity.magnitude + 1.5f);
+            if (_slot.Count != Mathf.Min(_ids.Count, CrowdPlaces.Length)) AssignSlots();
+            var visitorSpeed = new Vector3(body.Velocity.x, 0f, body.Velocity.z).magnitude;
             for (var i = 0; i < _ids.Count; i++)
             {
                 var f = _figures[_ids[i]];
                 if (f == null) continue;
-                var place = CrowdPlaces[Mathf.Min(i, CrowdPlaces.Length - 1)];
+                var place = CrowdPlaces[SlotOf(i)];
                 var targetYaw = _heading + place.Bearing;
                 var targetR = Clear(feet, targetYaw, place.Distance);
                 var rel = new Vector3(f.position.x - feet.x, 0f, f.position.z - feet.z);
@@ -410,7 +485,9 @@ namespace MuseXR.Interaction
                 var da = Mathf.DeltaAngle(a, targetYaw);
                 // The short way to the new place, even across the front for a moment (Saul, 5 Oct: going round behind looked wrong).
                 if (Mathf.Abs(da) < 0.5f && Mathf.Abs(targetR - r) < 0.03f) { _speeds[_ids[i]] = 0f; continue; }
-                var step = speed * dt;
+                var targetPos = feet + Quaternion.Euler(0f, targetYaw, 0f) * Vector3.forward * targetR;
+                var behind = new Vector3(targetPos.x - f.position.x, 0f, targetPos.z - f.position.z).magnitude;
+                var step = (Mathf.Min(CrowdWalk + CrowdWalkPerMetre * behind, CrowdWalkMax) + visitorSpeed) * dt;
                 var na = a + Mathf.Sign(da) * Mathf.Min(Mathf.Abs(da), step / Mathf.Max(r, CrowdMinRadius) * Mathf.Rad2Deg);
                 var nr = Mathf.Max(CrowdMinRadius, Mathf.MoveTowards(Mathf.Max(r, CrowdMinRadius), targetR, step));
                 var next = feet + Quaternion.Euler(0f, na, 0f) * Vector3.forward * nr;
@@ -487,11 +564,12 @@ namespace MuseXR.Interaction
             if (body == null) return;
             body.Step(0f);
             _heading = GazeYaw(Yaw(body.Forward));
+            if (_slot.Count == 0) AssignSlots();   // a teleport keeps everyone's side
             for (var i = 0; i < _ids.Count; i++)
             {
                 var f = _figures[_ids[i]];
                 if (f == null) continue;
-                var place = CrowdPlaces[Mathf.Min(i, CrowdPlaces.Length - 1)];
+                var place = CrowdPlaces[SlotOf(i)];
                 var yaw = _heading + place.Bearing;
                 var at = body.Feet + Quaternion.Euler(0f, yaw, 0f) * Vector3.forward * Clear(body.Feet, yaw, place.Distance);
                 f.SetPositionAndRotation(new Vector3(at.x, body.Feet.y, at.z), Quaternion.LookRotation(-(Quaternion.Euler(0f, yaw, 0f) * Vector3.forward), Vector3.up));

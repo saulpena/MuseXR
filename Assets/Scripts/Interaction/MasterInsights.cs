@@ -404,7 +404,9 @@ namespace MuseXR.Interaction
                 var cap = hit.AddComponent<CapsuleCollider>();
                 cap.isTrigger = true; cap.center = new Vector3(0f, 0.9f, 0f); cap.height = 1.8f; cap.radius = 0.3f;
                 var who = id;
-                Pointable.Make(hit, "ask " + id).Selected += (_, __) => OpenAsk(who);
+                var ask = Pointable.Make(hit, "ask " + id);
+                ask.Label = "Ask " + Masters.Name(id);
+                ask.Selected += (_, __) => OpenAsk(who);
             }
         }
 
