@@ -43,7 +43,16 @@ namespace MuseXR.UI
         static readonly Color Cream2 = new Color32(255, 250, 241, 173);
 
         Transform _lineAnchor, _compassAnchor, _arrow;
-        GameObject _lineCard, _compassCard;
+        GameObject _lineCard, _compassCard, _compassRow, _brief;
+        RectTransform _compassCanvas, _briefRowsRoot;
+        Vector3 _compassScale = Vector3.one;
+        TextMeshProUGUI _briefKicker, _briefTitle;
+        readonly System.Collections.Generic.List<(GameObject row, TextMeshProUGUI mark, TextMeshProUGUI label, TextMeshProUGUI state)> _briefRows =
+            new System.Collections.Generic.List<(GameObject, TextMeshProUGUI, TextMeshProUGUI, TextMeshProUGUI)>();
+        int _briefVersion = -1, _briefNudges;
+        float _pulse;
+        static readonly Color BriefRule = new Color32(255, 250, 241, 40);
+        static readonly Color PillDeep = new Color32(9, 8, 11, 215);
         TextMeshProUGUI _kicker, _speaker, _line, _hint, _stop, _target, _detail, _topic;
         RawImage _portrait;
         float _yaw;
@@ -265,6 +274,94 @@ namespace MuseXR.UI
             _stop.overflowMode = TextOverflowModes.Ellipsis; _stop.enableWordWrapping = false;
             _detail.overflowMode = TextOverflowModes.Ellipsis; _detail.enableWordWrapping = false;
             _compassCard = cardC.gameObject;
+            _compassRow = row.gameObject;
+            BuildBrief(cardC);
+
+            // It grows DOWNWARD (Saul, 5 Oct): the top edge holds still and the brief opens beneath the arrow, so
+            // the pill the visitor already knows never moves. The pivot goes to the top, lifted by half the pill.
+            Canvas.ForceUpdateCanvases();
+            _compassCanvas = cc;
+            var pillHeight = cc.rect.height;
+            cc.pivot = new Vector2(0.5f, 1f);
+            cc.localPosition = new Vector3(0f, pillHeight * 0.5f * cc.localScale.y, 0f);
+            _compassScale = cc.localScale;
+        }
+
+        /// <summary>
+        /// The choice brief under the compass (<see cref="CompassBrief"/>), in the tour guide's own dark style: a hairline,
+        /// the stop in teal, the instruction in her serif, one row per option - its number, a teal tick once heard - and
+        /// what to do on the right. It replaced the separate card that used to follow the visitor (Saul, 5 Oct).
+        /// </summary>
+        void BuildBrief(RectTransform card)
+        {
+            var brief = MuseUi.Column(card, 4f, "Brief");
+            MuseUi.Space(brief, 6f);
+            MuseUi.Rule(brief, BriefRule);
+            MuseUi.Space(brief, 4f);
+            _briefKicker = MuseUi.Text(brief, "", MuseUi.Face.Mono, 8f, Teal, 0.22f, true, name: "Kicker");
+            _briefKicker.enableWordWrapping = false; _briefKicker.overflowMode = TextOverflowModes.Ellipsis;
+            _briefTitle = Serif(brief, "", 15f, Cream, "Instruction");
+            _briefRowsRoot = MuseUi.Column(brief, 3f, "Options");
+            _brief = brief.gameObject;
+            _brief.SetActive(false);
+        }
+
+        void EnsureBriefRows(int count)
+        {
+            while (_briefRows.Count < count)
+            {
+                var row = MuseUi.Row(_briefRowsRoot, 8f, TextAnchor.MiddleLeft, "Option " + _briefRows.Count);
+                var mark = MuseUi.Text(row, "", MuseUi.Face.Sans, 10f, Cream2, 0f, false, name: "Mark");   // Sans: the mono face has no tick
+                mark.enableWordWrapping = false; mark.alignment = TextAlignmentOptions.Center;
+                var ml = mark.gameObject.AddComponent<LayoutElement>(); ml.minWidth = ml.preferredWidth = 16f; ml.flexibleWidth = 0f;
+                var label = MuseUi.Text(row, "", MuseUi.Face.Sans, 12.5f, Cream, 0f, false, name: "Label");
+                label.enableWordWrapping = false; label.overflowMode = TextOverflowModes.Ellipsis;
+                label.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+                var state = MuseUi.Text(row, "", MuseUi.Face.Mono, 8f, Cream2, 0.12f, true, name: "State");
+                state.enableWordWrapping = false; state.alignment = TextAlignmentOptions.Right;
+                var sl = state.gameObject.AddComponent<LayoutElement>(); sl.minWidth = sl.preferredWidth = 86f; sl.flexibleWidth = 0f;
+                _briefRows.Add((row.gameObject, mark, label, state));
+            }
+            for (var i = 0; i < _briefRows.Count; i++) _briefRows[i].row.SetActive(i < count);
+        }
+
+        void UpdateBrief()
+        {
+            if (_brief == null) return;
+            if (_briefVersion != CompassBrief.Version)
+            {
+                _briefVersion = CompassBrief.Version;
+                var on = CompassBrief.Showing;
+                _brief.SetActive(on);
+                // Several lines over a bright splat need a darker ground than the one-line pill.
+                var fill = _compassCard != null ? _compassCard.GetComponent<Image>() : null;
+                if (fill != null) fill.color = on ? PillDeep : Pill;
+                if (on)
+                {
+                    _briefKicker.text = CompassBrief.Kicker ?? "";
+                    _briefTitle.text = CompassBrief.Title ?? "";
+                    EnsureBriefRows(CompassBrief.Rows.Count);
+                    for (var i = 0; i < CompassBrief.Rows.Count; i++)
+                    {
+                        var r = CompassBrief.Rows[i];
+                        var (_, mark, label, state) = _briefRows[i];
+                        mark.text = r.Done ? "✓" : (i + 1).ToString("00");
+                        mark.color = r.Done ? Teal : Cream2;
+                        label.text = r.Label ?? "";
+                        label.color = r.Done ? Cream2 : Cream;
+                        state.text = r.State ?? "";
+                        state.color = r.Done ? Teal : Cream2;
+                    }
+                }
+            }
+            // Reached for the choice too early: the compass pulses once.
+            if (_briefNudges != CompassBrief.Nudges) { _briefNudges = CompassBrief.Nudges; _pulse = 1.2f; }
+            if (_compassCanvas != null)
+            {
+                var k = 1f;
+                if (_pulse > 0f) { _pulse -= Time.deltaTime; k = 1f + 0.06f * Mathf.Sin(_pulse * 18f) * Mathf.Clamp01(_pulse); }
+                _compassCanvas.localScale = _compassScale * k;
+            }
         }
 
         void LateUpdate()
@@ -316,8 +413,10 @@ namespace MuseXR.UI
 
             Page();
 
+            UpdateBrief();
             var target = CompassTarget.Current(body.Feet);
-            Appear.Set(_compassCard, target != null, CardFade);
+            Appear.Set(_compassCard, target != null || CompassBrief.Showing, CardFade);
+            if (_compassRow != null) _compassRow.SetActive(target != null);
             if (target == null) return;
             var to = target.transform.position - body.Feet; to.y = 0f;
             var angle = Vector3.SignedAngle(fwd, to, Vector3.up);   // + is to the right
