@@ -16,6 +16,11 @@ namespace MuseXR.Interaction
 
         public static void Notice(string kicker, string text, float seconds = 4f) => Noticed?.Invoke(kicker, text, seconds);
 
+        /// <summary>Take a note down if it is the one still showing (it no longer applies).</summary>
+        public static event System.Action<string> Unnoticed;
+
+        public static void Unnotice(string text) => Unnoticed?.Invoke(text);
+
         /// <summary>"On The Bedroom": the works and pieces they speak about.</summary>
         public static void On(string title) => Set(string.IsNullOrEmpty(title) ? "" : "On " + title);
     }

@@ -20,6 +20,9 @@ namespace MuseXR.Interaction
         readonly List<GameObject> _queue = new List<GameObject>();
         float _next, _quiet;
 
+        /// <summary>A piece has just been switched on to fade in (before this frame draws it).</summary>
+        public event System.Action<GameObject> Revealed;
+
         /// <summary>Start (or resume) revealing <paramref name="frame"/>'s pieces.</summary>
         public static WorldReveal Begin(Transform frame)
         {
@@ -28,6 +31,7 @@ namespace MuseXR.Interaction
             if (w == null) w = frame.gameObject.AddComponent<WorldReveal>();   // not ??: Unity's fake null
             w._quiet = 0f;
             w.enabled = true;
+            w.Scan();   // now, not at its first LateUpdate: a component added this frame starts only next frame
             return w;
         }
 
@@ -41,15 +45,25 @@ namespace MuseXR.Interaction
             _queue.Clear();
         }
 
-        // LateUpdate: a piece built in Start or Update this frame is hidden before this frame is drawn.
-        void LateUpdate()
+        // Also just before each render: a model that finishes loading late in a frame (an async glTF) was drawn once,
+        // opaque, before LateUpdate's scan hid it - measured on a real Palace -> Grotto crossing, 5 Oct.
+        void OnEnable() => Application.onBeforeRender += Scan;
+        void OnDisable() => Application.onBeforeRender -= Scan;
+
+        void Scan()
         {
+            if (this == null || !isActiveAndEnabled) return;
             foreach (Transform group in transform)
             {
                 if (!group.gameObject.activeSelf || IsWorld(group)) continue;
                 if (group.childCount == 0) Consider(group.gameObject);
                 else foreach (Transform piece in group) Consider(piece.gameObject);
             }
+        }
+
+        void LateUpdate()
+        {
+            Scan();
             _quiet += Time.deltaTime;
             if (_queue.Count > 0 && Time.time >= _next)
             {
@@ -61,7 +75,7 @@ namespace MuseXR.Interaction
                     var d = (_queue[i].transform.position - eye).sqrMagnitude;
                     if (d < bestD) { bestD = d; best = i; }
                 }
-                if (best >= 0) { var go = _queue[best]; _queue.RemoveAt(best); Appear.In(go, FadeSeconds); }
+                if (best >= 0) { var go = _queue[best]; _queue.RemoveAt(best); Appear.In(go, FadeSeconds); Revealed?.Invoke(go); }
                 else _queue.Clear();
                 _next = Time.time + StepSeconds;
                 _quiet = 0f;

@@ -35,6 +35,9 @@ namespace MuseXR.Interaction
         /// <summary>Make <paramref name="go"/> pointable. Adds a collider fitted to its renderers if it has none.</summary>
         /// <summary>Wider than this (m) a piece is pointed at by its own surfaces, not one box round it.</summary>
         public const float LargePiece = 3f;
+        /// <summary>A separate part of a large mesh smaller than this (m, its longest side) gets no box of its own (a petal).</summary>
+        public const float MinIsland = 0.4f;
+        public const int MaxIslands = 24;
 
         public static Pointable Make(GameObject go, string id)
         {
@@ -52,9 +55,41 @@ namespace MuseXR.Interaction
                     var all = rs[0].bounds; foreach (var r in rs) all.Encapsulate(r.bounds);
                     if (Mathf.Max(all.size.x, all.size.z) > LargePiece)
                     {
+                        // One box per separate figure in the mesh (the five Buddhas are one mesh of five islands): generous
+                        // to aim at, never big enough to stand inside. Surfaces alone let the ray slip between the figures
+                        // to the group behind (Saul, 5 Oct). An unreadable mesh falls back to its own surfaces.
                         var any = false;
                         foreach (var mf in go.GetComponentsInChildren<MeshFilter>())
-                            if (mf.sharedMesh != null) { mf.gameObject.AddComponent<MeshCollider>().sharedMesh = mf.sharedMesh; any = true; }
+                        {
+                            if (mf.sharedMesh == null) continue;
+                            var islands = mf.sharedMesh.isReadable ? MeshIslands.Bounds(mf.sharedMesh, MinIsland, MaxIslands) : null;
+                            if (islands == null || islands.Count == 0) { mf.gameObject.AddComponent<MeshCollider>().sharedMesh = mf.sharedMesh; any = true; continue; }
+                            var scale = mf.transform.lossyScale;
+                            var figures = 0;
+                            foreach (var ib in islands)
+                            {
+                                // A part as wide as a platform (the five Buddhas' lotus terrace) is not a figure: its box
+                                // caught the ray a metre from the visitor, in front of everything behind it (5 Oct).
+                                if (Mathf.Max(Mathf.Abs(ib.size.x * scale.x), Mathf.Abs(ib.size.z * scale.z)) > LargePiece) continue;
+                                var fig = new GameObject("Hit figure").AddComponent<BoxCollider>();
+                                fig.transform.SetParent(mf.transform, false);
+                                fig.center = ib.center; fig.size = ib.size; fig.isTrigger = true;
+                                any = true; figures++;
+                            }
+                            if (figures == 0 && mf.sharedMesh.isReadable)
+                            {
+                                // One joined mesh (the five Buddhas are fused to their terrace): find the figures standing
+                                // on it instead - tall geometry clustered on the floor plan - each boxed a quarter wider.
+                                foreach (var fb in MeshIslands.Figures(mf.sharedMesh, 0.45f, 0.25f, 64, 4, MaxIslands))
+                                {
+                                    var fig = new GameObject("Hit figure").AddComponent<BoxCollider>();
+                                    fig.transform.SetParent(mf.transform, false);
+                                    fig.center = fb.center; fig.size = new Vector3(fb.size.x * 1.25f, fb.size.y, fb.size.z * 1.25f); fig.isTrigger = true;
+                                    any = true; figures++;
+                                }
+                            }
+                            if (figures == 0) { mf.gameObject.AddComponent<MeshCollider>().sharedMesh = mf.sharedMesh; any = true; }
+                        }
                         if (any) return p;
                     }
                 }
@@ -102,6 +137,8 @@ namespace MuseXR.Interaction
     public sealed class Pointer : MonoBehaviour
     {
         public const float Reach = 8f;
+        /// <summary>Closer to the hand than this, a hovered thing gets no hover cue.</summary>
+        public const float HandReach = 0.5f;
 
         public IHandSource Source { get; private set; }
         public GripHand Grip { get; private set; }
@@ -236,7 +273,9 @@ namespace MuseXR.Interaction
             Hovered?.HoverExit(this);
             Hovered = next;
             if (_cue == null) _cue = new GameObject("Hover cue").AddComponent<HoverCue>();
-            _cue.Show(next);
+            // Nothing at the hand itself (a replica on the wrist, the satchel): a cue there drew round the controller's
+            // tip and, drawn over everything, filled the view (Saul, 5 Oct, headset).
+            _cue.Show(next != null && Vector3.Distance(HitPoint, Source != null && Source.Aim != null ? Source.Aim.position : HitPoint) < HandReach ? null : next);
             if (next == null) return;
             next.HoverEnter(this);
             Source?.Buzz(SlotRules.LightAmplitude * 0.6f, SlotRules.LightSeconds);

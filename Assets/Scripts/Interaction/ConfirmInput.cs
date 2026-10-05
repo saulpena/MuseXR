@@ -17,7 +17,30 @@ namespace MuseXR.Interaction
     /// </summary>
     public sealed class ConfirmInput : MonoBehaviour
     {
-        public static IConfirmable Focus { get; private set; }
+        /// <summary>
+        /// Who A and B go to: the most recent holder still alive and switched on. Holders stack, so when one lets go
+        /// (a round of the masters ends, a card closes) A returns to whoever held it before, instead of to nobody
+        /// (Saul, 5 Oct: A on a lantern stopped opening the Palace once a master had spoken about a painting).
+        /// </summary>
+        public static IConfirmable Focus
+        {
+            get
+            {
+                for (var i = Held.Count - 1; i >= 0; i--)
+                {
+                    var h = Held[i];
+                    if (Alive(h)) return h;
+                    Held.RemoveAt(i);
+                }
+                return null;
+            }
+        }
+
+        static readonly System.Collections.Generic.List<IConfirmable> Held = new System.Collections.Generic.List<IConfirmable>();
+
+        /// <summary>Not a destroyed or switched-off component (a finished chapter's station never takes A back).</summary>
+        static bool Alive(IConfirmable h) =>
+            h != null && (!(h is Object o) || (o != null && (!(o is Behaviour b) || b.isActiveAndEnabled)));
 
         /// <summary>Every press of A or B: which button, what it went to, and whether it did anything.</summary>
         public static event System.Action<string, string, bool> Pressed;
@@ -28,18 +51,17 @@ namespace MuseXR.Interaction
         /// <summary>Route A and B to <paramref name="target"/> from now on.</summary>
         public static void Take(IConfirmable target)
         {
-            Focus = target;
-            if (_instance != null) return;
+            if (target == null) return;
+            Held.Remove(target);
+            Held.Add(target);
+            if (_instance != null || !Application.isPlaying) return;   // the listener is a Play thing (EditMode tests route by hand)
             var go = new GameObject("Confirm Input") { hideFlags = HideFlags.DontSave };
             DontDestroyOnLoad(go);
             _instance = go.AddComponent<ConfirmInput>();
         }
 
-        /// <summary>Stop routing to <paramref name="target"/>, if it has the focus.</summary>
-        public static void Drop(IConfirmable target)
-        {
-            if (ReferenceEquals(Focus, target)) Focus = null;
-        }
+        /// <summary>Stop routing to <paramref name="target"/>: A goes back to whoever held it before.</summary>
+        public static void Drop(IConfirmable target) => Held.Remove(target);
 
         /// <summary>Press A or B from code: the test harness.</summary>
         public static bool PressA() => Press("A", f => f.Confirm());

@@ -134,28 +134,34 @@ namespace MuseXR.Journey
         float _quietFor, _companyFor;
         bool _waitLogged, _hopped, _companyFaded;
 
+        /// <summary>Seconds after the answers are done before the lanterns come whatever still reads as busy.</summary>
+        public const float LanternFailsafe = 8f;
+
         void Update()
         {
             // Saul, 5 Oct: the lanterns come only once every chosen master has finished answering the question -
             // the round marked done, nobody's voice still playing - and a beat after.
-            if (!_begun && opening != null && opening.Company != null && opening.Company.Current == CompanyStage.Phase.Done
-                && !opening.Company.Group.Busy && !opening.Speaking)
+            var done = !_begun && opening != null && opening.Company != null && opening.Company.Current == CompanyStage.Phase.Done;
+            if (done && !opening.Company.Group.Busy && !opening.Speaking)
             {
                 _quietFor += Time.deltaTime;
                 if (_quietFor >= 1f) { _begun = true; StartCoroutine(Unfold()); }
             }
             else _quietFor = 0f;
-            HopThrough();
-            // Why the lanterns have not come, said once after the company has stood 20 s (Saul, 5 Oct: "the
-            // lanterns now never appear", and the log could not say which of the three waits held them).
-            if (!_begun && !_waitLogged && opening != null && opening.Company != null && (_companyFor += Time.deltaTime) > 20f)
+            // Never held for good (Saul, 5 Oct, headset: the lanterns never came): once the round is done, anything
+            // still reading as busy or speaking past LanternFailsafe is not the masters answering - the lanterns come.
+            if (done && !_begun)
             {
-                _waitLogged = true;
-                var g = opening.Company.Group;
-                Debug.LogWarning("[Curation] lanterns still waiting: company " + opening.Company.Current
-                    + ", group busy " + (g != null && g.Busy) + (g != null && g.Turns != null ? " (turns " + g.Turns.Current + ")" : "")
-                    + ", opening speaking " + opening.Speaking);
+                _companyFor += Time.deltaTime;
+                if (_companyFor > LanternFailsafe)
+                {
+                    var g = opening.Company.Group;
+                    Debug.LogWarning("[Curation] lanterns forced " + LanternFailsafe + " s after the answers: group busy " + (g != null && g.Busy)
+                        + (g != null && g.Turns != null ? " (turns " + g.Turns.Current + ")" : "") + ", opening speaking " + opening.Speaking);
+                    _begun = true; StartCoroutine(Unfold());
+                }
             }
+            HopThrough();
 
         }
 
@@ -385,17 +391,17 @@ namespace MuseXR.Journey
                 _cardLine = MuseUi.Title(glass, "", 20f);
                 _cardNote = MuseUi.Body(glass, "");
                 _card = anchor.gameObject;
-                // Saul, 5 Oct: it was left behind as the visitor walked. It follows like the compass, high above the eye
-                // line so it never crosses the masters' card or the lanterns' names.
-                FollowVisitor.Attach(_card, 2.6f, -1.0f);
-                Appear.In(_card, 0.5f);   // eased in, never popped (Saul, 5 Oct)
+                // Saul, 5 Oct: no floating guide card any more - its words go to the compass's brief, as the chapters'
+                // stop instructions do (the decision made with musexr-b). The card stays built but never shown: its
+                // texts are the brief's source, and the rest of this file still reads them.
+                _card.SetActive(false);
             }
-            PlaceCard();
             if (index < 0)
             {
                 _cardKicker.text = "Your path";
                 _cardLine.text = "Four rooms will answer your question";
                 _cardNote.text = "Point at a lantern and pull the trigger to hear why it fits.";
+                PostGuide();
                 return;
             }
             _heard.Add(index);
@@ -404,6 +410,25 @@ namespace MuseXR.Journey
             _cardLine.text = _lines[index];
             _cardNote.text = (_fallback ? "Local fallback - written ahead, not generated for your question.\n" : "")
                              + (_awaitingWalkOn ? "Point at another lantern, or press A to walk on: the first opens the way." : "");
+            PostGuide();
+        }
+
+        /// <summary>
+        /// The guide, as the compass's brief: the kicker, the instruction (or the line, when there is none), and while
+        /// the lanterns are being heard one row per room, ticked as it is heard.
+        /// </summary>
+        void PostGuide()
+        {
+            if (_cardKicker == null) return;
+            var rows = new List<CompassBrief.Row>();
+            if (_lanterns.Count > 0 && (_awaitingWalkOn || _heard.Count == 0))
+                for (var i = 0; i < Chapters.Length && i < _lanterns.Count; i++)
+                {
+                    var heard = _heard.Contains(i);
+                    rows.Add(new CompassBrief.Row { Label = Chapters[i] + "  \u00b7  " + Subtitles[i], Done = heard, State = heard ? "heard" : "point to hear" });
+                }
+            var title = string.IsNullOrEmpty(_cardNote.text) ? _cardLine.text : _cardNote.text.Trim();
+            CompassBrief.Show(this, _cardKicker.text, title, rows);
         }
 
         /// <summary>
@@ -469,7 +494,7 @@ namespace MuseXR.Journey
             if (!_awaitingWalkOn) return false;
             if (_heard.Count == 0)
             {
-                if (_card != null) _cardNote.text = "Point at a lantern first and pull the trigger to hear why it fits.";
+                if (_card != null) { _cardNote.text = "Point at a lantern first and pull the trigger to hear why it fits."; PostGuide(); CompassBrief.Nudge(this); }
                 return false;
             }
             _awaitingWalkOn = false;
@@ -506,6 +531,7 @@ namespace MuseXR.Journey
                 _cardKicker.text = "Palace  ·  Court of Keeping";
                 _cardLine.text = "The Palace lantern becomes a moon gate";
                 _cardNote.text = "Walk through the moon gate. The exhibition begins.";
+                PostGuide();
                 PlaceCard();
             }
 
@@ -608,6 +634,7 @@ namespace MuseXR.Journey
                 _cardKicker.text = "Palace  ·  Court of Keeping";
                 _cardLine.text = "The Palace lantern shows the way";
                 _cardNote.text = "";
+                PostGuide();
                 PlaceCard();
             }
             var palace = PlacePalace();
@@ -679,6 +706,7 @@ namespace MuseXR.Journey
                 _cardKicker.text = "Palace  ·  Court of Keeping";
                 _cardLine.text = "The Palace lantern becomes a moon gate";
                 _cardNote.text = "Walk through the moon gate. The exhibition begins.";
+                PostGuide();
             }
 
             WorldDefinition def = null;
@@ -829,6 +857,7 @@ namespace MuseXR.Journey
         {
             if (_crossed) yield break;
             _crossed = true;
+            CompassBrief.Hide(this);   // the Gate's guide is done; the Palace posts its own
             // Move the Palace and the visitor back to the origin together, in one frame: everything the
             // chapter knows about its world assumes it stands at the origin (its layout was built there).
             var rig = FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>();

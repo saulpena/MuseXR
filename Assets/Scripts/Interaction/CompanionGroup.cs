@@ -378,7 +378,16 @@ namespace MuseXR.Interaction
             return Vector3.Angle(Flat(Head.forward), Flat(f.position - Head.position));
         }
 
-        public bool Confirm() { Turns?.Advance(); return Turns != null; }
+        /// <summary>A line was skipped (A / Next master) while it was being said: its voice should stop now.</summary>
+        public static event Action<CompanionGroup> LineSkipped;
+
+        public bool Confirm()
+        {
+            // Saul, 5 Oct, headset: skipped to the next master, the one cut off kept talking over them.
+            if (Turns != null && Turns.Current == TurnTaking.Phase.Speaking) LineSkipped?.Invoke(this);
+            Turns?.Advance();
+            return Turns != null;
+        }
         public bool Redo() => false;
 
         void Update()
@@ -516,9 +525,15 @@ namespace MuseXR.Interaction
                 var a = r > 1e-3f ? Yaw(rel) : targetYaw;
                 var da = Mathf.DeltaAngle(a, targetYaw);
                 // The short way to the new place, even across the front for a moment (Saul, 5 Oct: going round behind looked wrong).
-                if (Mathf.Abs(da) < 0.5f && Mathf.Abs(targetR - r) < 0.03f) { _speeds[_ids[i]] = 0f; continue; }
                 var targetPos = feet + Quaternion.Euler(0f, targetYaw, 0f) * Vector3.forward * targetR;
                 var behind = new Vector3(targetPos.x - f.position.x, 0f, targetPos.z - f.position.z).magnitude;
+                // A dead zone (Saul, 5 Oct, headset: they flicked between idle and walking whenever he looked at them). The
+                // places hang off the feet, which shift a little as the head turns; a master standing still sets off only
+                // when the place is StartWalking away, and once walking goes all the way in before standing again.
+                _moving.TryGetValue(_ids[i], out var moving);
+                if (!moving && behind < StartWalking) { _speeds[_ids[i]] = 0f; continue; }
+                if (moving && behind < ArriveWithin) { _moving[_ids[i]] = false; _speeds[_ids[i]] = 0f; continue; }
+                _moving[_ids[i]] = true;
                 var step = (Mathf.Min(CrowdWalk + CrowdWalkPerMetre * behind, CrowdWalkMax) + visitorSpeed) * dt;
                 var na = a + Mathf.Sign(da) * Mathf.Min(Mathf.Abs(da), step / Mathf.Max(r, CrowdMinRadius) * Mathf.Rad2Deg);
                 var nr = Mathf.Max(CrowdMinRadius, Mathf.MoveTowards(Mathf.Max(r, CrowdMinRadius), targetR, step));
@@ -701,6 +716,9 @@ namespace MuseXR.Interaction
         static readonly int TalkingParam = Animator.StringToHash("Talking"), SpeedParam = Animator.StringToHash("Speed");
         readonly Dictionary<string, Animator> _anims = new Dictionary<string, Animator>();
         readonly Dictionary<string, float> _speeds = new Dictionary<string, float>();
+        /// <summary>Who is on their way to their place: set off past StartWalking, stood again within ArriveWithin.</summary>
+        readonly Dictionary<string, bool> _moving = new Dictionary<string, bool>();
+        public const float StartWalking = 0.45f, ArriveWithin = 0.08f;
 
         /// <summary>
         /// Saul, 5 Oct: the speaker plays a talking animation (and faces the visitor - <see cref="Face"/>), the others
@@ -714,7 +732,10 @@ namespace MuseXR.Interaction
                 if (!_anims.TryGetValue(id, out var an) || an == null) { an = f.GetComponentInChildren<Animator>(); _anims[id] = an; }
                 if (an == null || an.runtimeAnimatorController == null) continue;
                 _speeds.TryGetValue(id, out var v);
-                var walking = Crowd && v > 0.25f;
+                // Walking only while actually on the way (the dead zone above), never on a frame's jitter; a master
+                // speaking stays in their talking pose unless they are really moving.
+                _moving.TryGetValue(id, out var onTheWay);
+                var walking = Crowd && onTheWay && v > 0.1f;
                 foreach (var p in an.parameters)
                 {
                     if (p.nameHash == TalkingParam) an.SetBool(TalkingParam, id == _active && !walking);

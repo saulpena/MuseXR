@@ -91,8 +91,16 @@ namespace MuseXR.Interaction
         // ever (measured: y -4,227 in a Grotto run; the Gate walk hit the same).
         void Awake() => _floor = TeleportFloor();
 
-        IEnumerator Start()
+        // Built on first enable, and again if switched off before it finished: a frame saved switched on in the scene
+        // started building, was switched off by the journey at start-up, and Unity never runs Start twice - the
+        // Grotto came up later with no lamp, no sockets and no rim (5 Oct).
+        bool _built, _building;
+        void OnEnable() { if (!_built && !_building) StartCoroutine(Build()); }
+        void OnDisable() { if (!_built) _building = false; }
+
+        IEnumerator Build()
         {
+            _building = true;
             yield return null;   // after the rig and the layout have woken
             var head = Camera.main != null ? Camera.main.transform : null;
             var entry = head != null ? head.position : Vector3.zero;
@@ -187,7 +195,9 @@ namespace MuseXR.Interaction
             var subtitles = System.Type.GetType("MuseXR.UI.SubtitleRig, MuseXR.UI.Interaction");
             if (subtitles != null) groupGo.AddComponent(subtitles);
 
-            var rim = BuddhaRim(entry);
+            // Her "the distant Buddha silhouette is rimmed": gold sparks along the gold Buddha's own outline (SparkleRim),
+            // not the soft ring that stood behind it (Saul, 5 Oct: "a halo is not a silhouette rim").
+            var rim = SparkleRim.Make(transform.root, transform, "Buddha Rim", "Rims/cliff-buddha");
             Label(whole.position + Vector3.up * 0.35f, entry, "The cliff Buddha: an AI rendition,\nnot a real site", 0.22f);
 
             BoothLabel("Work Gandhara", "GANDHARA", "Kushan period · 1st-2nd century");
@@ -203,6 +213,7 @@ namespace MuseXR.Interaction
                 Debug.Log("[Record] " + Record.SummaryJson());
                 OpenArch(teleportFloor, Camera.main != null ? Camera.main.transform.position : entry);
             };
+            _built = true;
         }
 
         // ---- the exit: her arch, cobalt and gold, into Van Gogh's studio ------------------------

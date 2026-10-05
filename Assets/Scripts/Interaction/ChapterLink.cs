@@ -22,7 +22,7 @@ namespace MuseXR.Interaction
         [Tooltip("Everything of chapter B, inactive until the gate opens.")]
         public Transform nextFrame;
 
-        bool _opened, _arrived;
+        bool _opened, _arrived, _crossing;
         float _scan;
         readonly System.Collections.Generic.List<Renderer> _held = new System.Collections.Generic.List<Renderer>();
 
@@ -35,11 +35,15 @@ namespace MuseXR.Interaction
 
         void Update()
         {
-            if (_opened && !_arrived && nextFrame != null && (_scan -= Time.deltaTime) <= 0f) { _scan = 0.1f; HoldBack(); }
+            if (_opened && !_arrived && !_crossing && nextFrame != null && (_scan -= Time.deltaTime) <= 0f) { _scan = 0.1f; HoldBack(); }
             if (_opened || gate == null || !gate.IsOpen || gate.NextWorld == null) return;
             _opened = true;
             gate.Arrived += () => StartCoroutine(Arrive());
             gate.Crossed += CompanionGroup.FadeOutAllForCrossing;   // they fade in at their places on arrival
+            // Through the plane, nothing of B is behind A's walls any more: everything held back shows, and the check
+            // stops. Left running, it hid every piece for the 0.3 s of the crossing (the eye on the far side of the
+            // plane reads as "not seen through"), then arrival switched them back on at once (measured, 5 Oct).
+            gate.Crossed += () => { _crossing = true; foreach (var held in _held) if (held != null) held.enabled = true; _held.Clear(); };
             if (nextFrame == null) return;   // the last link: the next world is all there is
             var pivot = gate.NextWorld.transform.parent;
             nextFrame.SetPositionAndRotation(pivot.position, pivot.rotation);
@@ -51,7 +55,9 @@ namespace MuseXR.Interaction
                 c.gameObject.SetActive(!world && c.name.StartsWith("Chapter ") && c.GetComponent<ChapterExit>() == null);
             }
             nextFrame.gameObject.SetActive(true);
-            WorldReveal.Begin(nextFrame);   // its pieces come up one by one from now, not at the crossing (Saul, 5 Oct)
+            // Its pieces come up one by one from now, not at the crossing (Saul, 5 Oct); each, as it is switched on, is
+            // held back at once if it cannot be seen through the opening (it showed for a frame first, measured 5 Oct).
+            WorldReveal.Begin(nextFrame).Revealed += _ => { if (!_crossing && !_arrived) HoldBack(); };
             pivot.SetParent(nextFrame, true);
             Debug.Log("[Journey] " + gate.name + " open: " + nextFrame.name + " stands behind it");
         }
@@ -70,11 +76,25 @@ namespace MuseXR.Interaction
             var eye = Camera.main != null ? Camera.main.transform.position : plane.position - plane.forward;
             var e0 = plane.InverseTransformPoint(eye);
             var half = gate.Door != null ? gate.Door.apertureSize * 0.5f : new Vector2(1f, 1.5f);
+            _cameIntoView.Clear();
             foreach (var r in nextFrame.GetComponentsInChildren<Renderer>(true))
             {
                 if (!_held.Contains(r)) { if (!r.enabled) continue; _held.Add(r); }   // ours to show and hide from now on
-                r.enabled = SeenThrough(plane, r.bounds, e0, half);
+                var show = SeenThrough(plane, r.bounds, e0, half);
+                if (show && !r.enabled && r.gameObject.activeInHierarchy) _cameIntoView.Add(PieceOf(r.transform));
+                r.enabled = show;
             }
+            // Into view through the opening: faded up, never switched on whole (Saul, 5 Oct: things "flash into existence").
+            foreach (var piece in _cameIntoView) if (piece != null) Appear.Replay(piece.gameObject, 0.4f);
+        }
+
+        readonly System.Collections.Generic.HashSet<Transform> _cameIntoView = new System.Collections.Generic.HashSet<Transform>();
+
+        /// <summary>The piece a renderer belongs to: the child of one of the frame's groups (as WorldReveal counts them).</summary>
+        Transform PieceOf(Transform t)
+        {
+            while (t.parent != null && t.parent.parent != null && t.parent.parent != nextFrame) t = t.parent;
+            return t.parent != null && t.parent.parent == nextFrame ? t : t.parent == nextFrame ? t : t;
         }
 
         /// <summary>Wholly beyond the gate plane, and its centre seen from the eye through the aperture.</summary>

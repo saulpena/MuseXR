@@ -25,7 +25,7 @@ namespace MuseXR.UI
         public const float LineAhead = 0.62f, LineDrop = 0.62f, CompassAhead = 0.52f, CompassDrop = 1.1f;   // Saul, 4 Oct: half a metre lower; 5 Oct: 10 cm more, it touched the card
         /// <summary>The panel re-centres on the view direction once the head is this far off it, easing over -
         /// following the body alone (40 deg dead zone) left it at the lower left of the view.</summary>
-        public const float RecentreDegrees = 20f, RecentreDegreesPerSecond = 110f;
+        public const float RecentreDegrees = 30f, RecentreDegreesPerSecond = 110f;   // 5 Oct: 20 followed every glance
         /// <summary>Lines shown at once; longer readings page through (live readings run ~50 words).</summary>
         public const int MaxLines = 3;
         public const float SecondsPerWord = 0.36f, MinPageSeconds = 3.5f;
@@ -86,6 +86,14 @@ namespace MuseXR.UI
         {
             MuseXR.Interaction.DialogueContext.Noticed -= OnNotice;
             MuseXR.Interaction.DialogueContext.Noticed += OnNotice;
+            MuseXR.Interaction.DialogueContext.Unnoticed -= OnUnnotice;
+            MuseXR.Interaction.DialogueContext.Unnoticed += OnUnnotice;
+        }
+
+        static void OnUnnotice(string text)
+        {
+            var panel = Existing;
+            if (panel != null && panel._line != null && panel._line.text == text) panel.ClearLine();
         }
 
         static void OnNotice(string kicker, string text, float seconds)
@@ -410,8 +418,11 @@ namespace MuseXR.UI
             var held = new Vector3(_anchorXZ.x, floor + (_eyeHeight > 0.5f ? _eyeHeight : eye.y - floor), _anchorXZ.z);
             var linePos = held + fwd * LineAhead - Vector3.up * LineDrop;
             var compassPos = held + fwd * CompassAhead - Vector3.up * CompassDrop;
-            _lineAnchor.SetPositionAndRotation(linePos, Quaternion.LookRotation(linePos - eye, Vector3.up));
-            _compassAnchor.SetPositionAndRotation(compassPos, Quaternion.LookRotation(compassPos - eye, Vector3.up));
+            // Turned to the HELD eye, not the live one: facing the live eye re-angled both cards with every movement of
+            // the head and they wobbled as he looked left and right (Saul, 5 Oct, headset). Their angle now changes only
+            // when they re-place - a real turn, or walking.
+            _lineAnchor.SetPositionAndRotation(linePos, Quaternion.LookRotation(linePos - held, Vector3.up));
+            _compassAnchor.SetPositionAndRotation(compassPos, Quaternion.LookRotation(compassPos - held, Vector3.up));
 
             Page();
 

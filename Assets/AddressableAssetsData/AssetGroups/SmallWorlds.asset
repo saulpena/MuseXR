@@ -114,5 +114,5 @@ MonoBehaviour:
     m_SchemaDisplayOrder:
     - SmallWorlds_BundledAssetGroupSchema
     - SmallWorlds_ContentUpdateGroupSchema
-  m_IncludeInBuild: 1
+  m_IncludeInBuild: 0
   m_IncludeInBuildMigrated: 1

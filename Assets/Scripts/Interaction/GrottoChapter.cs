@@ -30,6 +30,9 @@ namespace MuseXR.Interaction
         public event Action<GrottoFlow> Saved;
 
         public const float RimSeconds = 1.2f;
+        /// <summary>The rim's level while the lamp is held aligned over "whole"; the sockets are built detail then whole.</summary>
+        public const float PreviewLevel = 0.4f;
+        public const int WholeSlot = 1;
         public static readonly Color RimGold = new Color(1f, 0.74f, 0.32f);
 
         float _rim;
@@ -162,7 +165,10 @@ namespace MuseXR.Interaction
             // Shown while the lamp is in "whole" and the choice is open; after keeping it fades, since
             // splats write no depth and from the arch the ring showed through the alcove wall.
             var on = Flow.Current == GrottoFlow.Phase.Placed && Flow.LampSlot == GrottoFlow.Whole;
-            _rim = Mathf.MoveTowards(_rim, on ? 1f : 0f, Time.deltaTime / RimSeconds);
+            // Held aligned over "whole" (before letting go), a faint preview, as the detail side shows the lamp's light
+            // on the stele while it is held (Saul, 5 Oct: the two sides should behave alike).
+            var preview = !on && Flow.Current != GrottoFlow.Phase.Saved && Sockets != null && Sockets.Board != null && Sockets.Board.AlignedSlot == WholeSlot;
+            _rim = Mathf.MoveTowards(_rim, on ? 1f : preview ? PreviewLevel : 0f, Time.deltaTime / RimSeconds);
             if (BuddhaRim != null) BuddhaRim.sharedMaterial.SetColor("_BaseColor", RimGold * Mathf.SmoothStep(0f, 1f, _rim));
         }
 
