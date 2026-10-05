@@ -914,9 +914,15 @@ namespace MuseXR.Journey
         {
             if (_swapped) return;
             _swapped = true;
+            // Every chapter's frame, not only the Palace's: the later chapters stood her default three on their marks
+            // while the group spoke as the chosen company (Saul, 5 Oct: one master chosen, three others in the Grotto).
+            var frames = new List<Transform> { palaceFrame };
+            foreach (var r in palaceFrame.gameObject.scene.GetRootGameObjects())
+                if (r.name.EndsWith(" Frame") && r.transform != palaceFrame) frames.Add(r.transform);
+            foreach (var frame in frames)
             for (var i = 0; i < Masters.DefaultTrio.Count && i < company.Count; i++)
             {
-                var mark = FindDeep(palaceFrame, "Mark " + Masters.DefaultTrio[i]);
+                var mark = FindDeep(frame, "Mark " + Masters.DefaultTrio[i]);
                 if (mark == null || company[i] == Masters.DefaultTrio[i]) continue;
                 var prefab = opening.PrefabFor(company[i]);
                 if (prefab == null) continue;

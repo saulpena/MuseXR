@@ -182,15 +182,22 @@ namespace MuseXR.Interaction
             }
 
             // The companions where her diagram stands them.
+            // The visitor's chosen company, not her default three (Saul, 5 Oct: one master chosen at the Gate, three
+            // different ones in the Grotto): company[i] on the i-th mark, as the Palace and every later chapter do.
             var figures = new Dictionary<string, Transform>();
-            foreach (var id in Masters.DefaultTrio) { var m = FindMark(transform, "Mark " + id); if (m != null) figures[id] = m; }
+            var company = Masters.Company;
+            for (var i = 0; i < Masters.DefaultTrio.Count && i < company.Count; i++)
+            {
+                var m = FindMark(transform, "Mark " + Masters.DefaultTrio[i]);
+                if (m != null) figures[company[i]] = m;
+            }
             var groupGo = new GameObject("Companions");
             groupGo.transform.SetParent(transform, false);
             Companions = groupGo.AddComponent<CompanionGroup>();
             Companions.FollowVisitor = false;
             Companions.Crowd = true;   // Saul, 3 Oct: always a crowd beside the visitor, never in front
             Companions.Head = head;
-            var order = new List<string>(); foreach (var id in Masters.DefaultTrio) if (figures.ContainsKey(id)) order.Add(id);
+            var order = new List<string>(); foreach (var id in company) if (figures.ContainsKey(id)) order.Add(id);
             Companions.Set(order, figures);
             var subtitles = System.Type.GetType("MuseXR.UI.SubtitleRig, MuseXR.UI.Interaction");
             if (subtitles != null) groupGo.AddComponent(subtitles);

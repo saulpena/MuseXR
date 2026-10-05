@@ -59,8 +59,21 @@ PROMPT_TEMPLE = {
     "B-1p5m-from-column-m3p5-m3p5-looking-down-hall-yaw180": ((-3.0, 1.6, -2.1), 180.0, 0.0),
     "C-far-end-z-19p5-looking-back-yaw0": ((0.0, 1.6, -19.5), 0.0, 0.0),
 }
+# The Gate (GateWorld, grand-conservatory-with-lush-gardens-500k at worldScale 1.7, the object at the origin):
+# the visitor's floor is y 0 (rig height in GateWorld), the walk runs from the gate at z 0 down the pool-side
+# path to the Palace door at z -30.5, yaw 180 faces down it. Positive pitch looks DOWN.
+GATE = {
+    "A-gate-down-the-walk": ((0.0, 1.6, 0.0), 180.0, 0.0),
+    "B-mid-walk-to-palace": ((0.0, 1.6, -14.0), 180.0, 0.0),
+    "C-at-palace-looking-back": ((0.0, 1.6, -28.0), 0.0, 0.0),
+    "D-left-flowers": ((-5.0, 1.6, -8.0), 270.0, 5.0),
+    "E-right-flowers": ((5.0, 1.6, -8.0), 90.0, 5.0),
+    "F-glass-roof": ((0.0, 1.6, -8.0), 180.0, -35.0),
+    "G-path-at-feet": ((0.0, 1.6, -6.0), 180.0, 55.0),
+    "H-region-edge": ((8.0, 1.6, -20.0), 315.0, 0.0),
+}
 PRESETS = {"temple": VIEWS, "chisel": CHISEL, "buddha-chisel": BUDDHA_CHISEL,
-           "garden-chisel": GARDEN_CHISEL, "prompt-temple": PROMPT_TEMPLE}
+           "garden-chisel": GARDEN_CHISEL, "prompt-temple": PROMPT_TEMPLE, "gate": GATE}
 FOV, RES = 90.0, 1312
 
 
