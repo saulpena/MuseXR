@@ -175,7 +175,7 @@ namespace MuseXR.Interaction
 
             // The companions where her diagram stands them.
             var figures = new Dictionary<string, Transform>();
-            foreach (var id in Masters.DefaultTrio) { var m = Find("Mark " + id); if (m != null) figures[id] = m; }
+            foreach (var id in Masters.DefaultTrio) { var m = FindMark(transform, "Mark " + id); if (m != null) figures[id] = m; }
             var groupGo = new GameObject("Companions");
             groupGo.transform.SetParent(transform, false);
             Companions = groupGo.AddComponent<CompanionGroup>();
@@ -625,6 +625,18 @@ namespace MuseXR.Interaction
             area.filterSelectionByHitNormal = true;
             floor.SetActive(true);
             return floor;
+        }
+
+        /// <summary>
+        /// A master's mark in this chapter, hidden ones included (marks wait hidden until a group takes them):
+        /// under this chapter's own root first - every chapter names its marks alike - else any whose layout is showing.
+        /// </summary>
+        static Transform FindMark(Transform from, string name)
+        {
+            foreach (var t in from.root.GetComponentsInChildren<Transform>(true)) if (t.name == name) return t;
+            foreach (var t in FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (t.name == name && (t.parent == null || t.parent.gameObject.activeInHierarchy)) return t;
+            return null;
         }
 
         static Transform Find(string name)

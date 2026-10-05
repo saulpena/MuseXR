@@ -96,7 +96,7 @@ namespace MuseXR.Interaction
             var company = Masters.Company;
             for (var i = 0; i < Masters.DefaultTrio.Count && i < company.Count; i++)
             {
-                var mark = Find("Mark " + Masters.DefaultTrio[i]);
+                var mark = FindMark(transform, "Mark " + Masters.DefaultTrio[i]);
                 if (mark != null) figures[company[i]] = mark;
             }
             var groupGo = new GameObject("Companions");
@@ -251,6 +251,18 @@ namespace MuseXR.Interaction
                                          transform.rotation * Quaternion.Euler(0f, 90f, 0f), new Vector3(0f, CourtHeight, 0f));
             if (table != null) table.name = "Court Table";
             court.position = new Vector3(floorAt.x, CourtHeight + 0.005f, floorAt.z);
+        }
+
+        /// <summary>
+        /// A master's mark in this chapter, hidden ones included (marks wait hidden until a group takes them):
+        /// under this chapter's own root first - every chapter names its marks alike - else any whose layout is showing.
+        /// </summary>
+        static Transform FindMark(Transform from, string name)
+        {
+            foreach (var t in from.root.GetComponentsInChildren<Transform>(true)) if (t.name == name) return t;
+            foreach (var t in FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (t.name == name && (t.parent == null || t.parent.gameObject.activeInHierarchy)) return t;
+            return null;
         }
 
         static Transform Find(string name)

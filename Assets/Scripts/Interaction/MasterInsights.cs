@@ -189,8 +189,9 @@ namespace MuseXR.Interaction
             var figures = new Dictionary<string, Transform>();
             var order = new List<string>();
             foreach (var id in Masters.Row)
-                foreach (var t in FindObjectsByType<Transform>(FindObjectsSortMode.None))
-                    if (t.name == "Mark " + id) { figures[id] = t; order.Add(id); break; }
+                // Marks wait hidden until a group takes them: include those whose layout is showing.
+                foreach (var t in FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                    if (t.name == "Mark " + id && (t.parent == null || t.parent.gameObject.activeInHierarchy)) { figures[id] = t; order.Add(id); break; }
             var go = new GameObject("Companions");
             if (order.Count == 0)
             {

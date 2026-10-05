@@ -330,7 +330,12 @@ namespace MuseXR.Interaction
             // A teleport or a chapter arrival: everyone is simply at their place beside the visitor, never left
             // standing where the old world put them (blind review, 4 Oct: a figure right in front of the eye
             // after a teleport, blown white by the eye light).
-            if (_placedOnce && Vector3.Distance(Flat3(Head.position), Flat3(_lastPos)) > JumpDistance) { SnapCrowd(); Remarked?.Invoke(); }
+            if (_placedOnce && Vector3.Distance(Flat3(Head.position), Flat3(_lastPos)) > JumpDistance) { SnapCrowd(); FadeInAtPlaces(false); Remarked?.Invoke(); }
+            // A group's first placement too: a chapter's new crowd starts where its layout stood them, and walked
+            // from there to the visitor - into the Palace they appeared far off and rushed back (Saul, 5 Oct).
+            else if (!_placedOnce) { SnapCrowd(); FadeInAtPlaces(true); }
+            // Faded out for a crossing that never jumped them (an arrival close to the gate): never left unseen.
+            else if (_fadeInAtPlace && Time.time - _fadedAt > 2f) { SnapCrowd(); FadeInAtPlaces(false); }
             // A snap turn jumps the view in one frame: the crowd jumps to its places with it, rather than being
             // caught mid-step across the new view.
             // (a snap turn is a turn, not a move: they stay where they are)
@@ -481,6 +486,51 @@ namespace MuseXR.Interaction
         }
 
         /// <summary>Everyone straight to their crowd place round the body - out of the gaze - facing the way the visitor faces.</summary>
+        /// <summary>How long the companions take to fade out at a gate and in again at their places beyond it.</summary>
+        public const float CrossFadeOut = 0.35f, CrossFadeIn = 0.6f;
+        bool _fadeInAtPlace;
+        float _fadedAt;
+
+        /// <summary>
+        /// Crossing into another world: the companions fade out here and fade in at their places beside the
+        /// visitor once they have arrived (the next snap), never popping out and in, never walking over from
+        /// where the old world left them (Saul, 5 Oct).
+        /// </summary>
+        public void FadeOutForCrossing()
+        {
+            foreach (var f in _figures.Values) if (f != null && f.gameObject.activeInHierarchy) Appear.Out(f.gameObject, CrossFadeOut);
+            _fadeInAtPlace = true; _fadedAt = Time.time;
+        }
+
+        void FadeInAtPlaces(bool first)
+        {
+            if (!first && !_fadeInAtPlace) return;
+            _fadeInAtPlace = false;
+            // A first placement brings up the figures still hidden (a layout's marks); one already showing is
+            // left alone rather than flickered back to nothing.
+            foreach (var f in _figures.Values) if (f != null && (!first || !f.gameObject.activeSelf)) Appear.In(f.gameObject, CrossFadeIn);
+        }
+
+        /// <summary>
+        /// A chapter's masters' marks ("Mark monet" ...), hidden until a group takes them, so nobody is seen standing
+        /// at the layout's fixed spots or running from them to the visitor: the group places them and fades them in.
+        /// The chapter prefabs carry the marks baked and showing; the journey hides them as it starts.
+        /// </summary>
+        public static void HideMasterMarks(Transform root)
+        {
+            if (root == null) return;
+            foreach (var t in root.GetComponentsInChildren<Transform>(true))
+                foreach (var id in Masters.Row)
+                    if (t.name == "Mark " + id) { t.gameObject.SetActive(false); break; }
+        }
+
+        /// <summary>Every crowd walking with the visitor fades out for a crossing (a chapter gate's Crossed).</summary>
+        public static void FadeOutAllForCrossing()
+        {
+            foreach (var g in FindObjectsByType<CompanionGroup>(FindObjectsSortMode.None))
+                if (g.isActiveAndEnabled && g.Crowd) g.FadeOutForCrossing();
+        }
+
         void SnapCrowd()
         {
             var body = BodyFrame.Get();

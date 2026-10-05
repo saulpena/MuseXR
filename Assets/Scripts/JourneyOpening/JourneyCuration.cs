@@ -127,11 +127,12 @@ namespace MuseXR.Journey
             for (var i = 0; i < 4; i++) _lines[i] = HerLines[i];
             _fallback = false;   // her script, not a stand-in
             if (palaceFrame != null) palaceFrame.gameObject.SetActive(false);
+            CompanionGroup.HideMasterMarks(palaceFrame);   // the Palace's crowd brings them up beside the visitor
             Shader.SetGlobalFloat("_PortalKeepBehind", 0f);   // a gate fade cut short must not leave every portal see-through
         }
 
         float _quietFor, _companyFor;
-        bool _waitLogged, _hopped;
+        bool _waitLogged, _hopped, _companyFaded;
 
         void Update()
         {
@@ -706,7 +707,8 @@ namespace MuseXR.Journey
             sequence.TriggerDistance = 0f;   // the fade opens it, not a look
             foreach (var c in palaceContent) if (c != null && c.name.StartsWith("Chapter")) c.SetActive(true);
             ShowMarks(false);
-            mg.Crossed += () => { ShowMarks(true); if (this.opening != null && this.opening.Companions.Count > 0) SwapFigures(this.opening.Companions); };
+            // The Palace's figures are revealed on arrival, fading in beside the visitor (Arrive), not on the
+            // throne room's marks at the crossing - they showed far off there and walked over (Saul, 5 Oct).
             mg.Arrived += () => StartCoroutine(Arrive());
             CompassTarget.Add(mg.gameObject, 20, "The moon gate", "Walk through to the Palace");
             StartCoroutine(RetireCard());
@@ -721,6 +723,12 @@ namespace MuseXR.Journey
         void HopThrough()
         {
             if (!PalaceGate || _gate == null || _hopped || _crossed || _gate.Door == null || _eye == null) return;
+            // The Gate's companions fade out as the visitor nears the door, before the portal would cut them.
+            if (!_companyFaded && opening != null && opening.Company != null && opening.Company.Group != null)
+            {
+                var near = _gate.transform.InverseTransformPoint(_eye.position);
+                if (near.z > -1.5f && Mathf.Abs(near.x) < 2.5f) { _companyFaded = true; opening.Company.Group.FadeOutForCrossing(); }
+            }
             if (_gate.Door.Sequence.Opening < MoonGate.PassableOpening) return;
             var local = _gate.transform.InverseTransformPoint(_eye.position);
             if (local.z >= 0f || local.z < -HopWithin || Mathf.Abs(local.x) > _gate.radius) return;
@@ -835,11 +843,16 @@ namespace MuseXR.Journey
             if (gate != null) JourneyMemory.Record.SetQuestion(gate.Flow.Question);
             if (opening != null && opening.Companions != null && opening.Companions.Count > 0) JourneyMemory.Record.SetCompanions(opening.Companions);
             // The visitor's companions stand on her three marks in the Palace, in their speaking order.
+            // Renderers back on (the gate hid them while the Palace showed through it); the marks themselves stay
+            // inactive until the Palace's crowd brings them up beside the visitor. Whether or not a company was chosen.
+            if (PalaceGate) ShowMarks(true);
             if (opening != null && opening.Companions != null && opening.Companions.Count > 0)
             {
                 Masters.Company = opening.Companions;
                 SwapFigures(opening.Companions);
             }
+            // The marks are hidden (inactive): the Palace's crowd puts them beside the visitor as it starts and
+            // fades them in there (CompanionGroup's first placement) - never seen on the throne room's marks.
             yield return null;
             foreach (var c in palaceContent) if (c != null && !c.activeSelf) Appear.In(c, ChapterLink.ArriveFade);   // nothing pops (Saul, 5 Oct)
             for (var i = 0; i < 30 && GameObject.Find("Teleport Floor") == null; i++) yield return null;
