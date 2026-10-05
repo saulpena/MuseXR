@@ -84,6 +84,8 @@ namespace MuseXR.Interaction
         static ArtworkCard Show(ArtworkRecord record, Transform work, Vector2 workSize, InsightTarget insight, Vector3? centre, Vector3? facing, bool piece)
         {
             if (Hushed) return null;
+            // Saul, 5 Oct: "Hear companions" while they are already on it reads as a second, different action.
+            if (insight != null && MasterInsights.Ensure().Discussing(insight)) return null;
             if (Current != null)
             {
                 if (Current._work == work) return Current;
@@ -195,6 +197,7 @@ namespace MuseXR.Interaction
         {
             if (_closing) return;
             if (_work == null) { Close(); return; }
+            if (_insight != null && MasterInsights.Ensure().Discussing(_insight)) { Close(); return; }   // they took it up: the button is moot
             var eye = Camera.main != null ? Camera.main.transform : null;
             if (eye == null) return;
             var to = _work.position - eye.position;

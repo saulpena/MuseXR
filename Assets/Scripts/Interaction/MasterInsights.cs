@@ -72,6 +72,10 @@ namespace MuseXR.Interaction
         InsightTarget _thinkingAbout;
         bool _thinkingShown;
 
+        /// <summary>The masters are on <paramref name="t"/> now: speaking about it, its readings on their way, or thinking.</summary>
+        public bool Discussing(InsightTarget t) =>
+            t != null && t == _lastTarget && ((_group != null && _group.Busy) || _pending != null || _thinkingAbout != null);
+
         /// <summary>Everything still to come about the last piece: gone, so a new one starts clean.</summary>
         void Interrupt()
         {

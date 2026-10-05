@@ -54,6 +54,17 @@ namespace MuseXR.Interaction
             return a;
         }
 
+        /// <summary>Fade a shown object up again from nothing (a piece that was hidden by other means and is back in view).</summary>
+        public static Appear Replay(GameObject go, float seconds = InSeconds)
+        {
+            if (go == null || !go.activeInHierarchy) return null;
+            var a = go.GetComponent<Appear>();
+            if (a == null) a = go.AddComponent<Appear>();
+            else if (a.enabled && a._target > 0.5f && a._k < 1f) return a;   // already coming up
+            a.Begin(1f, seconds, false, 0f);
+            return a;
+        }
+
         public static Appear Out(GameObject go, float seconds = OutSeconds, bool destroy = false)
         {
             if (go == null) return null;

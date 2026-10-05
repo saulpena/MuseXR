@@ -172,6 +172,10 @@ namespace MuseXR.Interaction
         static void PointableBounds(GameObject hero)
         {
             var b = Bounds(hero);
+            // A group the visitor can stand inside (the five Buddhas, 10 m) gets a box per figure from Pointable.Make
+            // instead: one box round it all held the visitor, and the ray caught it a metre away, in front of the
+            // stands and works behind (Saul, 5 Oct: "the laser keeps going through it").
+            if (Mathf.Max(b.size.x, b.size.z) > Pointable.LargePiece) return;
             var box = hero.AddComponent<BoxCollider>();
             box.center = hero.transform.InverseTransformPoint(b.center);
             var s = hero.transform.lossyScale;
