@@ -283,7 +283,18 @@ namespace MuseXR.Journey
         Transform _layout, _sky, _easel, _strokeRoot;
         Material _skyMat;
         int _colour = -1;
-        readonly List<Renderer> _potRenderers = new List<Renderer>();
+        readonly List<Transform> _pots = new List<Transform>();
+        readonly List<Vector3> _potScale = new List<Vector3>();
+        static readonly string[] PotModels = { "pot-cobalt", "pot-chrome", "pot-cypress" };
+        const float EaselHeight = 1.8f, PotHeight = 0.075f, PotSpacing = 0.2f, PotReach = 0.14f, PotHeard = 1.1f, PotChosen = 1.25f;
+
+        /// <summary>
+        /// Where the pots stand on the easel model, in the easel's frame: its brush shelf, 0.84 m up and 0.31 m
+        /// toward the walk. Measured by profiling the model with downward rays (5 Oct 2026): the shelf top reads
+        /// 0.84 at z -0.30, the box the canvas rests on 1.0-1.11 behind it, the canvas from 1.39. A search for
+        /// "the highest surface" found the canvas's edge and floated the pots in front of it.
+        /// </summary>
+        static readonly Vector3 EaselShelf = new Vector3(0f, 0.84f, -0.31f);
         LineRenderer _stroke;
         readonly List<Vector3> _points = new List<Vector3>();
         bool _drawing, _awaitingKeep, _kept;
@@ -291,7 +302,6 @@ namespace MuseXR.Journey
         bool _unlocked;
         int _repliesAtArrival = -1;
         string _artworkId = "aic-28560";
-        Renderer _easelCanvas;
         TextMeshPro _prompt;
         CompanionGroup _group;
         Vector3 _exit = new Vector3(3.1f, 0f, -5.3f);
@@ -453,25 +463,24 @@ namespace MuseXR.Journey
             var toWalk = new Vector3(0.7f, 0f, at.z + 2.2f) - _easel.localPosition; toWalk.y = 0f;
             _easel.localRotation = Quaternion.LookRotation(-toWalk.normalized);   // +Z away from someone on the walk
 
-            var wood = ChapterFeatures.Lit(new Color(0.42f, 0.3f, 0.2f), 0f, 0.25f);
-            ChapterFeatures.Part(_easel, PrimitiveType.Cube, "Leg", new Vector3(-0.3f, 0.85f, 0f), new Vector3(0.04f, 1.7f, 0.04f), wood, Quaternion.Euler(0f, 0f, -6f));
-            ChapterFeatures.Part(_easel, PrimitiveType.Cube, "Leg", new Vector3(0.3f, 0.85f, 0f), new Vector3(0.04f, 1.7f, 0.04f), wood, Quaternion.Euler(0f, 0f, 6f));
-            ChapterFeatures.Part(_easel, PrimitiveType.Cube, "Leg", new Vector3(0f, 0.8f, 0.3f), new Vector3(0.04f, 1.65f, 0.04f), wood, Quaternion.Euler(14f, 0f, 0f));
-            _easelCanvas = ChapterFeatures.Part(_easel, PrimitiveType.Cube, "Canvas", new Vector3(0f, 1.25f, -0.03f), new Vector3(0.7f, 0.55f, 0.02f), ChapterFeatures.Lit(new Color(0.42f, 0.4f, 0.37f))).GetComponent<Renderer>();
-            ChapterFeatures.Part(_easel, PrimitiveType.Cube, "Shelf", new Vector3(0f, 0.95f, -0.2f), new Vector3(0.75f, 0.03f, 0.18f), wood);
+            // The generated easel, canvas toward the walk (its front is its +Z; the easel's +Z points away from the
+            // walk), and the three generated pots on its own ledge (Saul, 4 Oct: no shapes made in code).
+            var model = PropModels.Spawn("easel", _easel, _easel.position, _easel.rotation * Quaternion.Euler(0f, 180f, 0f), new Vector3(0f, EaselHeight, 0f));
+            var ledge = EaselShelf;
 
-            // Three pots on the shelf: touch one with the right hand, or point and pull the trigger.
+            // Three pots on the ledge: touch one with the right hand, or point and pull the trigger.
             for (var i = 0; i < Pots.Length; i++)
             {
-                var pot = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                var potAt = _easel.TransformPoint(new Vector3((i - 1) * PotSpacing, ledge.y, ledge.z));
+                var pot = PropModels.Spawn(PotModels[i], _easel, potAt, _easel.rotation * Quaternion.Euler(0f, 180f, 0f), new Vector3(0f, PotHeight, 0f));
+                if (pot == null) continue;
                 pot.name = "Pot " + Pots[i].name;
-                pot.transform.SetParent(_easel, false);
-                pot.transform.localPosition = new Vector3(-0.24f + i * 0.24f, 1.01f, -0.2f);
-                pot.transform.localScale = new Vector3(0.09f, 0.05f, 0.09f);
-                Destroy(pot.GetComponent<Collider>());
-                var r = pot.GetComponent<Renderer>(); r.sharedMaterial = ChapterFeatures.Lit(Pots[i].colour, 0f, 0.6f);
-                _potRenderers.Add(r);
-                var box = pot.AddComponent<BoxCollider>(); box.size = new Vector3(1.6f, 3f, 1.6f); box.isTrigger = true;
+                _pots.Add(pot.transform); _potScale.Add(pot.transform.localScale);
+                // The touch box keeps the old pot's reach (about 14 cm across), whatever the model's scale.
+                var box = pot.AddComponent<BoxCollider>(); box.isTrigger = true;
+                var ls = pot.transform.lossyScale;
+                box.size = new Vector3(PotReach / ls.x, PotReach / ls.y, PotReach / ls.z);
+                box.center = new Vector3(0f, PotHeight * 0.5f / ls.y, 0f);
                 var index = i;
                 Pointable.Make(pot, "pot " + Pots[i].name).Selected += (_, __) => PickColour(index);
             }
@@ -494,7 +503,6 @@ namespace MuseXR.Journey
         void Unlock()
         {
             _unlocked = true;
-            if (_easelCanvas != null) _easelCanvas.sharedMaterial = ChapterFeatures.Lit(new Color(0.93f, 0.9f, 0.84f));
             _prompt.text = "The easel is lit. Touch each pot and hear the companions on it  ·  0 / 3";
             _prompt.color = new Color(0.98f, 0.95f, 0.86f);
             Note("The easel is lit\nTouch each pot and hear the companions on it");
@@ -511,7 +519,7 @@ namespace MuseXR.Journey
             {
                 // First, each colour on its own: the companions' take, and nothing on the brush yet.
                 _potHeard[index] = true;
-                _potRenderers[index].transform.localScale = new Vector3(0.1f, 0.06f, 0.1f);
+                _pots[index].localScale = _potScale[index] * PotHeard;
                 var at = index;
                 ChapterFeatures.Take(this, _group, id => PotTakes[at].TryGetValue(id, out var l) ? l : null);
                 var heard = (_potHeard[0] ? 1 : 0) + (_potHeard[1] ? 1 : 0) + (_potHeard[2] ? 1 : 0);
@@ -525,8 +533,8 @@ namespace MuseXR.Journey
             }
             if (_group != null && _group.Busy) _group.StopTurns();   // chosen: the remaining takes are moot
             _colour = index;
-            for (var i = 0; i < _potRenderers.Count; i++)
-                _potRenderers[i].transform.localScale = i == index ? new Vector3(0.11f, 0.07f, 0.11f) : new Vector3(0.09f, 0.05f, 0.09f);
+            for (var i = 0; i < _pots.Count; i++)
+                _pots[i].localScale = _potScale[i] * (i == index ? PotChosen : 1f);
             _prompt.text = Pots[index].name + ".  Hold the trigger and paint one stroke in the air";
             var ct = _easel.GetComponent<CompassTarget>(); if (ct != null) ct.MarkDone();
         }
@@ -552,8 +560,8 @@ namespace MuseXR.Journey
             if (aim == null) return;
             // A touch is the hand arriving at a pot, not resting in it.
             var inside = -1;
-            for (var i = 0; i < _potRenderers.Count; i++)
-                if (Vector3.Distance(aim.position, _potRenderers[i].transform.position) < 0.08f) inside = i;
+            for (var i = 0; i < _pots.Count; i++)
+                if (Vector3.Distance(aim.position, _pots[i].position + Vector3.up * PotHeight * 0.5f) < 0.08f) inside = i;
             if (inside >= 0 && inside != _potInside) PickColour(inside);
             _potInside = inside;
         }
@@ -826,6 +834,8 @@ namespace MuseXR.Journey
 
         // ---- the time ring ---------------------------------------------------------------------------------
 
+        const float PedestalHeight = 0.96f, RingWidth = 0.34f;   // the tilted ring's lowest point is at 0.95: it rests on the cap
+
         void BuildTimeRing()
         {
             var mark = ChapterFeatures.FindDeep(_layout, "Interaction Time-ring");
@@ -834,9 +844,9 @@ namespace MuseXR.Journey
             root.SetParent(transform, false);
             root.localPosition = new Vector3(at.x, 0f, at.z);
             root.localRotation = Quaternion.LookRotation(Vector3.back);   // +Z away from a visitor coming down the path toward -Z
-            var stone = ChapterFeatures.Lit(new Color(0.88f, 0.86f, 0.82f), 0f, 0.3f);
-            var brass = ChapterFeatures.Lit(new Color(0.83f, 0.66f, 0.32f), 0.85f, 0.65f);
-            ChapterFeatures.Part(root, PrimitiveType.Cylinder, "Pedestal", new Vector3(0f, 0.45f, 0f), new Vector3(0.36f, 0.45f, 0.36f), stone);
+            // The generated fluted pedestal and carved gilt ring (Saul, 4 Oct: no shapes made in code).
+            var pedestal = PropModels.Spawn("ring-pedestal", root, root.position, root.rotation, new Vector3(0f, PedestalHeight, 0f));
+            if (pedestal != null) pedestal.name = "Pedestal";
 
             var dial = new GameObject("Time Ring Dial");
             dial.transform.SetParent(root, false);
@@ -844,9 +854,15 @@ namespace MuseXR.Journey
             dial.transform.localRotation = Quaternion.Euler(-20f, 0f, 0f);
             var ring = new GameObject("Ring");
             ring.transform.SetParent(dial.transform, false);
-            ring.AddComponent<MeshFilter>().sharedMesh = Torus(0.16f, 0.018f);
-            ring.AddComponent<MeshRenderer>().sharedMaterial = brass;
-            ChapterFeatures.Part(ring.transform, PrimitiveType.Sphere, "Knob", new Vector3(0f, 0.16f, -0.01f), Vector3.one * 0.045f, brass);
+            // The ring model faces its +Z; the dial faces the path at -Z. Its finial is its knob, so the annulus's
+            // centre - not the centre of its bounds, which the finial lifts - sits on the dial's axis.
+            var ringModel = PropModels.Spawn("time-ring", ring.transform, ring.transform.position, ring.transform.rotation * Quaternion.Euler(0f, 180f, 0f), new Vector3(RingWidth, 0f, 0f));
+            if (ringModel != null)
+            {
+                var b = PropModels.Bounds(ringModel);
+                var centre = new Vector3(b.center.x, b.min.y + b.size.x * 0.5f, b.center.z);   // a ring as tall as it is wide, under its finial
+                ringModel.transform.position += ring.transform.position - centre;
+            }
             string[] names = { "Mist", "Afternoon", "Dusk" };
             for (var k = 0; k < DialDetents.Count; k++)
             {
@@ -990,6 +1006,8 @@ namespace MuseXR.Journey
 
         // ---- the roundtable --------------------------------------------------------------------------------
 
+        const float TableHeight = 0.76f;
+
         void BuildRotunda()
         {
             _rotunda = new GameObject("Roundtable").transform;
@@ -999,13 +1017,10 @@ namespace MuseXR.Journey
             // Soft: a full-strength additive square washed the whole view brown (Editor capture, 4 Oct).
             _glowMat = ChapterFeatures.Glow(GlowDim);
             ChapterFeatures.Quad(_rotunda, "Warm glow", new Vector3(0f, 0.03f, 0f), Quaternion.Euler(90f, 0f, 0f), new Vector2(3.4f, 3.4f), _glowMat);
-            // A round stone table on one pedestal, a thin gilt band under its top: the garden's furniture, not a drum.
-            var stone = ChapterFeatures.Lit(new Color(0.9f, 0.87f, 0.8f), 0f, 0.45f);
-            var gilt = ChapterFeatures.Lit(new Color(0.83f, 0.66f, 0.3f), 0.85f, 0.6f);
-            ChapterFeatures.Part(_rotunda, PrimitiveType.Cylinder, "Table foot", new Vector3(0f, 0.03f, 0f), new Vector3(0.5f, 0.03f, 0.5f), stone);
-            ChapterFeatures.Part(_rotunda, PrimitiveType.Cylinder, "Table pedestal", new Vector3(0f, 0.37f, 0f), new Vector3(0.22f, 0.34f, 0.22f), stone);
-            ChapterFeatures.Part(_rotunda, PrimitiveType.Cylinder, "Table band", new Vector3(0f, 0.715f, 0f), new Vector3(1.32f, 0.012f, 1.32f), gilt);
-            ChapterFeatures.Part(_rotunda, PrimitiveType.Cylinder, "Table top", new Vector3(0f, 0.75f, 0f), new Vector3(1.3f, 0.025f, 1.3f), stone);
+            // A round stone table on one carved pedestal: the garden's furniture, not a drum. The generated table
+            // (Saul, 4 Oct: no shapes made in code), at its own 0.76 m and 1.08 m across.
+            var table = PropModels.Spawn("round-table", _rotunda, _rotunda.position, _rotunda.rotation, new Vector3(0f, TableHeight, 0f));
+            if (table != null) table.name = "Round table";
             // Her "the rotunda glows warm, marked Form my answer": a warm light that comes up once the garden's
             // choice is kept, dark until then so it never pulls the visitor past the time ring.
             var lamp = new GameObject("Rotunda light").AddComponent<Light>();
@@ -1365,29 +1380,5 @@ namespace MuseXR.Journey
             return true;
         }
 
-        static Mesh Torus(float radius, float tube)
-        {
-            const int seg = 48, sides = 12;
-            var verts = new Vector3[(seg + 1) * (sides + 1)];
-            var tris = new int[seg * sides * 6];
-            for (var i = 0; i <= seg; i++)
-            for (var j = 0; j <= sides; j++)
-            {
-                float a = i / (float)seg * Mathf.PI * 2f, b = j / (float)sides * Mathf.PI * 2f;
-                var c = new Vector3(Mathf.Cos(a), Mathf.Sin(a), 0f);
-                verts[i * (sides + 1) + j] = c * (radius + tube * Mathf.Cos(b)) + Vector3.forward * tube * Mathf.Sin(b);
-            }
-            var t = 0;
-            for (var i = 0; i < seg; i++)
-            for (var j = 0; j < sides; j++)
-            {
-                int p = i * (sides + 1) + j, q = (i + 1) * (sides + 1) + j;
-                tris[t++] = p; tris[t++] = q; tris[t++] = p + 1;
-                tris[t++] = p + 1; tris[t++] = q; tris[t++] = q + 1;
-            }
-            var m = new Mesh { vertices = verts, triangles = tris, name = "time ring" };
-            m.RecalculateNormals(); m.RecalculateBounds();
-            return m;
-        }
     }
 }

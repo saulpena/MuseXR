@@ -1,0 +1,40 @@
+fileFormatVersion: 2
+guid: 69c96758d75f0704bac27608f501de48
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: 715df9372183c47e389bb6e19fbc3b52, type: 3}
+  editorImportSettings:
+    generateSecondaryUVSet: 0
+  importSettings:
+    nodeNameMethod: 1
+    animationMethod: 2
+    generateMipMaps: 1
+    texturesReadable: 0
+    defaultMinFilterMode: 9729
+    defaultMagFilterMode: 9729
+    anisotropicFilterLevel: 1
+  instantiationSettings:
+    mask: -1
+    layer: 0
+    skinUpdateWhenOffscreen: 1
+    lightIntensityFactor: 1
+    sceneObjectCreation: 2
+  assetDependencies:
+  - type: 0
+    originalUri: Assets\Resources\Props\lamp-stand.bin
+    assetPath: Assets\Resources\Props\lamp-stand.bin
+  - type: 1
+    originalUri: Assets\Resources\Props\lamp-stand_baseColor.jpg
+    assetPath: Assets\Resources\Props\lamp-stand_baseColor.jpg
+  - type: 1
+    originalUri: Assets\Resources\Props\lamp-stand_normal.png
+    assetPath: Assets\Resources\Props\lamp-stand_normal.png
+  - type: 1
+    originalUri: Assets\Resources\Props\lamp-stand_metalRough.jpg
+    assetPath: Assets\Resources\Props\lamp-stand_metalRough.jpg
+  reportItems: []

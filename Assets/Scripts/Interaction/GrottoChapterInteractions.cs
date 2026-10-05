@@ -213,24 +213,9 @@ namespace MuseXR.Interaction
         /// </summary>
         Vector3 BrassStand(Vector3 floorAt)
         {
-            var brass = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
-            brass.SetColor("_BaseColor", new Color(0.72f, 0.55f, 0.27f));
-            var root = new GameObject("Brass Stand").transform;
-            root.SetParent(transform, false);
-            root.position = floorAt;
-            void Part(PrimitiveType t, string n, float y, Vector3 scale)
-            {
-                var g = GameObject.CreatePrimitive(t);
-                g.name = n;
-                DestroyImmediate(g.GetComponent<Collider>());
-                g.transform.SetParent(root, false);
-                g.transform.localPosition = new Vector3(0f, y, 0f);
-                g.transform.localScale = scale;
-                g.GetComponent<Renderer>().sharedMaterial = brass;
-            }
-            Part(PrimitiveType.Cylinder, "Foot", 0.02f, new Vector3(0.32f, 0.02f, 0.32f));
-            Part(PrimitiveType.Cylinder, "Column", StandHeight * 0.5f, new Vector3(0.05f, StandHeight * 0.5f, 0.05f));
-            Part(PrimitiveType.Cylinder, "Tray", StandHeight - 0.01f, new Vector3(0.22f, 0.01f, 0.22f));
+            // The generated brass lamp stand (Saul, 4 Oct: no shapes made in code); its tray top is the stand's height.
+            var stand = PropModels.Spawn("lamp-stand", transform, floorAt, transform.rotation, new Vector3(0f, StandHeight, 0f));
+            if (stand != null) stand.name = "Brass Stand";
             return floorAt + Vector3.up * StandHeight;
         }
 
@@ -464,7 +449,9 @@ namespace MuseXR.Interaction
         void SocketSign(Transform post, string word, Icon icon, Vector3 entry, float top)
         {
             var toEntry = Flat(entry - post.position);
-            var face = post.position + toEntry * 0.085f;
+            // Just proud of the post's face, whatever its width (the carved post is 0.23 m, the old cube 0.16).
+            var half = post != transform ? Mathf.Max(PropModels.Bounds(post.gameObject).extents.x, PropModels.Bounds(post.gameObject).extents.z) : 0.08f;
+            var face = post.position + toEntry * (half + 0.012f);
             var rot = Quaternion.LookRotation(-toEntry, Vector3.up);   // +Z away from the viewer reads
             var plate = GameObject.CreatePrimitive(PrimitiveType.Quad);
             plate.name = word + " Sign";
@@ -525,13 +512,10 @@ namespace MuseXR.Interaction
         Transform Socket(string name, Vector3 floorAt, float height, Vector3 entry, Material stone, Icon icon)
         {
             var floor = new Vector3(floorAt.x, Mathf.Max(0f, floorAt.y), floorAt.z);
-            var post = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            post.name = name + " Post";
-            post.transform.SetParent(transform, false);
-            post.transform.position = floor + Vector3.up * (height * 0.5f - 0.02f);
-            post.transform.localScale = new Vector3(0.16f, height, 0.16f);
-            post.GetComponent<Renderer>().sharedMaterial = stone;
-            SocketSign(post.transform, name, icon, entry, floor.y + height);
+            // The generated carved sandstone post (Saul, 4 Oct: no shapes made in code), its top at the socket.
+            var post = PropModels.Spawn("socket-post", transform, floor, Quaternion.LookRotation(Flat(entry - floor), Vector3.up), new Vector3(0f, height, 0f));
+            if (post != null) post.name = name + " Post";
+            SocketSign(post != null ? post.transform : transform, name, icon, entry, floor.y + height);
             var socket = new GameObject("Socket " + name).transform;
             socket.SetParent(transform, false);
             socket.SetPositionAndRotation(floor + Vector3.up * height, Quaternion.LookRotation(Flat(entry - floor), Vector3.up));

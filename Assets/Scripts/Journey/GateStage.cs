@@ -263,44 +263,25 @@ namespace MusePico.Journey
         {
             const float width = 2.4f, height = 4.6f, thick = 0.12f;   // the opening measures ~2.4 m in the capture
             var right = Vector3.Cross(Vector3.up, toArch).normalized;
-            var wood = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
-            wood.SetTexture("_BaseMap", DoorPanel());
-            wood.SetColor("_BaseColor", Color.white);
             foreach (var side in new[] { -1f, 1f })
             {
                 var hinge = new GameObject(side < 0 ? "Gate Door Hinge L" : "Gate Door Hinge R").transform;
                 hinge.SetParent(transform, false);
                 hinge.SetPositionAndRotation(_doorway + right * (side * width / 2f) + Vector3.up * 0.02f, awayFromViewer);
-                var leaf = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                leaf.name = "Leaf";
-                Destroy(leaf.GetComponent<Collider>());
-                leaf.transform.SetParent(hinge, false);
                 // Each leaf reaches from its hinge to the centre. Measured, not reasoned: with the
                 // opposite sign both leaves stood outside the doorway, beside it (3 Oct 2026).
-                leaf.transform.localPosition = new Vector3(side * width / 4f, height / 2f, 0f);
-                leaf.transform.localScale = new Vector3(width / 2f, height, thick);
-                leaf.GetComponent<Renderer>().sharedMaterial = wood;
+                // The generated walnut leaf (Saul, 4 Oct: no shapes made in code); its handle edge meets the other's.
+                var centre = hinge.TransformPoint(new Vector3(side * width / 4f, 0f, 0f));
+                // The hinge's +Z points away from the visitor; the model's front is its +Z, so it is turned to face them.
+                var leaf = MuseXR.Interaction.PropModels.Spawn("door-leaf", hinge, centre, hinge.rotation * Quaternion.Euler(0f, 180f, 0f),
+                                                               new Vector3(width / 2f, height, thick), uniform: false);
+                if (leaf != null)
+                {
+                    leaf.name = "Leaf";
+                    if (side > 0) { var s = leaf.transform.localScale; leaf.transform.localScale = new Vector3(-s.x, s.y, s.z); }   // a mirrored pair
+                }
                 if (side < 0) _leafL = hinge; else _leafR = hinge;
             }
-        }
-
-        /// <summary>Dark wood with a raised panel and a lighter rail - reads as a door at 50 m.</summary>
-        static Texture2D DoorPanel()
-        {
-            const int w = 32, h = 96;
-            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { name = "gate-door" };
-            var dark = new Color(0.24f, 0.15f, 0.09f);
-            var mid = new Color(0.36f, 0.23f, 0.13f);
-            var px = new Color[w * h];
-            for (var y = 0; y < h; y++)
-            for (var x = 0; x < w; x++)
-            {
-                bool rail = x < 3 || x >= w - 3 || y < 4 || y >= h - 4 || (y > 44 && y < 50);
-                float grain = 0.92f + 0.08f * Mathf.Sin(x * 1.7f + y * 0.05f);
-                px[y * w + x] = (rail ? mid : dark) * grain;
-            }
-            tex.SetPixels(px); tex.Apply();
-            return tex;
         }
 
         /// <summary>A rectangle whose alpha falls to nothing at every edge.</summary>

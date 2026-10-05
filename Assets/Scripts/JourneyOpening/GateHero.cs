@@ -96,12 +96,9 @@ namespace MuseXR.Journey
             root.position = new Vector3(at.x, floor, at.z);
             var toWalk = (from + toDoor * VenusAlong) - root.position; toWalk.y = 0f;
             root.rotation = Quaternion.LookRotation(toWalk.normalized, Vector3.up);
-            var drum = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            drum.name = "Drum"; Destroy(drum.GetComponent<Collider>());
-            drum.transform.SetParent(root, false);
-            drum.transform.localPosition = new Vector3(0f, 0.3f, 0f); drum.transform.localScale = new Vector3(0.9f, 0.3f, 0.9f);
-            var stone = new Material(Shader.Find("Universal Render Pipeline/Lit")); stone.SetColor("_BaseColor", new Color(0.93f, 0.92f, 0.89f));
-            drum.GetComponent<Renderer>().sharedMaterial = stone;
+            // The generated marble drum (Saul, 4 Oct: no shapes made in code), 0.6 m: she stands on its top.
+            var drum = PropModels.Spawn("venus-plinth", root, root.position, root.rotation, new Vector3(0f, 0.6f, 0f));
+            if (drum != null) drum.name = "Drum";
             var figure = Instantiate(model, root);
             figure.name = "Venus";
             var rs = figure.GetComponentsInChildren<Renderer>();

@@ -27,11 +27,49 @@ namespace MuseXR.Interaction
 
         public GameObject Goddess { get; private set; }
 
+        /// <summary>
+        /// Her "Goddesses with peach trays, left and right": "One 4-metre figure on each side of the throne steps,
+        /// holding a tray of peaches as if welcoming you up". image-to-3D from her goddess-tray.webp
+        /// (20.6k triangles, 2048 colour and normal). The right one is the left one mirrored, so they frame the
+        /// axis as a pair. Loaded from Resources so no scene or prefab has to change to carry them.
+        /// </summary>
+        public const string TrayGoddessModel = "Heroes/goddess-tray";
+        public const float TrayGoddessHeight = 4f;
+        /// <summary>Either side of the foot of the throne steps, in the Palace frame (x is the half-spacing).</summary>
+        public static readonly Vector3 TrayGoddessAt = new Vector3(3.2f, 0f, -3.6f);
+
+        void TrayGoddesses(Vector3 entry)
+        {
+            var model = Resources.Load<GameObject>(TrayGoddessModel);
+            if (model == null) { Debug.LogError("[PalaceHeroes] missing Resources/" + TrayGoddessModel); return; }
+            foreach (var side in new[] { -1f, 1f })
+            {
+                var floor = transform.TransformPoint(new Vector3(side * TrayGoddessAt.x, TrayGoddessAt.y, TrayGoddessAt.z));
+                var go = Instantiate(model, transform);
+                go.name = "Hero · goddess with a peach tray " + (side < 0 ? "(left)" : "(right)");
+                // Facing the visitor's way up the axis, turned a little in toward it, as if welcoming them.
+                var toEntry = entry - floor; toEntry.y = 0f;
+                var face = Quaternion.LookRotation(toEntry.sqrMagnitude > 1e-4f ? toEntry.normalized : Vector3.forward, Vector3.up);
+                go.transform.rotation = face;
+                go.transform.localScale = side > 0 ? new Vector3(-1f, 1f, 1f) : Vector3.one;   // a mirrored pair
+                var b = Bounds(go);
+                if (b.size.y > 1e-4f) go.transform.localScale *= TrayGoddessHeight / b.size.y;
+                b = Bounds(go);
+                go.transform.position += new Vector3(floor.x - b.center.x, floor.y - b.min.y, floor.z - b.center.z);
+                // Read as chrome silver in the hall (4 Oct): warmed to the hall's gold, as the throne goddess is.
+                foreach (var r in go.GetComponentsInChildren<Renderer>())
+                    foreach (var m in r.materials)
+                        if (m.HasProperty("baseColorFactor")) m.SetColor("baseColorFactor", HallGold);
+                        else if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", HallGold);
+            }
+        }
+
         void Start()
         {
+            var entry = transform.TransformPoint(EntryAt);
+            TrayGoddesses(entry);
             if (goddess == null) { Debug.LogWarning("[PalaceHeroes] no goddess model"); return; }
             var floor = transform.TransformPoint(ThroneAt);
-            var entry = transform.TransformPoint(EntryAt);
             var go = Instantiate(goddess, transform);
             go.name = "Hero · golden phoenix-crowned goddess";
             var toEntry = entry - floor; toEntry.y = 0f;

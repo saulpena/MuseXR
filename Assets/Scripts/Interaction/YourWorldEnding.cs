@@ -112,6 +112,9 @@ namespace MuseXR.Interaction
             var titles = Titles();
             string TitleOf(string id) => titles.TryGetValue(id ?? "", out var t) ? t : id;
 
+            // The layout's two stands, baked as bare cubes: the lacquer-and-gilt plinth model instead.
+            if (transform.parent != null) PropModels.ReplacePlinths(transform.parent);
+            else foreach (var r in gameObject.scene.GetRootGameObjects()) PropModels.ReplacePlinths(r.transform);   // a test scene: no frame
             PalacePiece(rec, sample);
             GrottoPiece(rec, sample);
             StrokePiece(rec, sample);

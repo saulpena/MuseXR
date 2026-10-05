@@ -48,6 +48,7 @@ namespace MuseXR.Interaction
             }
 
             RaiseCourt(courtT);
+            PropModels.ReplacePlinths(crane.root);   // the crane's and the turtle's stands: lacquer and gilt, not bare cubes
 
             // The court's slot sits on its surface; the station hangs off the court object.
             var slot = new GameObject("Court Slot").transform;
@@ -242,14 +243,12 @@ namespace MuseXR.Interaction
         void RaiseCourt(Transform court)
         {
             var floorAt = court.position;
-            var table = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            table.name = "Court Table";
-            table.transform.SetParent(transform, false);
-            table.transform.position = new Vector3(floorAt.x, CourtHeight * 0.5f, floorAt.z);
-            table.transform.localScale = new Vector3(0.7f, CourtHeight, 0.5f);
-            var m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            m.SetColor("_BaseColor", new Color(0.86f, 0.83f, 0.77f));   // her pale-stone interaction zone
-            table.GetComponent<Renderer>().sharedMaterial = m;
+            // The generated carved marble altar table (Saul, 4 Oct: no shapes made in code), at hand height and in its
+            // own proportions (0.9 x 1.3 m: squeezed to the old 0.7 x 0.5 box it stood tall and narrow), long side
+            // across the visitor's view.
+            var table = PropModels.Spawn("court-table", transform, new Vector3(floorAt.x, 0f, floorAt.z),
+                                         transform.rotation * Quaternion.Euler(0f, 90f, 0f), new Vector3(0f, CourtHeight, 0f));
+            if (table != null) table.name = "Court Table";
             court.position = new Vector3(floorAt.x, CourtHeight + 0.005f, floorAt.z);
         }
 

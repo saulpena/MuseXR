@@ -41,19 +41,27 @@ namespace MuseXR.Interaction
             return Current;
         }
 
+        float _modelTop;
+
         void Start() { Build(); StartCoroutine(Rising()); }
 
         void Build()
         {
-            // Her pink, sphere-filled world in miniature (1:20): a disc, a few soft spheres, the visitor's
-            // own pieces from the satchel, and a little arched door facing the visitor.
-            var pink = Lit(new Color32(0xf2, 0xb8, 0xc6, 0xff)); var cream = Lit(new Color32(0xf6, 0xe8, 0xd8, 0xff));
-            var disc = Part(PrimitiveType.Cylinder, new Vector3(0f, 0f, 0f), new Vector3(Radius * 2f, 0.03f, Radius * 2f), pink, "Ground");
-            var rnd = new System.Random(7);
-            for (var i = 0; i < 9; i++)
+            // Her pink, sphere-filled world in miniature (1:20): the generated diorama - a pink cushion, pearl spheres
+            // and a little gold arch (Saul, 4 Oct: no shapes made in code) - with the visitor's own pieces on it.
+            // Built at scale 1, in the miniature's own units, before it rises to its Size.
+            var scaleWas = transform.localScale; var rotWas = transform.rotation;
+            transform.localScale = Vector3.one; transform.rotation = Quaternion.identity;
+            // Its arch is at its back (-Z): turned so the arch stands on the visitor's side, where the door is.
+            var model = PropModels.Spawn("miniature", transform, transform.position, transform.rotation, new Vector3(Radius * 2f, 0f, Radius * 2f));
+            var mesh = model != null ? model.GetComponentInChildren<MeshFilter>() : null;
+            var probe = mesh != null ? mesh.gameObject.AddComponent<MeshCollider>() : null;   // on the mesh's own node, so it sits where the mesh draws
+            Physics.SyncTransforms();
+            // The cushion's top under a point of the miniature (local x, z): where a piece stands.
+            float Surface(float x, float z)
             {
-                var a = i * 0.7f; var r = 0.12f + 0.25f * (float)rnd.NextDouble(); var s = 0.04f + 0.06f * (float)rnd.NextDouble();
-                Part(PrimitiveType.Sphere, new Vector3(Mathf.Cos(a) * r, 0.03f + s * 0.5f, Mathf.Sin(a) * r), Vector3.one * s, i % 2 == 0 ? pink : cream, "Sphere");
+                var from = transform.TransformPoint(new Vector3(x, 1f, z));
+                return probe != null && probe.Raycast(new Ray(from, Vector3.down), out var hit, 2f) ? transform.InverseTransformPoint(hit.point).y : 0.03f;
             }
             var satchel = FindAnyObjectByType<Satchel>();
             if (satchel != null)
@@ -65,29 +73,27 @@ namespace MuseXR.Interaction
                     copy.SetActive(true);
                     foreach (var b in copy.GetComponentsInChildren<Behaviour>(true)) if (!(b is Light)) b.enabled = false;
                     var x = (i % 2 == 0 ? -1f : 1f) * 0.2f; var z = -0.15f + 0.1f * i;
-                    copy.transform.localPosition = new Vector3(x, 0.03f, z);
+                    copy.transform.localPosition = new Vector3(x, Surface(x, z), z);
                     copy.transform.localRotation = Quaternion.Euler(0f, x < 0f ? 90f : -90f, 0f);
                     copy.transform.localScale = item.Copy.transform.lossyScale * 1.2f;   // ~15 cm: 3 m at 1:20
                 }
-            // The door, toward the visitor.
+            if (model != null) _modelTop = transform.InverseTransformPoint(PropModels.Bounds(model).max).y;
+            if (probe != null) Destroy(probe);
+            transform.localScale = scaleWas; transform.rotation = rotWas;
+            // The door - the model's arch - toward the visitor.
             var eye = Camera.main != null ? Camera.main.transform.position : transform.position + Vector3.back;
             var toEye = eye - _top; toEye.y = 0f; toEye = toEye.sqrMagnitude > 1e-4f ? toEye.normalized : Vector3.back;
-            transform.rotation = Quaternion.LookRotation(-toEye, Vector3.up);   // the door is at local -Z
-            var gold = Lit(new Color32(0xc9, 0xaa, 0x72, 0xff), 0.6f);
+            transform.rotation = Quaternion.LookRotation(-toEye, Vector3.up);   // the arch is at local -Z
             var door = new GameObject("Door").transform; door.SetParent(transform, false); door.localPosition = new Vector3(0f, 0.03f, -Radius * 0.85f);
-            PartUnder(door, PrimitiveType.Cube, new Vector3(-0.07f, 0.09f, 0f), new Vector3(0.025f, 0.18f, 0.025f), gold);
-            PartUnder(door, PrimitiveType.Cube, new Vector3(0.07f, 0.09f, 0f), new Vector3(0.025f, 0.18f, 0.025f), gold);
-            PartUnder(door, PrimitiveType.Cube, new Vector3(0f, 0.19f, 0f), new Vector3(0.165f, 0.025f, 0.025f), gold);
-            var glow = PartUnder(door, PrimitiveType.Quad, new Vector3(0f, 0.09f, 0.002f), new Vector3(0.115f, 0.17f, 1f), Unlit(new Color32(0xff, 0xe9, 0xc4, 0xff)));
-            glow.localRotation = Quaternion.identity;
-            var box = door.gameObject.AddComponent<BoxCollider>(); box.center = new Vector3(0f, 0.1f, 0f); box.size = new Vector3(0.3f, 0.3f, 0.12f);
+            var box = door.gameObject.AddComponent<BoxCollider>(); box.center = new Vector3(0f, 0.2f, 0f); box.size = new Vector3(0.4f, 0.5f, 0.2f);
             var p = Pointable.Make(door.gameObject, "enter your world");
             p.Selected += (_, __) => Confirm();
 
             // Her words over it.
             var rec = JourneyMemory.Record;
             var anchor = new GameObject("Label").transform; anchor.SetParent(transform, false);
-            anchor.localPosition = new Vector3(0f, 0.42f, 0f);   // x Size 1.4: just above eye height
+            // Clear above the model's arch (0.64 high in these units; at 0.42 the label cut across it, 5 Oct).
+            anchor.localPosition = new Vector3(0f, Mathf.Max(0.42f, _modelTop + 0.14f), 0f);
             anchor.rotation = Quaternion.LookRotation(-toEye, Vector3.up);
             var c = MuseUi.Canvas(anchor, "Miniature", 1.8f, 300f);
             var card = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Gold, 1f, padX: 12f, padY: 9f, gap: 3f, name: "Card");
@@ -162,35 +168,6 @@ namespace MuseXR.Interaction
             Destroy(fade.gameObject);
             if (Current == this) Current = null;
             if (this != null) Destroy(gameObject);
-        }
-
-        Transform Part(PrimitiveType type, Vector3 local, Vector3 scale, Material m, string name) => PartUnder(transform, type, local, scale, m, name);
-
-        static Transform PartUnder(Transform parent, PrimitiveType type, Vector3 local, Vector3 scale, Material m, string name = "Part")
-        {
-            var go = GameObject.CreatePrimitive(type);
-            go.name = name;
-            Destroy(go.GetComponent<Collider>());
-            go.transform.SetParent(parent, false);
-            go.transform.localPosition = local; go.transform.localScale = scale;
-            go.GetComponent<Renderer>().sharedMaterial = m;
-            return go.transform;
-        }
-
-        static Material Lit(Color c, float smooth = 0.3f)
-        {
-            var m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            m.SetColor("_BaseColor", c); m.SetFloat("_Smoothness", smooth);
-            // A faint glow of its own: the Monet garden is dim, and lit only by the scene it read as a dark clump.
-            m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", c * 0.12f);   // 0.45 blew the pink out to white
-            return m;
-        }
-
-        static Material Unlit(Color c)
-        {
-            var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
-            m.SetColor("_BaseColor", c);
-            return m;
         }
 
         /// <summary>Her only transition: a 0.3 s fade, a black quad just in front of the eye.</summary>

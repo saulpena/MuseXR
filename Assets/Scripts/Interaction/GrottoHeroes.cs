@@ -59,12 +59,10 @@ namespace MuseXR.Interaction
                 Cliff = Place(seatedBuddha, "Hero · golden seated Buddha", transform.TransformPoint(new Vector3(CliffBuddha.x, CliffBaseY, CliffBuddha.z)), entry, CliffHeight);
                 // Her "aim and hold the trigger": a small gold Buddha at the rail, within reach, stands for it.
                 var mini = Place(seatedBuddha, "Golden seated Buddha (replicate)", transform.TransformPoint(MiniatureAt), entry, 0.35f);
-                var stand = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                stand.name = "Stand"; Destroy(stand.GetComponent<Collider>());
-                stand.transform.SetParent(transform, false);
-                stand.transform.position = transform.TransformPoint(new Vector3(MiniatureAt.x, MiniatureAt.y * 0.5f, MiniatureAt.z));
-                stand.transform.localScale = new Vector3(0.32f, MiniatureAt.y * 0.5f, 0.32f);
-                stand.GetComponent<Renderer>().sharedMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit")) { color = new Color32(0xec, 0xe6, 0xd8, 0xff) };
+                // On the same carved sandstone post as the lamp's sockets (generated; Saul, 4 Oct: no shapes made in code).
+                var standAt = transform.TransformPoint(new Vector3(MiniatureAt.x, 0f, MiniatureAt.z));
+                var stand = PropModels.Spawn("socket-post", transform, standAt, mini.transform.rotation, new Vector3(0f, transform.TransformPoint(MiniatureAt).y - standAt.y, 0f));
+                if (stand != null) stand.name = "Stand";
                 Replicable.Make(mini, "Golden seated Buddha", "grotto").replicaName = "A 20 cm gold Buddha";
                 Label(mini, "Golden seated Buddha  ·  30 m on the cliff", "AI original sculpture, not a real site  ·  hold the trigger to replicate");
                 ChestGlow(entry);
