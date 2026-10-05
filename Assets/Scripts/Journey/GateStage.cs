@@ -539,6 +539,9 @@ namespace MusePico.Journey
             button.gameObject.AddComponent<LayoutElement>().flexibleWidth = 0f;
             WebText(button, "Choose who walks with me  \u2192", false, 10f, WebInk, 0.2f, true, name: "Label").enableWordWrapping = false;
             _clickables.Add((button, ConfirmDraft, EdgeOf(button), WebLineStrong, WebInk));
+            // Saul, 5 Oct: not clickable until a question is chosen (a card, or one said aloud). Dimmed until then.
+            _chooseButton = button.gameObject.AddComponent<CanvasGroup>();
+            _chooseButton.alpha = 0.35f;
             _promptHint = WebText(panel, "", false, 10f, WebInk2, 0f, false, 1.4f, "Status");
 
             _promptRoot.SetActive(false);
@@ -567,7 +570,7 @@ namespace MusePico.Journey
             interactable.selectEntered.AddListener(_ => action());
             if (edge != null)
             {
-                interactable.hoverEntered.AddListener(_ => edge.color = hover);
+                interactable.hoverEntered.AddListener(_ => edge.color = Usable(rect) ? hover : idle);
                 interactable.hoverExited.AddListener(_ => edge.color = idle);
             }
             // At a desk the mouse hand points with MuseXR's Pointer, not the XR ray: give it the same
@@ -576,7 +579,7 @@ namespace MusePico.Journey
             {
                 var p = MuseXR.Interaction.Pointable.Make(rect.gameObject, rect.name);
                 p.Selected += (_, __) => action();
-                if (edge != null) { p.Hovering += _ => edge.color = hover; p.Unhovered += _ => edge.color = idle; }
+                if (edge != null) { p.Hovering += _ => edge.color = Usable(rect) ? hover : idle; p.Unhovered += _ => edge.color = idle; }
             }
         }
 
@@ -595,9 +598,19 @@ namespace MusePico.Journey
             RefreshPrompt();
         }
 
+        CanvasGroup _chooseButton;
+
+        /// <summary>Usable: not a dimmed button (one that waits for a choice).</summary>
+        static bool Usable(RectTransform rect)
+        {
+            var g = rect.GetComponent<CanvasGroup>();
+            return g == null || g.alpha > 0.99f;
+        }
+
         void SetDraft(string question)
         {
             _draft = question ?? string.Empty;
+            if (_chooseButton != null) _chooseButton.alpha = _draft.Length > 0 ? 1f : 0.35f;
             if (_draftText != null)
             {
                 _draftText.text = _draft.Length > 0 ? _draft : Placeholder;
@@ -614,7 +627,7 @@ namespace MusePico.Journey
         /// <summary>Her "Choose who walks with me": the question in the field (or her placeholder) is set.</summary>
         void ConfirmDraft()
         {
-            if (_promptHidden) return;
+            if (_promptHidden || _draft.Length == 0) return;   // nothing chosen yet: the button waits
             var q = _draft.Length > 0 ? _draft : Placeholder;
             SetDraft(q);
             var index = -1;

@@ -51,6 +51,16 @@ namespace MuseXR.Interaction
         InsightTarget _thinkingAbout;
         bool _thinkingShown;
 
+        /// <summary>Everything still to come about the last piece: gone, so a new one starts clean.</summary>
+        void Interrupt()
+        {
+            if (_group != null && _group.Busy) _group.StopTurns();
+            StopVoice();
+            _pending = null; _queued = null; _thinkingAbout = null;
+            _asking++;   // a reading still in flight lands nowhere
+            CloseReplies();
+        }
+
         /// <summary>A different work's info card opened: the last work's question panel goes (Saul, 5 Oct).</summary>
         public void CardOpened(InsightTarget t)
         {
@@ -165,9 +175,15 @@ namespace MuseXR.Interaction
             if (Group() == null || t == null) return;
             if (t == _lastClicked && Time.time - _lastClickAt < 1f) return;   // the ray's click and the grab's tap are one click
             _lastClicked = t; _lastClickAt = Time.time;
-            // A tap while a companion is still speaking is kept and answered when they finish: ignored, it
-            // read as a broken pointer (the turtle tapped during the crane's reading, 4 Oct 2026).
-            if (_group.Busy) { _queued = t; return; }
+            // A tap on the SAME piece while they are speaking is kept and answered when they finish (ignored, it read as
+            // a broken pointer: the turtle tapped during the crane's reading, 4 Oct). A DIFFERENT piece cuts the old
+            // round off - its voices, its lines still to come, its readings on their way (Saul, 5 Oct: two lines on the
+            // woman washing her feet played before the Mona Lisa's).
+            if (_group.Busy || _pending != null || _thinkingAbout != null)
+            {
+                if (_lastTarget != null && _lastTarget != t) Interrupt();
+                else if (_group.Busy) { _queued = t; return; }
+            }
             _rule.Clicked(t.id);
             Speak(t);
         }
