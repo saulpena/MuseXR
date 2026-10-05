@@ -185,6 +185,7 @@ namespace MuseXR.Interaction
 
         public void Close()
         {
+            if (_insight != null) MasterInsights.Ensure().Hush(_insight);   // its masters stop with it
             if (_tookInput) ConfirmInput.Drop(this);
             if (Current == this) Current = null;
             _closing = true;

@@ -137,6 +137,7 @@ namespace MuseXR.UI
         /// </summary>
         public void ShowLine(string masterId, string speaker, string line, string hint = null, string kicker = "Your companion answers", System.Action onNext = null)
         {
+            _lineMaster = masterId;
             _onNext = onNext;
             if (_next != null) { _next.alpha = onNext != null ? 1f : 0f; _nextHit.enabled = onNext != null; }
             if (onNext != null) hint = null;   // the button says it
@@ -164,7 +165,16 @@ namespace MuseXR.UI
 
         const float CardFade = 0.25f;
 
-        public void ClearLine() { if (_lineCard != null) Appear.Set(_lineCard, false, CardFade); }
+        public void ClearLine()
+        {
+            if (_lineCard == null) return;
+            // A master's line taken down while showing: their voice goes with it. A note or notice is no master's line.
+            if (_lineMaster != null && _lineCard.activeSelf) MuseXR.Interaction.DialogueContext.CloseLine(_lineMaster);
+            _lineMaster = null;
+            Appear.Set(_lineCard, false, CardFade);
+        }
+
+        string _lineMaster;
 
         /// <summary>A short system line on the card (no portrait), cleared after <paramref name="seconds"/>
         /// unless a master's line has taken its place.</summary>
