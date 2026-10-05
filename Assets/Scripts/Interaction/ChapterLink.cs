@@ -26,7 +26,12 @@ namespace MuseXR.Interaction
         float _scan;
         readonly System.Collections.Generic.List<Renderer> _held = new System.Collections.Generic.List<Renderer>();
 
-        void Start() { if (nextFrame != null) nextFrame.gameObject.SetActive(false); }
+        void Start()
+        {
+            if (nextFrame != null) nextFrame.gameObject.SetActive(false);
+            CompanionGroup.HideMasterMarks(nextFrame);
+            CompanionGroup.HideMasterMarks(previousFrame);
+        }
 
         void Update()
         {
@@ -34,6 +39,7 @@ namespace MuseXR.Interaction
             if (_opened || gate == null || !gate.IsOpen || gate.NextWorld == null) return;
             _opened = true;
             gate.Arrived += () => StartCoroutine(Arrive());
+            gate.Crossed += CompanionGroup.FadeOutAllForCrossing;   // they fade in at their places on arrival
             if (nextFrame == null) return;   // the last link: the next world is all there is
             var pivot = gate.NextWorld.transform.parent;
             nextFrame.SetPositionAndRotation(pivot.position, pivot.rotation);

@@ -133,10 +133,26 @@ namespace MuseXR.Interaction
 
         void OnMoved(Holdable piece) => Board.Move(Distances(piece));
 
+        /// <summary>The mouse hand's catch: a slot this close across the floor takes the released piece.</summary>
+        public const float DesktopSnap = 0.5f;
+
         void OnReleased(Holdable piece)
         {
             var i = Array.IndexOf(_pieces, piece);
             var d = Distances(piece);
+            // The mouse hand (Editor, no headset) cannot set a piece's base within the 12 cm snap: the piece hangs
+            // half a metre ahead of the camera at eye height, so every release floated it home (Saul, 5 Oct).
+            // For it, the nearest slot within DesktopSnap across the floor takes the piece, whatever the height.
+            if (piece.LastHeldBy != null && piece.LastHeldBy.GetComponent<DesktopHand>() != null)
+            {
+                int best = -1; float bestD = DesktopSnap;
+                for (var k = 0; k < _slots.Length; k++)
+                {
+                    var flat = piece.BasePoint - _slots[k].position; flat.y = 0f;
+                    if (flat.magnitude < bestD) { bestD = flat.magnitude; best = k; }
+                }
+                if (best >= 0) _scratch[best] = 0f;
+            }
             if (SeatGate != null && !SeatGate())
             {
                 bool near = false; foreach (var x in d) if (x < 0.5f) near = true;

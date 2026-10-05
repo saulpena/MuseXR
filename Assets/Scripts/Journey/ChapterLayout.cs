@@ -328,6 +328,11 @@ namespace MusePico.Journey
             // A few centimetres up: floor splats composite over anything at y 0 and haze a figure's feet.
             go.transform.SetPositionAndRotation(p + Vector3.up * FigureLift, facing);
             Placed[item.Id] = new Pose(p, facing);
+            // Hidden until a companion group takes it: the masters walk with the visitor and are never seen
+            // standing on the layout's marks (Saul, 5 Oct: "remove those fixed positions, that was an old
+            // design"). The group puts them beside the visitor and fades them in (CompanionGroup.FadeInAtPlaces).
+            // The round table seats the group's companions itself, so it is unaffected.
+            go.SetActive(false);
         }
 
         void Interaction(DiagramItem item, Vector3 p)

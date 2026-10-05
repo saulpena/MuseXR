@@ -22,13 +22,16 @@ namespace MuseXR.Slots
         public enum Mode { Miniature, Card }
 
         /// <summary>
-        /// Her storyboard gives one reason in words, "It still looks up" (the crane's). The other
-        /// chips are DRAFTS written for the test scene, to be replaced by hers.
+        /// Why keep it - three answers to the Palace's question, "Of what I inherited, what is worth keeping?".
+        /// The turtle's are hers, word for word (MUSE-VR-design, the Palace storyboard: "Leave one reason for your
+        /// choice"). For the crane her storyboard gives only "It still looks up"; Skylar asked us to do our best
+        /// with the rest (Saul, 5 Oct), so the other two are ours, in her "Because ..." voice, read from the crane's
+        /// own meaning: the old gift of a long life, and its stillness.
         /// </summary>
         public static IReadOnlyList<string> ReasonsFor(string piece) =>
             string.Equals(piece, "Turtle", StringComparison.OrdinalIgnoreCase)
-                ? new[] { "It holds steady", "It outlasts what hurries", "It carries its home" }
-                : new[] { "It still looks up", "It is ready to fly", "It keeps its balance" };
+                ? new[] { "Because it is slow, but it keeps going", "Because my family would have chosen it", "Because it reminds me of someone" }
+                : new[] { "It still looks up", "Because someone wished me a long life", "Because it stays calm while it waits" };
 
         public Phase Current { get; private set; } = Phase.Choosing;
         public Mode Kind { get; private set; } = Mode.Miniature;

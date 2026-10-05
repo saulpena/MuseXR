@@ -24,6 +24,8 @@ namespace MuseXR.Interaction
         List<KeyValuePair<string, string>> _pending;
         int _asking;
         float _nextSweep;
+        CompanyStage _opening;   // looked up once a second, with the sweep
+        bool OpeningUnderway => _opening != null && _opening.isActiveAndEnabled && _opening.Current != CompanyStage.Phase.Done;
         bool _voicesOnly;   // our stand-in group, not a chapter's companions   // the latest insight's token: a reading for an older one is dropped (her dialogueToken)
 
         async void Start()
@@ -36,6 +38,25 @@ namespace MuseXR.Interaction
             if (string.IsNullOrEmpty(key)) { Debug.LogWarning("[Insight] no OpenAI key: openings only, no live readings"); return; }
             _client = new MusePico.Dialogue.DialogueClient(
                 new MusePico.Tripo.TripoWebRequestTransport(key, MusePico.Dialogue.DialogueClient.DefaultEndpoint), _roster);
+        }
+
+        /// <summary>
+        /// Live lines from <paramref name="ids"/> (our master ids) on <paramref name="question"/> about a thing: each
+        /// master answers through their own lens. Null when live dialogue is off or the call fails, so the caller
+        /// can fall back honestly. Waits a moment for the client if the scene has only just started.
+        /// </summary>
+        public async System.Threading.Tasks.Task<Dictionary<string, string>> AskMasters(string question, IReadOnlyList<string> ids, string title, string about)
+        {
+            for (var i = 0; i < 30 && _client == null && _roster != null; i++) await System.Threading.Tasks.Task.Delay(100);
+            if (_client == null || ids == null || ids.Count == 0) { Debug.LogWarning("[Insight] no live dialogue for: " + title); return null; }
+            var roster = new List<string>(); foreach (var id in ids) roster.Add(ToRoster(id));
+            var lenses = MusePico.Dialogue.MasterRoster.Select(_roster, roster);
+            var result = await _client.AskAsync(question, lenses, new MusePico.Dialogue.ArtworkContext { Title = title, Artist = about });
+            if (!result.Live || result.Perspectives.Count == 0) { Debug.LogWarning("[Insight] live lines failed for " + title + ": " + result.Error); return null; }
+            var lines = new Dictionary<string, string>();
+            foreach (var p in result.Perspectives) if (!string.IsNullOrWhiteSpace(p.text)) lines[FromRoster(p.speakerId)] = p.text;
+            Debug.Log("[Insight] " + lines.Count + " live lines on " + title + " in " + result.Seconds.ToString("F1") + " s");
+            return lines;
         }
 
         // Our master ids -> the roster's (masters.json) and back.
@@ -175,6 +196,8 @@ namespace MuseXR.Interaction
             if (Group() == null || t == null) return;
             if (t == _lastClicked && Time.time - _lastClickAt < 1f) return;   // the ray's click and the grab's tap are one click
             _lastClicked = t; _lastClickAt = Time.time;
+            // The Gate's opening (company chosen, stepping out, answering): a tap waits for it (other agent, 5 Oct).
+            if (OpeningUnderway) { _queued = t; return; }
             // A tap on the SAME piece while they are speaking is kept and answered when they finish (ignored, it read as
             // a broken pointer: the turtle tapped during the crane's reading, 4 Oct). A DIFFERENT piece cuts the old
             // round off - its voices, its lines still to come, its readings on their way (Saul, 5 Oct: two lines on the
@@ -191,18 +214,23 @@ namespace MuseXR.Interaction
         void Update()
         {
             UpdateReplies();
-            if (Time.time >= _nextSweep) { _nextSweep = Time.time + 1f; Exhibit.Sweep(); MakeAskable(); }
+            if (Time.time >= _nextSweep) { _nextSweep = Time.time + 1f; Exhibit.Sweep(); MakeAskable(); _opening = FindAnyObjectByType<CompanyStage>(); }
             UpdateAskTalk();   // every piece on show answers and is tracked
             // The round table is running: no gazing at a painting beside it starts a reading, and none
             // still in flight lands among the table's turns under their "Based on" lines.
             if (ArtworkCard.Hushed) { if (_pending != null) { _pending = null; _asking++; } return; }
             if (Group() == null || _group.Busy) return;
+            // The Gate's company is still being chosen, stepping out or answering the visitor's question: no
+            // reading starts. One did (the Pissarros now stand by the start): Socrates on The Crystal Palace took
+            // the companions' turns, their answers never played, the round never finished, and the lanterns,
+            // which wait for it, never came (Saul's run, 5 Oct). A tap meanwhile waits in _queued.
+            if (OpeningUnderway) return;
             if (_pending != null) { var p = _pending; _pending = null; _thinkingAbout = null; Voiced(p, () => _group.SayInTurn(p), cut: false); return; }
             // The opening has been said and the readings are still coming: say so on the card, as an asked question does.
             if (_thinkingAbout != null && !_thinkingShown)
             {
                 _thinkingShown = true;
-                DialogueContext.Notice("Your companions", "The masters are thinking about " + _thinkingAbout.title + "\u2026", 20f);
+                DialogueContext.Notice("Your companions", "The masters are thinking about " + _thinkingAbout.title + "…", 20f);
             }
             if (_queued != null) { var q = _queued; _queued = null; _rule.Clicked(q.id); Speak(q); return; }
             var head = Camera.main != null ? Camera.main.transform : null;
@@ -226,8 +254,9 @@ namespace MuseXR.Interaction
             var figures = new Dictionary<string, Transform>();
             var order = new List<string>();
             foreach (var id in Masters.Row)
-                foreach (var t in FindObjectsByType<Transform>(FindObjectsSortMode.None))
-                    if (t.name == "Mark " + id) { figures[id] = t; order.Add(id); break; }
+                // Marks wait hidden until a group takes them: include those whose layout is showing.
+                foreach (var t in FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                    if (t.name == "Mark " + id && (t.parent == null || t.parent.gameObject.activeInHierarchy)) { figures[id] = t; order.Add(id); break; }
             var go = new GameObject("Companions");
             if (order.Count == 0)
             {
