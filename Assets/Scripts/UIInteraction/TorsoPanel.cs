@@ -53,6 +53,15 @@ namespace MuseXR.UI
         public const float HeadSlack = 0.3f;
         bool _yawStarted;
         float _pageTimer;
+        float _typed;
+
+        /// <summary>Her typewrite speed: 2 characters per 24 ms.</summary>
+        public const float TypeCharsPerSecond = 2f / 0.024f;
+
+        /// <summary>Show the whole line now (her click on a typing line).</summary>
+        public void CompleteLine() { _typed = float.MaxValue; if (_line != null) _line.maxVisibleCharacters = 99999; }
+
+        public bool Typing => _line != null && _typed < _line.text.Length;
         string _hintBase;
         TMP_FontAsset _gilda;
 
@@ -60,6 +69,20 @@ namespace MuseXR.UI
 
         /// <summary>The panel if one exists - for clearing it, which must never build one (say, at teardown).</summary>
         public static TorsoPanel Existing => _instance;
+
+        /// <summary>Lines for the card that are not a master's (an asked question being thought about).</summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void ListenForNotices()
+        {
+            MuseXR.Interaction.DialogueContext.Noticed -= OnNotice;
+            MuseXR.Interaction.DialogueContext.Noticed += OnNotice;
+        }
+
+        static void OnNotice(string kicker, string text, float seconds)
+        {
+            var panel = Get();
+            if (panel != null) panel.Note(kicker, text, seconds);
+        }
 
         public static TorsoPanel Get()
         {
@@ -99,6 +122,10 @@ namespace MuseXR.UI
             _hint.gameObject.SetActive(true);
             _line.pageToDisplay = 1;
             _pageTimer = 0f;
+            // Her typewrite (app.js): a master's line types in, 2 characters every 24 ms; a note shows at once.
+            // maxVisibleCharacters keeps the layout of the whole line, so the card never resizes as it types.
+            _typed = masterId != null ? 0f : float.MaxValue;
+            _line.maxVisibleCharacters = masterId != null ? 0 : 99999;
             var tex = Portrait(masterId);
             // The ring stays for a system note too (empty): the card keeps one size whoever is speaking.
             _portrait.texture = tex;
@@ -216,6 +243,11 @@ namespace MuseXR.UI
 
         void LateUpdate()
         {
+            if (_line != null && _typed < _line.text.Length)
+            {
+                _typed += TypeCharsPerSecond * Time.deltaTime;
+                _line.maxVisibleCharacters = Mathf.Min((int)_typed, 99999);
+            }
             var body = BodyFrame.Get();
             if (body == null || body.Head == null) return;
             body.Step(Time.deltaTime);

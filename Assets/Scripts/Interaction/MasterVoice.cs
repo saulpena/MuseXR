@@ -26,6 +26,9 @@ namespace MuseXR.Interaction
         int _round;
         float _busyUntil;
 
+        /// <summary>A master's voice is playing now (the music ducks under it).</summary>
+        public static bool Speaking => _instance != null && _instance._source != null && _instance._source.isPlaying;
+
         public static MasterVoice Get()
         {
             if (_instance != null) return _instance;

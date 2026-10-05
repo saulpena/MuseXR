@@ -33,6 +33,9 @@ namespace MusePico.Journey
         [Tooltip("While this is playing, the score ducks. Usually the salon's voice source.")]
         public AudioSource duckUnder;
 
+        /// <summary>Also duck while this says a voice is speaking (scenes whose voices have no one source).</summary>
+        public System.Func<bool> duckWhen;
+
         AudioSource _promenade, _clair, _gymnopedie;
         string _active = MuseumScore.Promenade;
 
@@ -67,7 +70,7 @@ namespace MusePico.Journey
         {
             // The honest "is someone speaking" signal is the voice source itself, which is what her
             // narrator.onSpeaking hook reports.
-            var ducked = duckUnder != null && duckUnder.isPlaying;
+            var ducked = (duckUnder != null && duckUnder.isPlaying) || (duckWhen != null && duckWhen());
             var dt = Time.unscaledDeltaTime;
 
             Apply(_promenade, MuseumScore.Promenade, ducked, dt);

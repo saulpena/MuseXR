@@ -208,7 +208,8 @@ namespace MuseXR.Journey
             root.gameObject.AddComponent<SubtitleRig>().Group = Company.Group;
             // No preset: with Monet, Van Gogh and Socrates preselected a single A chose for the visitor
             // (headset test). Her demo preset is for the 3-minute demo route, not this walk.
-            Company.Group.FollowVisitor = false;   // placed once beside the visitor, then they stand still
+            Company.Group.FollowVisitor = false;
+            Company.JoinCrowd = true;   // straight to their places beside the visitor, at a walk (Saul, 5 Oct)   // placed once beside the visitor, then they stand still
             // With a voice the clip times each turn; without one, reading time does (EstimateSeconds).
             Company.Group.TimeLinesByLength = dialogue == null || !dialogue.HasVoice;
             Company.Group.LineStarted += (id, line) => StartCoroutine(SpeakTurn(id, line));

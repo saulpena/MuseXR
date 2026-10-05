@@ -22,6 +22,8 @@ namespace MuseXR.Interaction
         int _hovers;
 
         public string Id { get; set; } = string.Empty;
+        /// <summary>The name shown over it while the ray is on it (<see cref="HoverCue"/>); none, no brackets.</summary>
+        public string Label { get; set; }
         public bool Hovered => _hovers > 0;
         /// <summary>Off: rays pass over it without hovering or selecting (a kept choice, a stage not yet open).</summary>
         public bool Interactive { get; set; } = true;
@@ -116,7 +118,7 @@ namespace MuseXR.Interaction
             var busy = Grip != null && Grip.Held != null;
             SetHover(busy ? null : Find());
             var trigger = Source.Trigger;
-            if (trigger && !_wasTrigger && Hovered != null) Hovered.Select(this);
+            if (trigger && !_wasTrigger && Hovered != null) { _cue?.Flash(); Hovered.Select(this); }
             _wasTrigger = trigger;
             DrawLaser();
         }
@@ -168,11 +170,15 @@ namespace MuseXR.Interaction
             return best;
         }
 
+        HoverCue _cue;
+
         void SetHover(IPointable next)
         {
             if (ReferenceEquals(next, Hovered)) return;
             Hovered?.HoverExit(this);
             Hovered = next;
+            if (_cue == null) _cue = new GameObject("Hover cue").AddComponent<HoverCue>();
+            _cue.Show(next);
             if (next == null) return;
             next.HoverEnter(this);
             Source?.Buzz(SlotRules.LightAmplitude * 0.6f, SlotRules.LightSeconds);

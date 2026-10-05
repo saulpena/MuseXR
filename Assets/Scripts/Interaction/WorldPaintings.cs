@@ -227,7 +227,8 @@ namespace MuseXR.Interaction
             var facing = -go.transform.forward; facing.y = 0f;
             mark.position = go.transform.position + facing.normalized * 2.1f - Vector3.up * HangAboveFloor;
             var grab = go.GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable>();
-            var w = ArtworkWatcher.Make(go, record.id, mark, () => grab != null && grab.isHovered && !grab.isSelected);
+            var point = go.GetComponent<Pointable>();   // the trigger ray's own target on it (InsightTarget.AddGrabbable)
+            var w = ArtworkWatcher.Make(go, record.id, mark, () => (grab != null && grab.isHovered && !grab.isSelected) || (point != null && Pointer.AnyOn(point)));
             w.CardWanted += _ => ArtworkCard.Show(record, go.transform, size, insight);
             go.AddComponent<DwellReporter>().Watcher = w;
         }

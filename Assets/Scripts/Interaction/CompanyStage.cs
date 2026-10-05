@@ -48,7 +48,17 @@ namespace MuseXR.Interaction
         readonly Dictionary<string, float> _shake = new Dictionary<string, float>();
         readonly Dictionary<string, (Vector3 from, Vector3 to, Quaternion fromRot, Quaternion toRot)> _walk =
             new Dictionary<string, (Vector3, Vector3, Quaternion, Quaternion)>();
-        float _walkT;
+        float _walkT, _stepSeconds = StepSeconds;
+
+        /// <summary>
+        /// Walk the chosen straight to their places in the crowd beside the visitor, at walking pace, instead of to
+        /// the answer marks (Saul, 5 Oct: they ran to their marks, then the crowd moved one of them again across the
+        /// view). Their turns are then taken where they stand.
+        /// </summary>
+        public bool JoinCrowd { get; set; }
+
+        /// <summary>Walking pace for the step out (m/s).</summary>
+        public const float WalkSpeed = 1.4f;
         bool _answer = true, _completed;
 
         /// <summary>Build the stage over standees already standing in a row, keyed by master id.</summary>
@@ -60,6 +70,7 @@ namespace MuseXR.Interaction
                 s._standees[kv.Key] = kv.Value;
                 s._rowPose[kv.Key] = (kv.Value.position, kv.Value.rotation);
                 var p = Pointable.Make(kv.Value.gameObject, kv.Key);
+                p.Label = Masters.Name(kv.Key);
                 var id = kv.Key;
                 p.Selected += (_, pointer) => s.Toggle(id, pointer);
             }
@@ -118,14 +129,18 @@ namespace MuseXR.Interaction
             Group.Head = head;
             Group.Set(order, figures);
             _walk.Clear();
+            if (JoinCrowd) { Group.Crowd = true; Group.AssignSlots(); }
+            var longest = 0f;
             for (var i = 0; i < order.Count; i++)
             {
                 var t = _standees[order[i]];
-                var to = Group.MarkPosition(i);
+                var to = JoinCrowd ? Group.CrowdPlaceOf(order[i]) : Group.MarkPosition(i);
+                longest = Mathf.Max(longest, Vector3.Distance(t.position, to));
                 var face = head != null ? head.position - to : -t.forward; face.y = 0f;
                 _walk[order[i]] = (t.position, to, t.rotation, Quaternion.LookRotation(face.normalized, Vector3.up));
             }
             _walkT = 0f;
+            _stepSeconds = JoinCrowd ? Mathf.Clamp(longest * 1.15f / WalkSpeed, 1.2f, 5f) : StepSeconds;   // the arc is a little longer than the chord
             // The uninvited fade out (Saul, 3 Oct 2026), so none is left standing half-hidden behind a companion.
             foreach (var kv in _standees) if (!Invitation.IsChosen(kv.Key)) Fader.FadeOut(kv.Value.gameObject);
             Go(Phase.Stepping);
@@ -165,6 +180,10 @@ namespace MuseXR.Interaction
         void Go(Phase p)
         {
             Current = p;
+            // Chosen: the line-up's own targets stop catching the ray, so pointing at a master always reaches their
+            // ask target (it used to land on the dead standee box half the time, and the click did nothing).
+            if (p != Phase.Choosing)
+                foreach (var t in _standees.Values) { var pt = t != null ? t.GetComponent<Pointable>() : null; if (pt != null) pt.Interactive = false; }
             PhaseChanged?.Invoke(p);
         }
 
@@ -189,15 +208,15 @@ namespace MuseXR.Interaction
                     break;
                 case Phase.Stepping:
                     _walkT += Time.deltaTime;
-                    var k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_walkT / StepSeconds));
+                    var k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_walkT / _stepSeconds));
                     var eye = Group.Head != null ? Group.Head.position : Vector3.zero;
                     foreach (var kv in _walk)
-                        _standees[kv.Key].SetPositionAndRotation(StepOut(eye, kv.Value.from, kv.Value.to, Mathf.Clamp01(_walkT / StepSeconds)),
+                        _standees[kv.Key].SetPositionAndRotation(StepOut(eye, kv.Value.from, kv.Value.to, Mathf.Clamp01(_walkT / _stepSeconds)),
                                                                  Quaternion.Slerp(kv.Value.fromRot, kv.Value.toRot, k));
-                    if (_walkT >= StepSeconds && (ReadyToAnswer == null || ReadyToAnswer()))
+                    if (_walkT >= _stepSeconds && (ReadyToAnswer == null || ReadyToAnswer()))
                     {
                         Group.enabled = true;
-                        Group.PlaceAll();
+                        if (!JoinCrowd) Group.PlaceAll();   // in the crowd they are already in their places
                         if (!_answer) { Finish(); break; }
                         Group.TurnsFinished += Finish;
                         Group.BeginTurns();

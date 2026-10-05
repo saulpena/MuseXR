@@ -253,6 +253,7 @@ namespace MuseXR.Journey
                 box.isTrigger = true;
                 var index = i;
                 var p = Pointable.Make(lantern.gameObject, Keys[i]);
+                p.Label = Chapters[i] + " lantern";
                 CompassTarget.Add(lantern.gameObject, 10 + i, Chapters[i] + " lantern", "Point to hear why");   // done when pointed at
                 p.Selected += (_, __) => Hear(index);
                 p.Hovering += _ => light.intensity = 3.2f;     // brightens under the laser

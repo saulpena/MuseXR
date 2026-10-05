@@ -497,6 +497,68 @@ Mesh:
       - serializedVersion: 1
         m_IndexStart: 0
         m_IndexCount: 0
+--- !u!1 &104613322
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 104613325}
+  - component: {fileID: 104613324}
+  - component: {fileID: 104613323}
+  m_Layer: 0
+  m_Name: Journey Score
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &104613323
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 104613322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cb713c98e1030341848083c11e1e2c2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MuseXR.Journey.Opening::MuseXR.Journey.JourneyScore
+--- !u!114 &104613324
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 104613322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8bbc7faac4dc3a84fb8a93665ecdadc9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MusePico.Journey::MusePico.Journey.MuseumScoreSource
+  promenade: {fileID: 8300000, guid: b5a9976550c55e741b3b89812a5d557f, type: 3}
+  clairDeLune: {fileID: 8300000, guid: 5a4bed0ab2ad2b941ac92a3e75ab1219, type: 3}
+  gymnopedie: {fileID: 8300000, guid: 6b4d69b0a437e204f8809190265e00c6, type: 3}
+  enableMusic: 1
+  duckUnder: {fileID: 0}
+--- !u!4 &104613325
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 104613322}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!28 &120522403
 Texture2D:
   m_ObjectHideFlags: 0
@@ -4953,8 +5015,8 @@ MonoBehaviour:
   - id: aic-153799
     centre: {x: 1.98, y: 1.68, z: -8.6}
     facing: {x: -0.5144958, y: 0, z: 0.8574929}
-    easel: 1
-    floor: 0.083
+    easel: 0
+    floor: 0
     canvas: {x: 1.5, y: 1.2}
     frame: 1
     fill: 0
@@ -4962,8 +5024,8 @@ MonoBehaviour:
   - id: aic-81551
     centre: {x: 1.98, y: 1.68, z: -10.4}
     facing: {x: -0.5144958, y: 0, z: 0.8574929}
-    easel: 1
-    floor: 0.032
+    easel: 0
+    floor: 0
     canvas: {x: 1.5, y: 1.2}
     frame: 1
     fill: 0
@@ -4971,8 +5033,8 @@ MonoBehaviour:
   - id: aic-110541
     centre: {x: -3.84, y: 1.68, z: -8.53}
     facing: {x: 0.5144958, y: 0, z: 0.8574929}
-    easel: 1
-    floor: 0.249
+    easel: 0
+    floor: 0
     canvas: {x: 1.5, y: 1.2}
     frame: 1
     fill: 0
@@ -4980,8 +5042,8 @@ MonoBehaviour:
   - id: aic-81552
     centre: {x: -3.84, y: 1.68, z: -10.4}
     facing: {x: 0.5144958, y: 0, z: 0.8574929}
-    easel: 1
-    floor: 0.295
+    easel: 0
+    floor: 0
     canvas: {x: 1.5, y: 1.2}
     frame: 1
     fill: 0
@@ -11848,3 +11910,4 @@ SceneRoots:
   - {fileID: 3766001623723816808}
   - {fileID: 1587090665}
   - {fileID: 902084547}
+  - {fileID: 104613325}

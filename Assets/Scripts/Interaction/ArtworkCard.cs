@@ -71,6 +71,11 @@ namespace MuseXR.Interaction
             var facing = -_work.forward;
             var right = Vector3.Cross(Vector3.up, -facing).normalized;
             var o = Offset(workSize, 0.42f);
+            // The side with room (Saul, 5 Oct): at the Gate the easels stand close, and the right side put the card over
+            // the next painting. Right by default; left when another work stands where the card would.
+            if (o.x > 0f && Crowded(_work.position + right * o.x, _work))
+                o = !Crowded(_work.position - right * o.x, _work) ? new Vector3(-o.x, o.y, 0f)
+                                                                   : Offset(new Vector2(0f, workSize.y), 0.42f);   // both sides taken: under it
             var at = _work.position + right * o.x + Vector3.up * o.y + facing * 0.02f;
             transform.SetPositionAndRotation(at, Quaternion.LookRotation(-facing, Vector3.up));   // +Z away from the viewer reads
 
@@ -93,6 +98,18 @@ namespace MuseXR.Interaction
             var row = MuseUi.Row(glass, 8f, TextAnchor.MiddleLeft, "Buttons");
             MuseUi.Pill(row, "A", "Hear companions", true, () => Confirm());
             MuseUi.Pill(row, "B", "Close", false, () => Redo());
+        }
+
+        /// <summary>Does another work or piece stand within a card's width of <paramref name="spot"/>?</summary>
+        static bool Crowded(Vector3 spot, Transform own)
+        {
+            foreach (var t in InsightTarget.All)
+            {
+                if (t == null || t.transform == own || !t.gameObject.activeInHierarchy) continue;
+                var d = t.transform.position - spot; d.y = 0f;
+                if (d.magnitude < 0.75f) return true;
+            }
+            return false;
         }
 
         static string Join(string a, string b) =>

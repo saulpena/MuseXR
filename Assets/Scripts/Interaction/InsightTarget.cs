@@ -58,6 +58,12 @@ namespace MuseXR.Interaction
             var col = go.GetComponent<Collider>();
             if (col == null) { var b = go.AddComponent<BoxCollider>(); b.size = new Vector3(1f, 1f, 0.02f); col = b; }
             MusePico.Grab.Grabbable.Make(go, () => { alsoOnTap?.Invoke(); t.Speak(); }, MusePico.Grab.GrabReach.AtRayEnd, col);
+            // The pointer reaches it too (Saul, 5 Oct: no hover and no click on the paintings): its name and corners while
+            // the ray is on it, and the trigger has a master speak. The grab's own tap is the same click, so it is not doubled.
+            var p = go.GetComponent<Pointable>();
+            if (p == null) p = Pointable.Make(go, t.id);
+            p.Label = title;
+            p.Selected += (_, __) => { alsoOnTap?.Invoke(); t.Speak(); };
             return t;
         }
 

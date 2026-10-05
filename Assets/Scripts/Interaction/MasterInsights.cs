@@ -142,9 +142,14 @@ namespace MuseXR.Interaction
             return _group;
         }
 
+        InsightTarget _lastClicked;
+        float _lastClickAt = -10f;
+
         public void Clicked(InsightTarget t)
         {
             if (Group() == null || t == null) return;
+            if (t == _lastClicked && Time.time - _lastClickAt < 1f) return;   // the ray's click and the grab's tap are one click
+            _lastClicked = t; _lastClickAt = Time.time;
             // A tap while a companion is still speaking is kept and answered when they finish: ignored, it
             // read as a broken pointer (the turtle tapped during the crane's reading, 4 Oct 2026).
             if (_group.Busy || OpeningUnderway) { _queued = t; return; }
@@ -279,12 +284,11 @@ namespace MuseXR.Interaction
             var glass = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 12f, padY: 10f, gap: 6f, name: "Replies");
             // Her web popup: the question, and an x to close it (Saul, 5 Oct: no timer - it stays until a reply or the x).
             var top = MuseUi.Row(glass, 6f, TextAnchor.MiddleLeft, "Top");
-            var prompt = MuseUi.Text(top, ReplyPrompt, MuseUi.Face.Serif, 13f, MuseTheme.Ink, name: "Prompt");
+            var prompt = MuseUi.Text(top, t.title.ToUpperInvariant(), MuseUi.Face.Sans, 8f, MuseTheme.Ink3, 0.14f, name: "Work");   // which work this is about (Saul, 5 Oct)
             prompt.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
-            var x = MuseUi.Card(top, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 7f, padY: 2f, gap: 0f, name: "Close");
-            MuseUi.Text(x, "×", MuseUi.Face.Sans, 13f, MuseTheme.Ink3, name: "X").enableWordWrapping = false;
-            x.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 0f;
+            var x = CloseChip(top);
             _closeChip = x;
+            MuseUi.Text(glass, ReplyPrompt, MuseUi.Face.Serif, 13f, MuseTheme.Ink, name: "Prompt");
             for (var i = 0; i < Insights.Replies.Count; i++)
             {
                 var (axis, label) = Insights.Replies[i];
@@ -302,6 +306,7 @@ namespace MuseXR.Interaction
                 var box = hit.gameObject.AddComponent<BoxCollider>();
                 box.center = (lo + hi) * 0.5f; box.size = new Vector3(Mathf.Abs(hi.x - lo.x), Mathf.Abs(hi.y - lo.y), 0.02f);
                 var p = Pointable.Make(hit.gameObject, "reply " + axis);
+                HoverTint.Bind(p, chip);
                 var chosen = axis;
                 p.Selected += (_, __) => Reply(chosen);
             }
@@ -313,10 +318,26 @@ namespace MuseXR.Interaction
             var xlo = anchor.InverseTransformPoint(xc[0]); var xhi = anchor.InverseTransformPoint(xc[2]);
             var xb = xh.gameObject.AddComponent<BoxCollider>();
             xb.center = (xlo + xhi) * 0.5f; xb.size = new Vector3(Mathf.Abs(xhi.x - xlo.x) + 0.02f, Mathf.Abs(xhi.y - xlo.y) + 0.02f, 0.02f);
-            Pointable.Make(xh.gameObject, "replies close").Selected += (_, __) => CloseReplies();
+            var close = Pointable.Make(xh.gameObject, "replies close");
+            HoverTint.Bind(close, _closeChip);
+            close.Selected += (_, __) => CloseReplies();
             _replies = anchor.gameObject;
             FollowVisitor.Attach(_replies);   // follows you like the masters' card (Saul, 5 Oct)
             Appear.In(_replies, 0.3f);   // eased, never popped (Saul, 5 Oct)
+        }
+
+        /// <summary>The panels' x: a fixed round chip with the cross centred on its own glyph (Saul, 5 Oct: it sat high and left).</summary>
+        static RectTransform CloseChip(Transform row)
+        {
+            var x = MuseUi.Card(row, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 0f, padY: 0f, gap: 0f, name: "Close");
+            var le = x.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+            le.flexibleWidth = 0f; le.minWidth = le.preferredWidth = 22f; le.minHeight = le.preferredHeight = 22f;
+            var v = x.GetComponent<UnityEngine.UI.VerticalLayoutGroup>();
+            if (v != null) { v.childAlignment = TextAnchor.MiddleCenter; v.childControlHeight = true; v.childControlWidth = true; v.childForceExpandHeight = true; v.childForceExpandWidth = true; }
+            var t = MuseUi.Text(x, "\u00d7", MuseUi.Face.Sans, 14f, MuseTheme.Ink3, lineHeight: 1f, name: "X");
+            t.enableWordWrapping = false;
+            t.alignment = TMPro.TextAlignmentOptions.Midline;   // the glyph's own middle, not the line box's
+            return x;
         }
 
         /// <summary>The visitor's reply: her champion answers, the record keeps it.</summary>
@@ -333,7 +354,7 @@ namespace MuseXR.Interaction
             _pending = null;
             Voiced(reaction, () => _group.SayInTurn(reaction));
             Debug.Log("[Insight] reply '" + axis + "' to " + _replyTo.title + ": " + Masters.Name(speaker) + " answers");
-            CloseReplies();
+            CloseReplies();   // the answer reads on the masters' card; no second panel (Saul, 5 Oct)
             return true;
         }
 
@@ -377,7 +398,9 @@ namespace MuseXR.Interaction
                 var cap = hit.AddComponent<CapsuleCollider>();
                 cap.isTrigger = true; cap.center = new Vector3(0f, 0.9f, 0f); cap.height = 1.8f; cap.radius = 0.3f;
                 var who = id;
-                Pointable.Make(hit, "ask " + id).Selected += (_, __) => OpenAsk(who);
+                var ask = Pointable.Make(hit, "ask " + id);
+                ask.Label = "Ask " + Masters.Name(id);
+                ask.Selected += (_, __) => OpenAsk(who);
             }
         }
 
@@ -399,9 +422,7 @@ namespace MuseXR.Interaction
             var top = MuseUi.Row(glass, 6f, TextAnchor.MiddleLeft, "Top");
             var head = MuseUi.Text(top, "ASK  \u00b7  ALL THREE MASTERS ANSWER", MuseUi.Face.Sans, 8f, MuseTheme.Ink3, 0.16f, true, name: "Kicker");
             head.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
-            var x = MuseUi.Card(top, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 7f, padY: 2f, gap: 0f, name: "Close");
-            MuseUi.Text(x, "\u00d7", MuseUi.Face.Sans, 13f, MuseTheme.Ink3, name: "X").enableWordWrapping = false;
-            x.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 0f;
+            var x = CloseChip(top);
             var who = Masters.Name(masterId);
             MuseUi.Text(glass, _lastTarget != null ? who + " turns toward " + _lastTarget.title + "." : who + " turns toward you.", MuseUi.Face.Serif, 12f, MuseTheme.Ink, name: "Prompt");
             var asks = Suggestions(_lastTarget);
@@ -427,14 +448,18 @@ namespace MuseXR.Interaction
                 var box = h.gameObject.AddComponent<BoxCollider>();
                 box.center = (lo + hi) * 0.5f; box.size = new Vector3(Mathf.Abs(hi.x - lo.x), Mathf.Abs(hi.y - lo.y), 0.02f);
                 var question = q;
-                Pointable.Make(h.gameObject, "ask question").Selected += (_, __) => AskQuestion(question);
+                var b = Pointable.Make(h.gameObject, "ask question");
+                HoverTint.Bind(b, rect);
+                b.Selected += (_, __) => AskQuestion(question);
             }
             x.GetWorldCorners(corners);
             var xh = new GameObject("Hit close").transform; xh.SetParent(anchor, false);
             var xlo = anchor.InverseTransformPoint(corners[0]); var xhi = anchor.InverseTransformPoint(corners[2]);
             var xb = xh.gameObject.AddComponent<BoxCollider>();
             xb.center = (xlo + xhi) * 0.5f; xb.size = new Vector3(Mathf.Abs(xhi.x - xlo.x) + 0.02f, Mathf.Abs(xhi.y - xlo.y) + 0.02f, 0.02f);
-            Pointable.Make(xh.gameObject, "ask close").Selected += (_, __) => CloseReplies();
+            var askClose = Pointable.Make(xh.gameObject, "ask close");
+            HoverTint.Bind(askClose, x);
+            askClose.Selected += (_, __) => CloseReplies();
             _replies = anchor.gameObject; _askOpen = true;
             FollowVisitor.Attach(_replies);
             Appear.In(_replies, 0.3f);
@@ -474,14 +499,17 @@ namespace MuseXR.Interaction
             if (Group() == null || string.IsNullOrWhiteSpace(question)) return;
             JourneyMemory.AddAsked(question);
             DialogueContext.Set("You asked  \u00b7  " + question);
-            if (_client == null) { Debug.LogWarning("[Insight] no live dialogue: the question goes unanswered"); return; }
+            // At once, on the card: the answers take a few seconds to come back, and a click that shows nothing reads
+            // as broken (Saul, 5 Oct: "when I click on an option nothing happens").
+            DialogueContext.Notice("You asked", "\u201c" + question + "\u201d  \u2014  the masters are thinking\u2026", 20f);
+            if (_client == null) { Debug.LogWarning("[Insight] no live dialogue: the question goes unanswered"); DialogueContext.Notice("You asked", "The masters cannot answer here: live dialogue is off.", 5f); return; }
             var token = ++_asking;
             var ids = new List<string>(); foreach (var id in _group.Ids) ids.Add(ToRoster(id));
             var lenses = MusePico.Dialogue.MasterRoster.Select(_roster, ids);
             var art = _lastTarget != null ? new MusePico.Dialogue.ArtworkContext { Title = _lastTarget.title, Artist = _lastTarget.artist } : default(MusePico.Dialogue.ArtworkContext);
             var result = await _client.AskAsync(question, lenses, art);
             if (this == null || token != _asking) return;
-            if (!result.Live) { Debug.LogWarning("[Insight] asked question failed: " + result.Error); return; }
+            if (!result.Live) { Debug.LogWarning("[Insight] asked question failed: " + result.Error); DialogueContext.Notice("You asked", "The masters could not answer just now. Try again in a moment.", 5f); return; }
             var lines = new List<KeyValuePair<string, string>>();
             foreach (var p in result.Perspectives) lines.Add(new KeyValuePair<string, string>(FromRoster(p.speakerId), p.text));
             DialogueContext.Set("You asked  \u00b7  " + question);
