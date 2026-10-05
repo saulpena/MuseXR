@@ -33,6 +33,8 @@ namespace MuseXR.Interaction
 
         ArtworkRecord _record;
         Transform _work;
+        Vector3? _centre, _facing;
+        bool _piece;
         InsightTarget _insight;
         float _away;
         bool _tookInput;
@@ -46,7 +48,31 @@ namespace MuseXR.Interaction
             workSize.x < NarrowWork ? new Vector3(0f, -(workSize.y * 0.5f + Beside + cardHeight * 0.5f), 0f)
                                     : new Vector3(workSize.x * 0.5f + Beside + 0.32f, 0f, 0f);
 
-        public static ArtworkCard Show(ArtworkRecord record, Transform work, Vector2 workSize, InsightTarget insight)
+        /// <summary>
+        /// A 3D piece's card (Saul, 5 Oct: "make it uniform"): the same card, buttons and rules as a hung work's, built
+        /// from what the piece knows (its name and maker), standing beside it at reading height and facing the visitor.
+        /// </summary>
+        public static ArtworkCard ShowFor(InsightTarget piece)
+        {
+            if (piece == null) return null;
+            var rs = piece.GetComponentsInChildren<Renderer>();
+            if (rs.Length == 0) return null;
+            var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds);
+            var eye = Camera.main != null ? Camera.main.transform.position : b.center - Vector3.forward;
+            var toEye = eye - b.center; toEye.y = 0f;
+            var facing = toEye.sqrMagnitude > 1e-4f ? toEye.normalized : Vector3.back;
+            var right = Vector3.Cross(Vector3.up, -facing).normalized;
+            // Its width across the visitor's view, never "narrow": a piece's card goes beside it, not down by the floor.
+            var across = Mathf.Abs(Vector3.Dot(b.extents, new Vector3(Mathf.Abs(right.x), 0f, Mathf.Abs(right.z)))) * 2f;
+            var centre = new Vector3(b.center.x, Mathf.Clamp(b.center.y, 1.1f, 1.7f), b.center.z) + facing * Mathf.Min(b.extents.x, b.extents.z);
+            var record = new ArtworkRecord { id = piece.id, title = piece.title, artist = piece.artist };
+            return Show(record, piece.transform, new Vector2(Mathf.Max(across, NarrowWork), b.size.y), piece, centre, facing, true);
+        }
+
+        public static ArtworkCard Show(ArtworkRecord record, Transform work, Vector2 workSize, InsightTarget insight) =>
+            Show(record, work, workSize, insight, null, null, false);
+
+        static ArtworkCard Show(ArtworkRecord record, Transform work, Vector2 workSize, InsightTarget insight, Vector3? centre, Vector3? facing, bool piece)
         {
             if (Hushed) return null;
             if (Current != null)
@@ -57,6 +83,7 @@ namespace MuseXR.Interaction
             var go = new GameObject("Artwork Card · " + record.title);
             var card = go.AddComponent<ArtworkCard>();
             card._record = record; card._work = work; card._insight = insight;
+            card._centre = centre; card._facing = facing; card._piece = piece;
             card.Build(workSize);
             MasterInsights.Ensure().CardOpened(insight);   // only the newly pointed-at work keeps a panel
             Appear.In(go, 0.3f);   // eased, never popped (Saul, 5 Oct)
@@ -69,15 +96,16 @@ namespace MuseXR.Interaction
         void Build(Vector2 workSize)
         {
             // The work's quad faces its -Z; "right of the frame" is right as the visitor faces the work.
-            var facing = -_work.forward;
+            var facing = _facing ?? -_work.forward;
+            var origin = _centre ?? _work.position;
             var right = Vector3.Cross(Vector3.up, -facing).normalized;
             var o = Offset(workSize, 0.42f);
             // The side with room (Saul, 5 Oct): at the Gate the easels stand close, and the right side put the card over
             // the next painting. Right by default; left when another work stands where the card would.
-            if (o.x > 0f && Crowded(_work.position + right * o.x, _work))
-                o = !Crowded(_work.position - right * o.x, _work) ? new Vector3(-o.x, o.y, 0f)
-                                                                   : Offset(new Vector2(0f, workSize.y), 0.42f);   // both sides taken: under it
-            var at = _work.position + right * o.x + Vector3.up * o.y + facing * 0.02f;
+            if (o.x > 0f && Crowded(origin + right * o.x, _work))
+                o = !Crowded(origin - right * o.x, _work) ? new Vector3(-o.x, o.y, 0f)
+                    : _piece ? o : Offset(new Vector2(0f, workSize.y), 0.42f);   // both sides taken: under a hung work
+            var at = origin + right * o.x + Vector3.up * o.y + facing * 0.02f;
             transform.SetPositionAndRotation(at, Quaternion.LookRotation(-facing, Vector3.up));   // +Z away from the viewer reads
 
             var c = MuseUi.Canvas(transform, "Card", 2.6f, 340f);   // read from the viewing mark, 2.1 m out and to the side
@@ -93,7 +121,8 @@ namespace MuseXR.Interaction
             var title = MuseUi.Text(glass, _record.title, MuseUi.Face.Serif, 22f, MuseTheme.Ink, name: "Title");
             var fonts = MuseFonts.Get(); if (fonts != null && fonts.display != null) title.font = fonts.display;
             MuseUi.Text(glass, string.IsNullOrEmpty(_record.date) ? _record.artist : _record.artist + "  ·  " + _record.date, MuseUi.Face.Sans, 14f, MuseTheme.Ink2, name: "Artist");
-            MuseUi.Text(glass, Join(_record.source, _record.rights), MuseUi.Face.Sans, 11.5f, MuseTheme.Ink2, name: "Source");
+            var source = Join(_record.source, _record.rights);
+            if (!string.IsNullOrEmpty(source)) MuseUi.Text(glass, source, MuseUi.Face.Sans, 11.5f, MuseTheme.Ink2, name: "Source");
             if (!string.IsNullOrEmpty(_record.sourceUrl))
                 MuseUi.Text(glass, _record.sourceUrl.Replace("https://", "").Replace("http://", "").Replace("www.", ""), MuseUi.Face.Mono, 11f, MuseTheme.Ink2, name: "Url");
             var row = MuseUi.Row(glass, 8f, TextAnchor.MiddleLeft, "Buttons");

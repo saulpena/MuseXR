@@ -42,6 +42,8 @@ namespace MuseXR.Interaction
             var p = Pointable.Make(go, t.id);
             var w = ArtworkWatcher.Make(go, t.id, mark, () => Pointer.AnyOn(p));
             go.AddComponent<DwellReporter>().Watcher = w;
+            // The same card as a hung work, on the same 0.4 s point or step close (Saul, 5 Oct: "make it uniform").
+            w.CardWanted += _ => ArtworkCard.ShowFor(t);
         }
 
         /// <summary>Every replicable piece and every master target gets the same treatment as a hung work.</summary>

@@ -20,6 +20,8 @@ namespace MuseXR.Interaction
         /// chapter's choice pieces (the crane and turtle, the lamp's sockets): Saul, 4 Oct - they need not
         /// talk about absolutely everything.</summary>
         public bool onApproach;
+        /// <summary>A hung or easel painting (AddGrabbable), as opposed to a statue or an object: the question says which.</summary>
+        public bool painting;
         [Tooltip("Offer her reply chips (\"What is this painting to you?\") after the insight. Off for a choice's options, whose reason comes later.")]
         public bool askReply = true;
 
@@ -55,6 +57,7 @@ namespace MuseXR.Interaction
         public static InsightTarget AddGrabbable(GameObject go, string title, string artist = null, string id = null, System.Action alsoOnTap = null)
         {
             var t = Add(go, title, artist, id, pointToSpeak: false);
+            t.painting = true;
             var col = go.GetComponent<Collider>();
             if (col == null) { var b = go.AddComponent<BoxCollider>(); b.size = new Vector3(1f, 1f, 0.02f); col = b; }
             MusePico.Grab.Grabbable.Make(go, () => { alsoOnTap?.Invoke(); t.Speak(); }, MusePico.Grab.GrabReach.AtRayEnd, col);

@@ -269,6 +269,7 @@ namespace MuseXR.Interaction
         // ---- the visitor's reply (her artworkChoices) -------------------------------------------------
 
         public const string ReplyPrompt = "What is this painting to you?";
+        public const string PiecePrompt = "What is this piece to you?";
         public const string Disclaimer = "AI INTERPRETATION GROUNDED IN DOCUMENTED THEMES — NOT AN AUTHENTIC QUOTATION";
         const float ReplyLeave = 4.5f, ReplySeconds = 30f;
 
@@ -303,7 +304,7 @@ namespace MuseXR.Interaction
             prompt.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
             var x = CloseChip(top);
             _closeChip = x;
-            MuseUi.Text(glass, ReplyPrompt, MuseUi.Face.Serif, 13f, MuseTheme.Ink, name: "Prompt");
+            MuseUi.Text(glass, t.painting ? ReplyPrompt : PiecePrompt, MuseUi.Face.Serif, 13f, MuseTheme.Ink, name: "Prompt");
             for (var i = 0; i < Insights.Replies.Count; i++)
             {
                 var (axis, label) = Insights.Replies[i];
