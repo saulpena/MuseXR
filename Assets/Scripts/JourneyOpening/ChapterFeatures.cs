@@ -40,6 +40,27 @@ namespace MuseXR.Journey
             go.AddComponent<T>();
         }
 
+        /// <summary>
+        /// Who speaks for a moment written for <paramref name="preferred"/>: that master if the visitor chose them, otherwise
+        /// the first of the visitor's company (Saul, 5 Oct: the chosen masters, and their voices, in every chapter).
+        /// </summary>
+        internal static string Speaker(string preferred)
+        {
+            var c = Masters.Company;
+            if (c == null || c.Count == 0) return preferred;
+            foreach (var id in c) if (id == preferred) return id;
+            return c[0];
+        }
+
+        /// <summary>The companion whose challenge rewrites the answer: Socrates when he walked with them, else the last chosen.</summary>
+        internal static string Challenger()
+        {
+            var c = Masters.Company;
+            if (c == null || c.Count == 0) return Masters.Socrates;
+            foreach (var id in c) if (id == Masters.Socrates) return id;
+            return c[c.Count - 1];
+        }
+
         internal static Transform FindRoot(string name)
         {
             foreach (var r in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
@@ -677,12 +698,12 @@ namespace MuseXR.Journey
         async void React(string stroke, string colour)
         {
             var token = ++_reacted;
-            var vg = Masters.VanGogh;
+            var vg = ChapterFeatures.Speaker(Masters.VanGogh);   // Van Gogh if he walked with them, else their own companion
             var asked = JourneyMemory.Record != null ? JourneyMemory.Record.Question : "";
             var question = "In Van Gogh's studio the room asks: 'What does your hand say that words cannot?' "
                          + "The visitor dipped the brush in " + colour.ToLowerInvariant() + " and painted one stroke in the air: " + stroke + ". "
                          + (string.IsNullOrWhiteSpace(asked) ? "" : "They came into the museum asking: \"" + asked.Trim() + "\". ")
-                         + "As Van Gogh, tell them what you read in that stroke, to them, in one or two short sentences, under 35 words. No numbers.";
+                         + "As " + Masters.Name(vg) + ", in your own way of seeing, tell them what you read in that stroke, to them, in one or two short sentences, under 35 words. No numbers.";
             DialogueContext.Set("You painted one stroke in " + colour.ToLowerInvariant());
             string line = null;
             try
@@ -879,7 +900,7 @@ namespace MuseXR.Journey
         {
             _answerStage = 2;
             var panel = TorsoPanel.Get();
-            if (panel != null) panel.ShowLine(Masters.Socrates, "Rewrite  ·  through Socrates' question", "\"" + _rewrite + "\"", "A use this one  ·  B back to the first", "Your answer");
+            if (panel != null) panel.ShowLine(ChapterFeatures.Challenger(), "Rewrite  ·  through " + Masters.Name(ChapterFeatures.Challenger()) + "'s question", "\"" + _rewrite + "\"", "A use this one  ·  B back to the first", "Your answer");
             if (_tableSign != null) _tableSign.text = "A use this one  ·  B back to the first";
             ConfirmInput.Take(this);
         }
@@ -1601,7 +1622,7 @@ namespace MuseXR.Journey
         {
             _answerStage = 1;
             var panel = TorsoPanel.Get();
-            if (panel != null) panel.ShowLine(null, "Your answer  ·  draft", "\"" + _draft + "\"", "A keep  ·  X rewrite via Socrates  ·  Y say my own", "Your answer");
+            if (panel != null) panel.ShowLine(null, "Your answer  ·  draft", "\"" + _draft + "\"", "A keep  ·  X rewrite via " + Masters.Name(ChapterFeatures.Challenger()) + "  ·  Y say my own", "Your answer");
             if (_tableSign != null) _tableSign.text = "A keep  ·  X rewrite  ·  Y say my own";
             ConfirmInput.Take(this);
         }
@@ -1612,7 +1633,7 @@ namespace MuseXR.Journey
             if (_rewriting) return;
             _rewriting = true;
             var panel = TorsoPanel.Get();
-            if (panel != null) panel.ShowLine(Masters.Socrates, "Rewrite  ·  through Socrates' question", "Socrates is turning your answer over\u2026", null, "Your answer");
+            if (panel != null) panel.ShowLine(ChapterFeatures.Challenger(), "Rewrite  ·  through " + Masters.Name(ChapterFeatures.Challenger()) + "'s question", Masters.Name(ChapterFeatures.Challenger()) + " is turning your answer over\u2026", null, "Your answer");
             var rec = JourneyMemory.Record;
             string live = null;
             try { live = await RewriteLive(rec, _draft); }
@@ -1624,7 +1645,7 @@ namespace MuseXR.Journey
                     ? "What is worth keeping is what I would still choose if I had not inherited it"
                     : "What is worth keeping is what I know why I keep";
             _answerStage = 2;
-            if (panel != null) panel.ShowLine(Masters.Socrates, "Rewrite  ·  through Socrates' question", "\"" + _rewrite + "\"" + (live == null ? "   (local fallback)" : ""), "A use this one  ·  B back to the first", "Your answer");
+            if (panel != null) panel.ShowLine(ChapterFeatures.Challenger(), "Rewrite  ·  through " + Masters.Name(ChapterFeatures.Challenger()) + "'s question", "\"" + _rewrite + "\"" + (live == null ? "   (local fallback)" : ""), "A use this one  ·  B back to the first", "Your answer");
         }
 
         [System.Serializable] class RewriteReply { public string answer; }
@@ -1672,7 +1693,9 @@ namespace MuseXR.Journey
             return JsonUtility.FromJson<RewriteReply>(text).answer;
         }
 
-        internal static async System.Threading.Tasks.Task<string> RewriteLive(JourneyRecord rec, string draft)
+        internal static async System.Threading.Tasks.Task<string> RewriteLive(JourneyRecord rec, string draft) => await RewriteLive(rec, draft, ChapterFeatures.Challenger());
+
+        internal static async System.Threading.Tasks.Task<string> RewriteLive(JourneyRecord rec, string draft, string challenger)
         {
             var key = await MusePico.Generation.FallbackKeySource.ForOpenAi().GetKeyAsync();
             if (string.IsNullOrEmpty(key)) return null;
@@ -1681,9 +1704,9 @@ namespace MuseXR.Journey
             var schema = new JsonBuilder().Add("type", "object").Add("properties", props)
                 .AddStringArray("required", new[] { "answer" }).Add("additionalProperties", false);
             var why = rec.Palace != null && rec.Palace.Reason.Length > 0 ? " In the Palace they kept the " + rec.Palace.Object + " \"" + rec.Palace.Reason + "\"." : "";
-            const string instructions =
-                "You are Socrates at the end of a museum walk. The visitor drafted one sentence answering their question. " +
-                "Ask yourself the one question that most tests it, then rewrite their sentence so it survives that question. " +
+            var instructions =
+                "You are " + Masters.Name(challenger) + " at the end of a museum walk. The visitor drafted one sentence answering their question. " +
+                "Ask yourself, in your own way of seeing, the one question that most tests it, then rewrite their sentence so it survives that question. " +
                 "Keep their voice, first person, one sentence under 22 words, no quotation marks, no preamble.";
             var text = await call.SendAsync(instructions,
                 "Question: " + rec.Question + "\nDraft answer: " + draft + why,
@@ -1807,7 +1830,7 @@ namespace MuseXR.Journey
             if (_answerStage == 0 || _tableDone) return false;
             var final = _answerStage == 2 ? _rewrite : _draft;
             var rec = JourneyMemory.Record;
-            rec.FinalAnswer.Draft = _draft; rec.FinalAnswer.Final = final; rec.FinalAnswer.RewrittenBy = _answerStage == 2 ? "socrates" : "self";
+            rec.FinalAnswer.Draft = _draft; rec.FinalAnswer.Final = final; rec.FinalAnswer.RewrittenBy = _answerStage == 2 ? ChapterFeatures.Challenger() : "self";
             _keptRewrite = _answerStage == 2;
             _tableDone = true; _answerStage = 0;
             ArtworkCard.Hushed = false;
