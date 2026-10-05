@@ -81,15 +81,23 @@ namespace MuseXR.Interaction
         {
             if (_group != null && _group.Busy) _group.StopTurns();
             StopVoice();
-            _pending = null; _queued = null; _thinkingAbout = null;
+            _pending = null; _queued = null; EndThinking();
             _asking++;   // a reading still in flight lands nowhere
             CloseReplies();
         }
 
-        /// <summary>A different work's info card opened: the last work's question panel goes (Saul, 5 Oct).</summary>
-        public void CardOpened(InsightTarget t)
+        /// <summary>
+        /// A different work's info card opened. The question panel stays: hovering only swaps the small cards; the panel
+        /// goes on an answer, its x, or a click on another piece (Saul, 5 Oct, headset: it vanished when he looked down
+        /// and up, the ray passing over another work).
+        /// </summary>
+        public void CardOpened(InsightTarget t) { }
+
+        /// <summary>No longer waiting on readings: the flag goes, and the card's "thinking" note with it if it is still up.</summary>
+        void EndThinking()
         {
-            if (_replies != null && _replyTo != null && _replyTo != t) CloseReplies();
+            if (_thinkingShown && _thinkingAbout != null) DialogueContext.Unnotice("The masters are thinking about " + _thinkingAbout.title + "…");
+            _thinkingAbout = null; _thinkingShown = false;
         }
 
         async void AskLive(InsightTarget t)
@@ -101,7 +109,7 @@ namespace MuseXR.Interaction
             var lenses = MusePico.Dialogue.MasterRoster.Select(_roster, ids);
             var art = new MusePico.Dialogue.ArtworkContext { Title = t.title, Artist = t.artist };
             var result = await _client.AskAsync("Tell me how you see “" + t.title + "”.", lenses, art);
-            if (this == null || token != _asking) return;   // a newer insight took over
+            if (this == null || token != _asking) { if (_thinkingAbout == t) EndThinking(); return; }   // a newer insight took over
             if (!result.Live)
             {
                 Debug.LogWarning("[Insight] live readings failed: " + result.Error);
@@ -184,7 +192,7 @@ namespace MuseXR.Interaction
                 // A new chapter (in the chained journey the last one's companions went with its world):
                 // its companions, and the opening speakers rotate among them.
                 // Readings still pending or in flight were about the last chapter's works: drop them.
-                _pending = null; _asking++;
+                _pending = null; _asking++; EndThinking();
                 _group = FindAnyObjectByType<CompanionGroup>();
                 if (_group == null) _group = BuildGroup();
                 _rule = _group != null ? new Insights(_group.Ids) : null;
@@ -221,14 +229,14 @@ namespace MuseXR.Interaction
             UpdateAskTalk();   // every piece on show answers and is tracked
             // The round table is running: no gazing at a painting beside it starts a reading, and none
             // still in flight lands among the table's turns under their "Based on" lines.
-            if (ArtworkCard.Hushed) { if (_pending != null) { _pending = null; _asking++; } return; }
+            if (ArtworkCard.Hushed) { if (_pending != null) { _pending = null; _asking++; } EndThinking(); return; }
             if (Group() == null || _group.Busy) return;
             // The Gate's company is still being chosen, stepping out or answering the visitor's question: no
             // reading starts. One did (the Pissarros now stand by the start): Socrates on The Crystal Palace took
             // the companions' turns, their answers never played, the round never finished, and the lanterns,
             // which wait for it, never came (Saul's run, 5 Oct). A tap meanwhile waits in _queued.
             if (OpeningUnderway) return;
-            if (_pending != null) { var p = _pending; _pending = null; _thinkingAbout = null; Voiced(p, () => _group.SayInTurn(p), cut: false); return; }
+            if (_pending != null) { var p = _pending; _pending = null; EndThinking(); Voiced(p, () => _group.SayInTurn(p), cut: false); return; }
             // The opening has been said and the readings are still coming: say so on the card, as an asked question does.
             if (_thinkingAbout != null && !_thinkingShown)
             {

@@ -20,8 +20,9 @@ namespace MuseXR.Interaction
 
         readonly LineRenderer[] _corners = new LineRenderer[4], _shadows = new LineRenderer[4];
         Material _shadowMat;
-        /// <summary>Above every world-space panel (MuseUi canvases sort at 10, which outranks any render queue).</summary>
-        public const int SortingOrder = 100;
+        /// <summary>Under every world-space panel (MuseUi canvases sort at 10): over the world, never over the UI
+        /// (Saul, 5 Oct, headset: "the hover state draws on top of the UI").</summary>
+        public const int SortingOrder = 4;
         readonly List<Collider> _colliders = new List<Collider>();
         TextMeshPro _name;
         Material _mat;

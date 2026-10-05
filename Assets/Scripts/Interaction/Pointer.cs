@@ -137,6 +137,8 @@ namespace MuseXR.Interaction
     public sealed class Pointer : MonoBehaviour
     {
         public const float Reach = 8f;
+        /// <summary>Closer to the hand than this, a hovered thing gets no hover cue.</summary>
+        public const float HandReach = 0.5f;
 
         public IHandSource Source { get; private set; }
         public GripHand Grip { get; private set; }
@@ -271,7 +273,9 @@ namespace MuseXR.Interaction
             Hovered?.HoverExit(this);
             Hovered = next;
             if (_cue == null) _cue = new GameObject("Hover cue").AddComponent<HoverCue>();
-            _cue.Show(next);
+            // Nothing at the hand itself (a replica on the wrist, the satchel): a cue there drew round the controller's
+            // tip and, drawn over everything, filled the view (Saul, 5 Oct, headset).
+            _cue.Show(next != null && Vector3.Distance(HitPoint, Source != null && Source.Aim != null ? Source.Aim.position : HitPoint) < HandReach ? null : next);
             if (next == null) return;
             next.HoverEnter(this);
             Source?.Buzz(SlotRules.LightAmplitude * 0.6f, SlotRules.LightSeconds);

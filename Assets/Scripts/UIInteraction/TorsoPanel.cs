@@ -86,6 +86,14 @@ namespace MuseXR.UI
         {
             MuseXR.Interaction.DialogueContext.Noticed -= OnNotice;
             MuseXR.Interaction.DialogueContext.Noticed += OnNotice;
+            MuseXR.Interaction.DialogueContext.Unnoticed -= OnUnnotice;
+            MuseXR.Interaction.DialogueContext.Unnoticed += OnUnnotice;
+        }
+
+        static void OnUnnotice(string text)
+        {
+            var panel = Existing;
+            if (panel != null && panel._line != null && panel._line.text == text) panel.ClearLine();
         }
 
         static void OnNotice(string kicker, string text, float seconds)
