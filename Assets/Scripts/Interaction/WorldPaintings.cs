@@ -44,6 +44,10 @@ namespace MuseXR.Interaction
             public Vector3 centre;
             [Tooltip("The way the canvas faces: toward the visitor, out of the wall.")]
             public Vector3 facing = Vector3.forward;
+            [Tooltip("Stands on an easel instead of hanging: for a spot with no wall behind it (Saul, 5 Oct). centre.y is then ignored.")]
+            public bool easel;
+            [Tooltip("With easel: the floor under it (frame space), measured from the world's collider.")]
+            public float floor;
             [Tooltip("The canvas it must fit inside, metres (width, height); the work keeps its proportions.")]
             public Vector2 canvas = new Vector2(1.2f, 1.2f);
             [Tooltip("Her walnut / mat / gold frame round it: off when it hangs in a frame the capture already has.")]
@@ -109,16 +113,41 @@ namespace MuseXR.Interaction
                 if (!works.TryGetValue(p.id, out var record)) { Debug.LogError("[Paintings] '" + p.id + "' is not in collection '" + collectionId + "'"); continue; }
                 var tex = Image(p.id);
                 var size = p.fill ? p.canvas : Fit(tex, p.canvas);
+                var centre = p.centre;
+                if (p.easel) { centre.y = p.floor + EaselShelf + size.y * 0.5f + 0.02f; Easel(p, centre); }
                 // In this object's space, not the world's: chained into GateWorld a chapter can wake while
                 // its frame still stands behind a gate, and its works must hang in its world, wherever that is.
-                Build(record, tex, transform.TransformPoint(p.centre),
-                      transform.rotation * MuseXR.Worlds.WebGalleryLayout.QuadRotation(p.centre, p.centre + p.facing), size, p.frame);
+                Build(record, tex, transform.TransformPoint(centre),
+                      transform.rotation * MuseXR.Worlds.WebGalleryLayout.QuadRotation(centre, centre + p.facing), size, p.frame);
                 // In a frame the capture already has: a mat over its whole canvas, so the capture's own
                 // painted canvas does not show round a work of other proportions.
                 if (p.fill) Crop(Hung[Hung.Count - 1], tex, p.canvas, p.focus);
                 else if (!p.frame) Mat(Hung[Hung.Count - 1], size, p.canvas);
             }
             Debug.Log($"[Paintings] {worldKey}: {Hung.Count} works hung where her design doc puts them");
+        }
+
+        /// <summary>Where the easel model's shelf takes the canvas: height above its floor, and how far behind the canvas the easel stands.</summary>
+        public const float EaselShelf = 0.84f, EaselBehind = 0.31f;
+
+        /// <summary>
+        /// The generated easel under a free-standing work (Saul, 5 Oct: paintings floating in mid-garden). A layout easel of
+        /// cubes already standing there (Monet's) gives way to it, so one easel holds one painting.
+        /// </summary>
+        void Easel(Placement p, Vector3 centre)
+        {
+            var n = new Vector3(p.facing.x, 0f, p.facing.z).normalized;
+            var floor = new Vector3(centre.x, p.floor, centre.z);
+            var at = transform.TransformPoint(floor - n * EaselBehind);
+            var go = MuseXR.Interaction.PropModels.Spawn("easel", transform, at, transform.rotation * Quaternion.LookRotation(n, Vector3.up), new Vector3(0f, 1.8f, 0f));
+            if (go != null) go.name = "Easel · " + p.id;
+            var root = transform.parent != null ? transform.parent : transform;
+            foreach (var t in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (!t.name.StartsWith("Easel ") || t.Find("Ledge") == null) continue;
+                var d = t.position - transform.TransformPoint(floor); d.y = 0f;
+                if (d.magnitude < 1.5f) t.gameObject.SetActive(false);
+            }
         }
 
         /// <summary>The part of the work, at its own proportions, that covers <paramref name="box"/> round <paramref name="focus"/>.</summary>

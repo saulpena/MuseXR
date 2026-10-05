@@ -7307,6 +7307,8 @@ MonoBehaviour:
   - id: aic-4453
     centre: {x: -2.3, y: 1.4, z: -11.4}
     facing: {x: 0.19611615, y: 0, z: 0.9805807}
+    easel: 1
+    floor: -0.013380647
     canvas: {x: 0.9, y: 1.4}
     frame: 1
     fill: 0

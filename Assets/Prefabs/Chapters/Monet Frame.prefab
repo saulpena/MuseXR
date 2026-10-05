@@ -14939,29 +14939,37 @@ MonoBehaviour:
   colliderModel: {fileID: -212285753890768171, guid: 3af9f3a05389d494daf8accdae6171df, type: 3}
   placements:
   - id: aic-16568
-    centre: {x: 1.9, y: 1.6, z: -24.5}
-    facing: {x: 0.97014254, y: 0, z: 0.24253564}
+    centre: {x: 2.4099998, y: 1.6, z: -23.11}
+    facing: {x: -0, y: -0, z: -1}
+    easel: 1
+    floor: -0.096113205
     canvas: {x: 1.5, y: 1.2}
     frame: 1
     fill: 0
     focus: {x: 0.5, y: 0.5}
   - id: aic-16571
     centre: {x: 5.7, y: 1.6, z: -21.5}
-    facing: {x: -0.99503714, y: 0, z: -0.09950372}
+    facing: {x: -0.9950372, y: 0, z: -0.09950372}
+    easel: 0
+    floor: 0
     canvas: {x: 1.5, y: 1.2}
     frame: 1
     fill: 0
     focus: {x: 0.5, y: 0.5}
   - id: aic-64818
-    centre: {x: 7.09, y: 1.75, z: -12.93}
-    facing: {x: -0.9805807, y: 0, z: -0.19611615}
+    centre: {x: 7.5855126, y: 1.75, z: -9.236042}
+    facing: {x: -0.9572757, y: 0, z: 0.28917703}
+    easel: 1
+    floor: -0.04
     canvas: {x: 1.5, y: 1.2}
     frame: 1
     fill: 0
     focus: {x: 0.5, y: 0.5}
   - id: aic-14620
-    centre: {x: 1.3, y: 1.6, z: -11}
-    facing: {x: 0.9805807, y: 0, z: 0.19611615}
+    centre: {x: 3.4791014, y: 1.6, z: -8.108329}
+    facing: {x: 0.17364818, y: -0, z: -0.9848077}
+    easel: 1
+    floor: 0.027048469
     canvas: {x: 1.5, y: 1.2}
     frame: 1
     fill: 0

@@ -3808,13 +3808,17 @@ MonoBehaviour:
   - id: aic-75091
     centre: {x: 4.2, y: 1.5, z: -0.6}
     facing: {x: -0.98893636, y: 0, z: 0.14834046}
+    easel: 0
+    floor: 0
     canvas: {x: 2.2, y: 1.4}
     frame: 1
     fill: 0
     focus: {x: 0.5, y: 0.5}
   - id: aic-75361
-    centre: {x: 3.9, y: 1.75, z: -2.7}
+    centre: {x: 4.55, y: 1.75, z: 2}
     facing: {x: -0.98893636, y: 0, z: 0.14834046}
+    easel: 0
+    floor: 0
     canvas: {x: 2.6, y: 1.2}
     frame: 1
     fill: 0

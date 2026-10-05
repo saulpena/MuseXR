@@ -4953,6 +4953,8 @@ MonoBehaviour:
   - id: aic-153799
     centre: {x: 1.98, y: 1.68, z: -9.5}
     facing: {x: -0.5144958, y: 0, z: 0.8574929}
+    easel: 1
+    floor: 0.059795856
     canvas: {x: 1.5, y: 1.2}
     frame: 1
     fill: 0
@@ -4960,13 +4962,17 @@ MonoBehaviour:
   - id: aic-81551
     centre: {x: 1.98, y: 1.68, z: -14.16}
     facing: {x: -0.5144958, y: 0, z: 0.8574929}
+    easel: 1
+    floor: 0.17613459
     canvas: {x: 1.5, y: 1.2}
     frame: 1
     fill: 0
     focus: {x: 0.5, y: 0.5}
   - id: aic-110541
-    centre: {x: -4.42, y: 1.68, z: -9.5}
+    centre: {x: -3.8386197, y: 1.68, z: -8.531033}
     facing: {x: 0.5144958, y: 0, z: 0.8574929}
+    easel: 1
+    floor: 0.24852729
     canvas: {x: 1.5, y: 1.2}
     frame: 1
     fill: 0
@@ -4974,6 +4980,8 @@ MonoBehaviour:
   - id: aic-81552
     centre: {x: -4.42, y: 1.68, z: -14.16}
     facing: {x: 0.5144958, y: 0, z: 0.8574929}
+    easel: 0
+    floor: 0
     canvas: {x: 1.5, y: 1.2}
     frame: 1
     fill: 0
