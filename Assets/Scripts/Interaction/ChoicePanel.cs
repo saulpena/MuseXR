@@ -19,7 +19,9 @@ namespace MuseXR.Interaction
     /// </summary>
     public sealed class ChoicePanel : MonoBehaviour
     {
-        public const float WidthPx = 300f, PromptPx = 14f, OptionPx = 12f, NumberPx = 9f, KickerPx = 8.5f, FooterPx = 8.5f;
+        public const float WidthPx = 300f, PromptPx = 14f, OptionPx = 12f, NumberPx = 10f, KickerPx = 10f, FooterPx = 10f;
+        /// <summary>An option not yet chosen: a light gold fill so it reads as a button (review, 5 Oct: "faint pills barely read as buttons").</summary>
+        public static readonly Color OptionFill = Color.Lerp(MuseTheme.Paper, MuseTheme.GoldSoft, 0.55f);
 
         readonly List<Pointable> _options = new List<Pointable>();
         readonly List<Image> _fills = new List<Image>();
@@ -51,7 +53,7 @@ namespace MuseXR.Interaction
             _canvas = MuseUi.Canvas(transform, "Choice", viewingDistance, WidthPx);
             var card = MuseUi.Card(_canvas, MuseTheme.Paper, MuseTheme.PanelRadius, MuseTheme.Line, 1f, padX: 16f, padY: 14f, gap: 9f, name: "Card");
             if (!string.IsNullOrWhiteSpace(kicker))
-                MuseUi.Text(card, kicker.ToUpperInvariant(), MuseUi.Face.Sans, KickerPx, MuseTheme.Ink3, 0.14f, name: "Kicker").alignment = TextAlignmentOptions.Center;
+                MuseUi.Text(card, kicker.ToUpperInvariant(), MuseUi.Face.Sans, KickerPx, MuseTheme.GoldInk, 0.14f, name: "Kicker").alignment = TextAlignmentOptions.Center;
             if (!string.IsNullOrWhiteSpace(prompt))
             {
                 // Its own reserved height: laid out before the serif's metrics settled, the first chip sat over it.
@@ -62,7 +64,7 @@ namespace MuseXR.Interaction
             for (var i = 0; i < options.Count; i++)
             {
                 // Centred words, no number column (Saul, 5 Oct: "the text is not centered").
-                var chip = MuseUi.Card(card, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Gold, 1f, padX: 12f, padY: 8f, gap: 0f, name: "Option " + i);
+                var chip = MuseUi.Card(card, OptionFill, MuseTheme.OptionRadius, MuseTheme.Gold, 1f, padX: 12f, padY: 8f, gap: 0f, name: "Option " + i);
                 var l = MuseUi.Text(chip, options[i], MuseUi.Face.Sans, OptionPx, MuseTheme.Ink, name: "Label");
                 l.enableAutoSizing = false; l.alignment = TextAlignmentOptions.Center;
                 _fills.Add(chip.GetComponent<Image>());
@@ -75,11 +77,11 @@ namespace MuseXR.Interaction
                 // A real button for the last step, built now and dimmed until there is a choice, so the panel
                 // never changes size (Saul, 5 Oct: "I can't click on the confirm button to keep its moment").
                 actionChip = MuseUi.Card(card, MuseTheme.GlyphBack, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 12f, padY: 8f, gap: 0f, name: "Action");
-                _actionLabel = MuseUi.Text(actionChip, action, MuseUi.Face.Sans, OptionPx, MuseTheme.Ink3, name: "Label");
+                _actionLabel = MuseUi.Text(actionChip, action, MuseUi.Face.Sans, OptionPx, MuseTheme.Ink2, name: "Label");
                 _actionLabel.alignment = TextAlignmentOptions.Center; _actionLabel.fontStyle = FontStyles.Bold;
                 _actionFill = actionChip.GetComponent<Image>();
             }
-            _footer = MuseUi.Text(card, footer ?? "", MuseUi.Face.Sans, FooterPx, MuseTheme.Ink3, 0.06f, name: "Footer");
+            _footer = MuseUi.Text(card, footer ?? "", MuseUi.Face.Sans, FooterPx, MuseTheme.Ink2, 0.06f, name: "Footer");
             _footer.alignment = TextAlignmentOptions.Center;
 
             // Hit boxes from the laid-out chips, as the masters' reply panel does.
@@ -126,9 +128,9 @@ namespace MuseXR.Interaction
             {
                 var on = i == index;
                 var quiet = index >= 0 && !on;
-                if (_fills[i] != null) _fills[i].color = on ? MuseTheme.GoldSoft : MuseTheme.Paper;
+                if (_fills[i] != null) _fills[i].color = on ? MuseTheme.GoldSoft : quiet ? MuseTheme.Paper : OptionFill;
                 if (_edges[i] != null) _edges[i].color = on ? MuseTheme.Gold : quiet ? MuseTheme.Line : MuseTheme.Gold;
-                _labels[i].color = on ? MuseTheme.GoldInk : quiet ? MuseTheme.Ink3 : MuseTheme.Ink;
+                _labels[i].color = on ? MuseTheme.GoldInk : quiet ? MuseTheme.Ink2 : MuseTheme.Ink;
                 _labels[i].text = on ? "✓  " + _words[i] : _words[i];
             }
             if (_action != null)
@@ -136,7 +138,7 @@ namespace MuseXR.Interaction
                 var ready = index >= 0;
                 _action.Interactive = ready;
                 if (_actionFill != null) _actionFill.color = ready ? MuseTheme.Gold : MuseTheme.GlyphBack;
-                if (_actionLabel != null) _actionLabel.color = ready ? Color.white : MuseTheme.Ink3;
+                if (_actionLabel != null) _actionLabel.color = ready ? Color.white : MuseTheme.Ink2;
             }
             if (footer != null && _footer != null) _footer.text = footer;
         }

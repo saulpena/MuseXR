@@ -125,7 +125,7 @@ namespace MuseXR.Interaction
             var c = MuseUi.Canvas(transform, "Choice", 2.6f, 320f);
             _group = c.gameObject.AddComponent<CanvasGroup>();
             var card = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.PanelRadius, MuseTheme.Line, 1f, padX: 16f, padY: 14f, gap: 8f, name: "Card");
-            MuseUi.Text(card, _kicker.ToUpperInvariant(), MuseUi.Face.Sans, ChoicePanel.KickerPx, MuseTheme.Ink3, 0.14f, name: "Kicker");
+            MuseUi.Text(card, _kicker.ToUpperInvariant(), MuseUi.Face.Sans, ChoicePanel.KickerPx, MuseTheme.GoldInk, 0.14f, name: "Kicker");
             _title = MuseUi.Text(card, "", MuseUi.Face.Serif, ChoicePanel.PromptPx, MuseTheme.Ink, name: "Title");
             _title.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().minHeight = ChoicePanel.PromptPx * 1.5f;
             var labels = new List<string>(); foreach (var kv in _targets) labels.Add(kv.Value);
@@ -133,12 +133,12 @@ namespace MuseXR.Interaction
             {
                 var row = MuseUi.Card(card, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 10f, padY: 7f, gap: 0f, name: "Option " + i);
                 var line = MuseUi.Row(row, 8f, TextAnchor.MiddleLeft, "Row");
-                var mark = MuseUi.Text(line, (i + 1).ToString("00"), MuseUi.Face.Mono, ChoicePanel.NumberPx, MuseTheme.Ink3, name: "Number");
+                var mark = MuseUi.Text(line, (i + 1).ToString("00"), MuseUi.Face.Mono, ChoicePanel.NumberPx, MuseTheme.Ink2, name: "Number");
                 mark.enableWordWrapping = false;
                 var ml = mark.gameObject.AddComponent<UnityEngine.UI.LayoutElement>(); ml.flexibleWidth = 0f; ml.minWidth = ml.preferredWidth = 16f;
                 var l = MuseUi.Text(line, labels[i], MuseUi.Face.Sans, ChoicePanel.OptionPx, MuseTheme.Ink, name: "Label");
                 l.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
-                var st = MuseUi.Text(line, "", MuseUi.Face.Sans, ChoicePanel.FooterPx, MuseTheme.Ink3, name: "State");
+                var st = MuseUi.Text(line, "", MuseUi.Face.Sans, ChoicePanel.FooterPx, MuseTheme.Ink2, name: "State");
                 st.enableWordWrapping = false; st.alignment = TextAlignmentOptions.Right;
                 var sl = st.gameObject.AddComponent<UnityEngine.UI.LayoutElement>(); sl.flexibleWidth = 0f; sl.minWidth = sl.preferredWidth = 62f;   // fixed: it ran past the row's edge
                 var edge = row.Find("Edge");
@@ -157,9 +157,9 @@ namespace MuseXR.Interaction
                 var heard = Options.IsHeard(_ids[i]);
                 var (mark, state, edge) = _rows[i];
                 mark.text = heard ? "✓" : (i + 1).ToString("00");
-                mark.color = heard ? MuseTheme.GoldInk : MuseTheme.Ink3;
+                mark.color = heard ? MuseTheme.GoldInk : MuseTheme.Ink2;
                 state.text = heard ? "heard" : "point to hear";
-                state.color = heard ? MuseTheme.GoldInk : MuseTheme.Ink3;
+                state.color = heard ? MuseTheme.GoldInk : MuseTheme.Ink2;
                 if (edge != null) edge.color = heard ? MuseTheme.Gold : MuseTheme.Line;
             }
         }
