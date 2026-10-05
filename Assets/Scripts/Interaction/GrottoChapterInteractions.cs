@@ -187,7 +187,9 @@ namespace MuseXR.Interaction
             var subtitles = System.Type.GetType("MuseXR.UI.SubtitleRig, MuseXR.UI.Interaction");
             if (subtitles != null) groupGo.AddComponent(subtitles);
 
-            var rim = BuddhaRim(entry);
+            // Her "the distant Buddha silhouette is rimmed": gold sparks along the gold Buddha's own outline (SparkleRim),
+            // not the soft ring that stood behind it (Saul, 5 Oct: "a halo is not a silhouette rim").
+            var rim = SparkleRim.Make(transform.root, transform, "Buddha Rim", "Rims/cliff-buddha");
             Label(whole.position + Vector3.up * 0.35f, entry, "The cliff Buddha: an AI rendition,\nnot a real site", 0.22f);
 
             BoothLabel("Work Gandhara", "GANDHARA", "Kushan period · 1st-2nd century");
