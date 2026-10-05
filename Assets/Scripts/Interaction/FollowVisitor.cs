@@ -12,7 +12,7 @@ namespace MuseXR.Interaction
     /// </summary>
     public sealed class FollowVisitor : MonoBehaviour
     {
-        public const float TurnDegrees = 20f, TurnDegreesPerSecond = 110f, HeadSlack = 0.3f, StackStep = 0.34f;
+        public const float TurnDegrees = 30f, TurnDegreesPerSecond = 110f, HeadSlack = 0.3f, StackStep = 0.34f;
 
         public float ahead = 1.1f, drop = 0.22f;
 

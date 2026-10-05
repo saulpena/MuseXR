@@ -385,17 +385,17 @@ namespace MuseXR.Journey
                 _cardLine = MuseUi.Title(glass, "", 20f);
                 _cardNote = MuseUi.Body(glass, "");
                 _card = anchor.gameObject;
-                // Saul, 5 Oct: it was left behind as the visitor walked. It follows like the compass, high above the eye
-                // line so it never crosses the masters' card or the lanterns' names.
-                FollowVisitor.Attach(_card, 2.6f, -1.0f);
-                Appear.In(_card, 0.5f);   // eased in, never popped (Saul, 5 Oct)
+                // Saul, 5 Oct: no floating guide card any more - its words go to the compass's brief, as the chapters'
+                // stop instructions do (the decision made with musexr-b). The card stays built but never shown: its
+                // texts are the brief's source, and the rest of this file still reads them.
+                _card.SetActive(false);
             }
-            PlaceCard();
             if (index < 0)
             {
                 _cardKicker.text = "Your path";
                 _cardLine.text = "Four rooms will answer your question";
                 _cardNote.text = "Point at a lantern and pull the trigger to hear why it fits.";
+                PostGuide();
                 return;
             }
             _heard.Add(index);
@@ -404,6 +404,25 @@ namespace MuseXR.Journey
             _cardLine.text = _lines[index];
             _cardNote.text = (_fallback ? "Local fallback - written ahead, not generated for your question.\n" : "")
                              + (_awaitingWalkOn ? "Point at another lantern, or press A to walk on: the first opens the way." : "");
+            PostGuide();
+        }
+
+        /// <summary>
+        /// The guide, as the compass's brief: the kicker, the instruction (or the line, when there is none), and while
+        /// the lanterns are being heard one row per room, ticked as it is heard.
+        /// </summary>
+        void PostGuide()
+        {
+            if (_cardKicker == null) return;
+            var rows = new List<CompassBrief.Row>();
+            if (_lanterns.Count > 0 && (_awaitingWalkOn || _heard.Count == 0))
+                for (var i = 0; i < Chapters.Length && i < _lanterns.Count; i++)
+                {
+                    var heard = _heard.Contains(i);
+                    rows.Add(new CompassBrief.Row { Label = Chapters[i] + "  \u00b7  " + Subtitles[i], Done = heard, State = heard ? "heard" : "point to hear" });
+                }
+            var title = string.IsNullOrEmpty(_cardNote.text) ? _cardLine.text : _cardNote.text.Trim();
+            CompassBrief.Show(this, _cardKicker.text, title, rows);
         }
 
         /// <summary>
@@ -469,7 +488,7 @@ namespace MuseXR.Journey
             if (!_awaitingWalkOn) return false;
             if (_heard.Count == 0)
             {
-                if (_card != null) _cardNote.text = "Point at a lantern first and pull the trigger to hear why it fits.";
+                if (_card != null) { _cardNote.text = "Point at a lantern first and pull the trigger to hear why it fits."; PostGuide(); CompassBrief.Nudge(this); }
                 return false;
             }
             _awaitingWalkOn = false;
@@ -506,6 +525,7 @@ namespace MuseXR.Journey
                 _cardKicker.text = "Palace  ·  Court of Keeping";
                 _cardLine.text = "The Palace lantern becomes a moon gate";
                 _cardNote.text = "Walk through the moon gate. The exhibition begins.";
+                PostGuide();
                 PlaceCard();
             }
 
@@ -608,6 +628,7 @@ namespace MuseXR.Journey
                 _cardKicker.text = "Palace  ·  Court of Keeping";
                 _cardLine.text = "The Palace lantern shows the way";
                 _cardNote.text = "";
+                PostGuide();
                 PlaceCard();
             }
             var palace = PlacePalace();
@@ -679,6 +700,7 @@ namespace MuseXR.Journey
                 _cardKicker.text = "Palace  ·  Court of Keeping";
                 _cardLine.text = "The Palace lantern becomes a moon gate";
                 _cardNote.text = "Walk through the moon gate. The exhibition begins.";
+                PostGuide();
             }
 
             WorldDefinition def = null;
@@ -829,6 +851,7 @@ namespace MuseXR.Journey
         {
             if (_crossed) yield break;
             _crossed = true;
+            CompassBrief.Hide(this);   // the Gate's guide is done; the Palace posts its own
             // Move the Palace and the visitor back to the origin together, in one frame: everything the
             // chapter knows about its world assumes it stands at the origin (its layout was built there).
             var rig = FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>();
