@@ -276,12 +276,11 @@ namespace MuseXR.Interaction
             var glass = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 12f, padY: 10f, gap: 6f, name: "Replies");
             // Her web popup: the question, and an x to close it (Saul, 5 Oct: no timer - it stays until a reply or the x).
             var top = MuseUi.Row(glass, 6f, TextAnchor.MiddleLeft, "Top");
-            var prompt = MuseUi.Text(top, ReplyPrompt, MuseUi.Face.Serif, 13f, MuseTheme.Ink, name: "Prompt");
+            var prompt = MuseUi.Text(top, t.title.ToUpperInvariant(), MuseUi.Face.Sans, 8f, MuseTheme.Ink3, 0.14f, name: "Work");   // which work this is about (Saul, 5 Oct)
             prompt.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
-            var x = MuseUi.Card(top, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 7f, padY: 2f, gap: 0f, name: "Close");
-            MuseUi.Text(x, "×", MuseUi.Face.Sans, 13f, MuseTheme.Ink3, name: "X").enableWordWrapping = false;
-            x.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 0f;
+            var x = CloseChip(top);
             _closeChip = x;
+            MuseUi.Text(glass, ReplyPrompt, MuseUi.Face.Serif, 13f, MuseTheme.Ink, name: "Prompt");
             for (var i = 0; i < Insights.Replies.Count; i++)
             {
                 var (axis, label) = Insights.Replies[i];
@@ -319,6 +318,20 @@ namespace MuseXR.Interaction
             Appear.In(_replies, 0.3f);   // eased, never popped (Saul, 5 Oct)
         }
 
+        /// <summary>The panels' x: a fixed round chip with the cross centred on its own glyph (Saul, 5 Oct: it sat high and left).</summary>
+        static RectTransform CloseChip(Transform row)
+        {
+            var x = MuseUi.Card(row, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 0f, padY: 0f, gap: 0f, name: "Close");
+            var le = x.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+            le.flexibleWidth = 0f; le.minWidth = le.preferredWidth = 22f; le.minHeight = le.preferredHeight = 22f;
+            var v = x.GetComponent<UnityEngine.UI.VerticalLayoutGroup>();
+            if (v != null) { v.childAlignment = TextAnchor.MiddleCenter; v.childControlHeight = true; v.childControlWidth = true; v.childForceExpandHeight = true; v.childForceExpandWidth = true; }
+            var t = MuseUi.Text(x, "\u00d7", MuseUi.Face.Sans, 14f, MuseTheme.Ink3, lineHeight: 1f, name: "X");
+            t.enableWordWrapping = false;
+            t.alignment = TMPro.TextAlignmentOptions.Midline;   // the glyph's own middle, not the line box's
+            return x;
+        }
+
         /// <summary>The visitor's reply: her champion answers, the record keeps it.</summary>
         public bool Reply(string axis)
         {
@@ -333,45 +346,8 @@ namespace MuseXR.Interaction
             _pending = null;
             Voiced(reaction, () => _group.SayInTurn(reaction));
             Debug.Log("[Insight] reply '" + axis + "' to " + _replyTo.title + ": " + Masters.Name(speaker) + " answers");
-            ShowContinue(speaker);
+            CloseReplies();   // the answer reads on the masters' card; no second panel (Saul, 5 Oct)
             return true;
-        }
-
-        /// <summary>
-        /// Her popup after a reply (app.js artDialogueMarkup, choices off): who speaks to you, an x, and
-        /// CONTINUE THE WALK, which closes it exactly as the x does. The reaction itself reads on the masters' card.
-        /// </summary>
-        void ShowContinue(string speaker)
-        {
-            if (_replies != null) Destroy(_replies);   // swapped in place, not faded: the follow slot stays the same
-            _replies = null; _replyTo = null;
-            var anchor = new GameObject("Replies · continue").transform;
-            anchor.SetParent(transform, false);
-            var c = MuseUi.Canvas(anchor, "Replies", 1.5f, 300f);
-            var glass = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 12f, padY: 10f, gap: 6f, name: "Replies");
-            var top = MuseUi.Row(glass, 6f, TextAnchor.MiddleLeft, "Top");
-            var head = MuseUi.Text(top, "SPEAKS TO YOU  ·  " + Masters.Name(speaker).ToUpperInvariant(), MuseUi.Face.Sans, 8f, MuseTheme.Ink3, 0.16f, true, name: "Kicker");
-            head.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
-            var x = MuseUi.Card(top, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 7f, padY: 2f, gap: 0f, name: "Close");
-            MuseUi.Text(x, "×", MuseUi.Face.Sans, 13f, MuseTheme.Ink3, name: "X").enableWordWrapping = false;
-            x.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 0f;
-            var go = MuseUi.Card(glass, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Gold, 1f, padX: 9f, padY: 7f, gap: 0f, name: "Continue");
-            MuseUi.Text(go, "CONTINUE THE WALK →", MuseUi.Face.Sans, 10f, MuseTheme.Ink, 0.12f, true, name: "Label").alignment = TMPro.TextAlignmentOptions.Center;
-            MuseUi.Text(glass, Disclaimer, MuseUi.Face.Sans, 6.5f, MuseTheme.Ink3, 0.12f, true, name: "Disclaimer");
-            Canvas.ForceUpdateCanvases();
-            foreach (var (rect, name) in new[] { (x, "Hit close"), (go, "Hit continue") })
-            {
-                var corners = new Vector3[4]; rect.GetWorldCorners(corners);
-                var h = new GameObject(name).transform; h.SetParent(anchor, false);
-                var lo = anchor.InverseTransformPoint(corners[0]); var hi = anchor.InverseTransformPoint(corners[2]);
-                var box = h.gameObject.AddComponent<BoxCollider>();
-                box.center = (lo + hi) * 0.5f; box.size = new Vector3(Mathf.Abs(hi.x - lo.x) + 0.02f, Mathf.Abs(hi.y - lo.y) + 0.02f, 0.02f);
-                var b = Pointable.Make(h.gameObject, name.ToLowerInvariant());
-                HoverTint.Bind(b, rect);
-                b.Selected += (_, __) => CloseReplies();
-            }
-            _replies = anchor.gameObject;
-            FollowVisitor.Attach(_replies);
         }
 
         void UpdateReplies()
@@ -438,9 +414,7 @@ namespace MuseXR.Interaction
             var top = MuseUi.Row(glass, 6f, TextAnchor.MiddleLeft, "Top");
             var head = MuseUi.Text(top, "ASK  \u00b7  ALL THREE MASTERS ANSWER", MuseUi.Face.Sans, 8f, MuseTheme.Ink3, 0.16f, true, name: "Kicker");
             head.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1f;
-            var x = MuseUi.Card(top, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Line, 1f, padX: 7f, padY: 2f, gap: 0f, name: "Close");
-            MuseUi.Text(x, "\u00d7", MuseUi.Face.Sans, 13f, MuseTheme.Ink3, name: "X").enableWordWrapping = false;
-            x.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 0f;
+            var x = CloseChip(top);
             var who = Masters.Name(masterId);
             MuseUi.Text(glass, _lastTarget != null ? who + " turns toward " + _lastTarget.title + "." : who + " turns toward you.", MuseUi.Face.Serif, 12f, MuseTheme.Ink, name: "Prompt");
             var asks = Suggestions(_lastTarget);
