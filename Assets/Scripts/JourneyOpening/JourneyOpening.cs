@@ -231,7 +231,7 @@ namespace MuseXR.Journey
                         if (!Company.Invitation.IsChosen(id)) { _introId = id; _intro = StartCoroutine(IntroAfterDwell(id)); }
                     }
                 };
-                pointable.Unhovered += _ => { _hovered.Remove(id); RefreshMarks(); };
+                pointable.Unhovered += _ => { _hovered.Remove(id); RefreshMarks(); if (id == _introId) StopIntro(); };   // looking away stops it
             }
             Company.Toggled += (id, r) =>
             {
@@ -466,9 +466,56 @@ namespace MuseXR.Journey
         string _introId;
         Coroutine _intro;
 
+        /// <summary>Saul, 5 Oct: a full second of pointing before a master introduces themself, shown as a gold arc
+        /// filling round the circle under them. Looking away before it closes resets it; nothing plays.</summary>
+        public const float IntroDwellSeconds = 1f;
+        MeshFilter _dwellArc;
+        Mesh _dwellMesh;
+
+        void DwellArc(string id, float fraction)
+        {
+            if (!_marks.TryGetValue(id, out var mark) || mark.ring == null) return;
+            if (_dwellArc == null)
+            {
+                var go = new GameObject("Dwell");
+                _dwellArc = go.AddComponent<MeshFilter>();
+                go.AddComponent<MeshRenderer>().sharedMaterial = _ringChosen;   // gold
+                _dwellMesh = new Mesh();
+                _dwellArc.sharedMesh = _dwellMesh;
+            }
+            var t = _dwellArc.transform;
+            if (t.parent != mark.ring.transform) { t.SetParent(mark.ring.transform, false); t.localPosition = new Vector3(0f, 0.004f, 0f); }
+            _dwellArc.gameObject.SetActive(fraction > 0f);
+            if (fraction > 0f) FillArc(_dwellMesh, 0.33f, 0.46f, fraction);
+        }
+
+        void HideDwell() { if (_dwellArc != null) _dwellArc.gameObject.SetActive(false); }
+
+        /// <summary>An annulus from 12 o'clock round by <paramref name="fraction"/> of a turn, rebuilt in place.</summary>
+        static void FillArc(Mesh m, float inner, float outer, float fraction)
+        {
+            const int full = 48;
+            var n = Mathf.Max(1, Mathf.CeilToInt(full * Mathf.Clamp01(fraction)));
+            var v = new Vector3[(n + 1) * 2]; var tri = new int[n * 6];
+            for (int i = 0; i <= n; i++)
+            {
+                float a = Mathf.PI * 0.5f - Mathf.Min(i, n) * Mathf.PI * 2f * Mathf.Clamp01(fraction) / n;
+                v[i * 2] = new Vector3(Mathf.Cos(a) * inner, 0f, Mathf.Sin(a) * inner);
+                v[i * 2 + 1] = new Vector3(Mathf.Cos(a) * outer, 0f, Mathf.Sin(a) * outer);
+                if (i < n) { int k = i * 2, j = i * 6; tri[j] = k; tri[j + 1] = k + 1; tri[j + 2] = k + 2; tri[j + 3] = k + 1; tri[j + 4] = k + 3; tri[j + 5] = k + 2; }
+            }
+            m.Clear(); m.vertices = v; m.triangles = tri; m.RecalculateBounds();
+        }
+
         System.Collections.IEnumerator IntroAfterDwell(string id)
         {
-            yield return new WaitForSeconds(0.4f);
+            for (float t = 0f; t < IntroDwellSeconds; t += Time.deltaTime)
+            {
+                if (!_hovered.Contains(id) || Company == null || Company.Current != CompanyStage.Phase.Choosing) { HideDwell(); _introId = null; yield break; }
+                DwellArc(id, t / IntroDwellSeconds);
+                yield return null;
+            }
+            HideDwell();
             if (!_hovered.Contains(id) || Company == null || Company.Current != CompanyStage.Phase.Choosing) { _introId = null; yield break; }
             var intro = Masters.Intro(id);
             if (!string.IsNullOrEmpty(intro)) yield return Say(id, intro, "Meet your companion  ·  " + Masters.Tagline(id));
@@ -479,6 +526,7 @@ namespace MuseXR.Journey
         void StopIntro()
         {
             if (_intro != null) StopCoroutine(_intro);
+            HideDwell();
             _intro = null;
             if (_introId == null) return;
             if (_speaking != null) _speaking.Stop();
