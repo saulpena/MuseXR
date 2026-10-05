@@ -133,6 +133,9 @@ namespace MuseXR.Interaction
         /// <summary>Say <paramref name="lines"/> through <paramref name="say"/>, and voice each as its turn starts.</summary>
         void Voiced(List<KeyValuePair<string, string>> lines, System.Func<bool> say, bool cut = true)
         {
+            // A group that voices its own lines (the Gate company) is only told what to say: voicing them here as well
+            // played every line twice, a moment apart (Saul, 5 Oct, headset: "plays twice like an echo").
+            if (_group != null && _group.VoicedByOwner) { say(); return; }
             // The live readings follow their own piece's opening line: they queue behind its voice, not cut it.
             if (cut) StopVoice();
             var mine = new Dictionary<string, string>();

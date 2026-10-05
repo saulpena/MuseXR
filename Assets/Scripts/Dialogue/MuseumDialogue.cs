@@ -292,8 +292,7 @@ namespace MusePico.Dialogue
             // refused voice. The turn continues in text.
             if (clip == null || speaker == null) return;
 
-            speaker.clip = clip;
-            speaker.Play();
+            VoiceGate.Play(speaker, clip);   // one master's voice at a time
 
             // Wait it out rather than overlapping the next master. Three masters talking at once
             // is noise, and telling them apart is the whole point of asking three.

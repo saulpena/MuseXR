@@ -381,6 +381,10 @@ namespace MuseXR.Interaction
         /// <summary>A line was skipped (A / Next master) while it was being said: its voice should stop now.</summary>
         public static event Action<CompanionGroup> LineSkipped;
 
+        /// <summary>Its owner voices every line it starts (the Gate company, from each figure): nobody else may voice
+        /// them too - the shared voice saying the same line a moment later was the echo (Saul, 5 Oct, headset).</summary>
+        public bool VoicedByOwner { get; set; }
+
         public bool Confirm()
         {
             // Saul, 5 Oct, headset: skipped to the next master, the one cut off kept talking over them.

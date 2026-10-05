@@ -95,8 +95,7 @@ namespace MuseXR.Interaction
             }
             while (round == _round && (_source.isPlaying || _busyUntil > Time.time)) yield return null;
             if (round != _round) yield break;
-            _source.clip = clip;
-            _source.Play();
+            MusePico.Dialogue.VoiceGate.Play(_source, clip);   // one master's voice at a time
             _busyUntil = Time.time + 0.1f;   // isPlaying can read false in the frame Play() lands
             Debug.Log("[Voice] " + Masters.Name(id) + " (" + clip.length.ToString("F1") + " s)");
         }
