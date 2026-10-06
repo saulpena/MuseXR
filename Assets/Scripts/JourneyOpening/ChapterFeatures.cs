@@ -788,7 +788,8 @@ namespace MuseXR.Journey
         // side of the curved stone path; the rotunda ("Form my answer") stands near the start at (6.8, -3).
         public static readonly Vector3 WaveAt = new Vector3(-5f, -0.35f, -11f);   // Saul, by hand in Play (5 Oct); was x 0.2
         public const float WaveHeight = 4.6f;
-        public static readonly Vector3 LiliesAt = new Vector3(-0.9f, 0f, -21f);   // centred on the pond: at 0.6 its right 1.6 m stood over the stone path
+        public static readonly Vector3 LiliesAt = new Vector3(-0.9f, 0f, -21f);
+        public static readonly Vector3 LiliesLabelAt = new Vector3(1.948f, 1.3f, -20.7f);   // Saul, by hand in Play (5 Oct)   // centred on the pond: at 0.6 its right 1.6 m stood over the stone path
         // Her spec: behind the wave, 8 m wide, standing on the water, a thin dark edge, its reflection below.
         public const float LiliesWidth = 8f, LiliesWaterline = 0.15f, LiliesEdge = 0.06f, ReflectionDepth = 0.6f;
 
@@ -955,7 +956,7 @@ namespace MuseXR.Journey
             // The same picture faces the other way just behind the edge, the right way round from that side.
             ChapterFeatures.Quad(root, "Canvas (back)", new Vector3(0f, LiliesWaterline + h / 2f, 0.04f), Quaternion.Euler(0f, 180f, 0f), new Vector2(LiliesWidth, h), ChapterFeatures.Unlit(Color.white, tex, true));
             Reflection(root, tex, h);
-            ChapterFeatures.Label(transform, LiliesAt + new Vector3(LiliesWidth / 2f + 1.4f, 1.3f, 0.3f), Quaternion.LookRotation(Vector3.back),
+            ChapterFeatures.Label(transform, LiliesLabelAt, Quaternion.LookRotation(Vector3.back),
                 "<b>Water Lilies</b>  ·  Claude Monet  ·  1906  ·  Art Institute of Chicago\n<size=70%>Standing on the water, enlarged only, nothing changed</size>", 2.2f, 0.6f);
         }
 
@@ -1225,37 +1226,47 @@ namespace MuseXR.Journey
             _chips.transform.localPosition = new Vector3(0f, 1.95f, 0f);
             TurnToVisitor.Attach(_chips);
             _choice = ChoicePanel.Make(_chips.transform, "Paintings");
-            _choice.Build("Stop 4  ·  Which painting", Question(), Works, Footer(), 2.2f, (i, _) => TapWork(i));
-            for (var i = 0; i < _workHeard.Length; i++) if (_workHeard[i]) _choice.MarkHeard(i);
+            _choice.Build("Stop 4  ·  Which painting", Question(), Works, Footer(), 2.2f, (i, _) => TapWork(i),
+                          "Keep this painting", () => ChoosePainting());
+            if (_selected >= 0) _choice.Mark(_selected, Chosen);
             Appear.In(_chips, 0.5f);   // eased, never popped (Saul, 5 Oct)
-            Note("Turn back to the moment you stop at, if you like\nTap each painting and hear the companions on it");
+            Note("Point at the painting you stopped for and pull the trigger\nA, or Keep this painting, to go on");
         }
 
         string Question() => (_time == TimeOfDay.Mist ? "In the morning mist" : _time == TimeOfDay.Dusk ? "At dusk" : "In the afternoon light")
                              + ", which painting did you stop for?";
 
-        string Footer()
-        {
-            var heard = 0; foreach (var h in _workHeard) if (h) heard++;
-            return AllWorksHeard ? "Point at the one you stopped for and pull the trigger"
-                                 : "Pull the trigger on each to hear your companions  ·  " + heard + " / 4";
-        }
+        string Footer() => "Point at a painting and pull the trigger  ·  your companions answer it";
 
-        /// <summary>The first tap on each painting is for hearing it; once all four are heard, a tap chooses.</summary>
+        const string Chosen = "Press A or Keep this painting  ·  choose another to change it";
+        int _selected = -1;
+
+        /// <summary>
+        /// A tap chooses the painting - choose another to change it - and the companions speak to it the first time;
+        /// A or Keep then goes on to the reason. (Saul, 5 Oct: the old rule, hear all four before any could be chosen,
+        /// left him pressing A on a chosen painting with nothing happening.)
+        /// </summary>
         void TapWork(int i)
         {
             if (_picked) return;
-            if (!AllWorksHeard || !_workHeard[i])
+            _selected = i;
+            if (_choice != null) _choice.Mark(i, Chosen);
+            if (!_workHeard[i])
             {
                 _workHeard[i] = true;
-                if (_choice != null) _choice.MarkHeard(i);   // heard: its number becomes a gold dot
                 var at = i;
                 ChapterFeatures.Take(this, _group, id => WorkTakes[at].TryGetValue(id, out var l) ? l : null, "On " + Works[at]);
-                if (_choice != null) { _choice.SetPrompt(Question()); _choice.SetFooter(Footer()); }
-                if (AllWorksHeard) Note("You have heard all four\nTap the painting you stopped for");
-                return;
             }
-            PickWork(i);
+            ConfirmInput.Take(this);
+        }
+
+        /// <summary>A or Keep on the painting panel: the chosen painting stands, and the reason is asked straight away.</summary>
+        bool ChoosePainting()
+        {
+            if (_picked || _selected < 0) return false;
+            PickWork(_selected);
+            AskReason();
+            return true;
         }
 
         // Her flow after the paintings (chapter D): "Stopped at Water Lilies · dusk", A keep · B turn again; then the
@@ -1269,9 +1280,6 @@ namespace MuseXR.Journey
             if (_picked) return;
             _picked = true; _pickedWork = i; _stage = 1;
             if (_group != null && _group.Busy) _group.StopTurns();   // chosen: the takes on the others are moot (they ran on into the round table)
-            if (_choice != null) _choice.Mark(i);
-            var panel = TorsoPanel.Get();
-            if (panel != null) panel.ShowLine(null, "Stopped at", Works[i] + "  ·  " + MomentWord(_time), "A keep  ·  B turn again", "Monet garden");
             ConfirmInput.Take(this);
         }
 
@@ -1316,7 +1324,7 @@ namespace MuseXR.Journey
         /// <summary>B: turn the ring again - the choice is let go and the paintings come back, following the ring.</summary>
         void TurnAgain()
         {
-            _stage = 0; _picked = false; _pickedWork = -1; _reason = -1;
+            _stage = 0; _picked = false; _pickedWork = -1; _reason = -1; _selected = -1;
             ConfirmInput.Drop(this);
             if (_reasons != null) { Destroy(_reasons.gameObject); _reasons = null; }
             var panel = TorsoPanel.Get(); if (panel != null) panel.ClearLine();
@@ -1333,8 +1341,12 @@ namespace MuseXR.Journey
             JourneyMemory.Record.MarkChapterDone(VrStage.Monet);
             if (_chips != null) Destroy(_chips);
             var saved = TorsoPanel.Get();
-            if (saved != null) saved.ShowLine(null, "Saved", Works[_pickedWork] + "  ·  " + MomentWord(_time) + "  ·  " + MonetReasons[_reason], null, "Monet garden");
-            Note("Saved  ·  " + MomentWord(_time) + "  ·  " + Works[_pickedWork] + "\nEnd of the garden  ·  Form my answer");
+            if (saved != null) saved.ShowLine(null, "Saved", Works[_pickedWork] + "  ·  " + MomentWord(_time) + "  ·  " + MonetReasons[_reason],
+                                              "Next: walk to the glowing round table  ·  Form my answer", "Monet garden");
+            Note("Saved  ·  " + Works[_pickedWork] + "\nNow walk to the glowing round table: Form my answer");
+            // Saul, 5 Oct: at the table "it takes a long time for the masters to say anything" - the live round table
+            // takes ~30 s. Asked now, while the visitor walks over, it is usually ready when they arrive.
+            if (_tableAsk == null) _tableAsk = RoundtableAsk();
             if (_tableSign != null) _tableSign.text = "Form my answer";
             var ct = _rotunda.GetComponent<CompassTarget>(); if (ct == null) CompassTarget.Add(_rotunda.gameObject, 28, "Form my answer", "The rotunda · they are waiting");
         }
@@ -1476,7 +1488,7 @@ namespace MuseXR.Journey
             DialogueContext.Set("Roundtable  ·  they look back on your walk");   // the card's title: not the garden's last subject
             Note("Roundtable  ·  they will look back on your walk");
 
-            var result = RoundtableAsk();
+            var result = _tableAsk ?? RoundtableAsk();
             for (float t = 0f; !result.IsCompleted && t < 45f; t += Time.deltaTime) yield return null;
             var lines = new List<KeyValuePair<string, string>>();
             var rt = result.IsCompleted && !result.IsFaulted ? result.Result : null;
@@ -1514,6 +1526,8 @@ namespace MuseXR.Journey
             TorsoPanel.BasedOn.Clear();
             ShowDraft();
         }
+
+        System.Threading.Tasks.Task<RoundtableResult> _tableAsk;
 
         System.Threading.Tasks.Task<RoundtableResult> RoundtableAsk()
         {
@@ -1843,6 +1857,7 @@ namespace MuseXR.Journey
 
         public bool Confirm()
         {
+            if (_stage == 0 && !_picked && _selected >= 0 && _choice != null) return ChoosePainting();
             if (_stage == 1) { AskReason(); return true; }
             if (_stage == 2) return SaveMonet();
             if (_answerStage == 0 || _tableDone) return false;

@@ -17,6 +17,8 @@ namespace MuseXR.Interaction
     /// </summary>
     public sealed class YourWorldMiniature : MonoBehaviour, IConfirmable
     {
+        /// <summary>The round table's top above its foot (the Monet rotunda's table, 0.76 m).</summary>
+        public const float TableTop = 0.76f;
         public const float RiseSeconds = 2.2f, FadeSeconds = 0.3f, Radius = 0.42f, Above = 1.1f, Size = 1.2f, InFront = 1.1f;   // chest height and a little larger: at table height it vanished in the splat floaters around the rotunda
         const string YourWorldKey = "fantasy-realm-of-shimmering-spheres";
 
@@ -35,12 +37,9 @@ namespace MuseXR.Interaction
             var go = new GameObject("Your World Miniature");
             go.transform.SetParent(table, false);
             Current = go.AddComponent<YourWorldMiniature>();
-            // Between the visitor and the table, not over it: the companions stand at the table and the
-            // rotunda sits in splat floaters, and over the table both hid it (blind review, 4 Oct 2026).
-            var eye = Camera.main != null ? Camera.main.transform.position : table.position + Vector3.back * 2f;
-            var toTable = table.position - eye; toTable.y = 0f;
-            var near = toTable.magnitude > InFront + 0.6f ? eye + toTable.normalized * InFront : table.position;
-            Current._top = new Vector3(near.x, table.position.y + Above, near.z);
+            // On the table, resting on its top (Saul, 5 Oct: it floated in front of the table, "not lined up with
+            // it"). Her "a small world rises from the centre of the table".
+            Current._top = table.position + Vector3.up * TableTop;
             return Current;
         }
 
