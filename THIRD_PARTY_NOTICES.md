@@ -48,10 +48,14 @@ are SkylarWJY's design for this VR version, included with her permission.
 **Universal Animation Library** by Quaternius — `Assets/Art/Quaternius/UAL/`, CC0 1.0
 (licence file included).
 
-**Props, doors, heroes and the masters' bodies** (`Assets/Art/`, `Assets/Resources/Props/`,
-`Assets/Resources/Heroes/`, `Assets/Props/Peach/`, `Assets/Art/Characters/Painters/`) were
-AI-generated for this project on paid plans, from MUSE∞'s concept images and the public-domain
-portraits above. They are interpretations, not likenesses or records of real objects.
+**Tripo models** — the Grotto's cliff Buddha and its replica (`Assets/Props/Peach/`, with the other
+Peach pieces) and the Forbidden City hall at the Gate (`Assets/Resources/Heroes/palace-gate.gltf`, by
+SkylarWJY) were generated with [Tripo](https://www.tripo3d.ai) on paid plans.
+
+**Other props, doors, heroes and the masters' bodies** (`Assets/Art/`, `Assets/Resources/Props/`,
+`Assets/Resources/Heroes/`, `Assets/Art/Characters/Painters/`) were AI-generated for this project on
+paid plans, from MUSE∞'s concept images and the public-domain portraits above. All of them are
+interpretations, not likenesses or records of real objects.
 
 ## Fonts — SIL Open Font License 1.1
 

@@ -11,6 +11,7 @@ in their own voices, and a closing roundtable that reads the walk you actually t
 [![Engine](https://img.shields.io/badge/Engine-Unity%206%20·%20URP%20·%20OpenXR-222?style=flat-square)](#-built-with)
 [![Worlds](https://img.shields.io/badge/Worlds-World%20Labs%20Marble%20splats%20on%20device-7c83ff?style=flat-square)](https://www.worldlabs.ai)
 [![Dialogue](https://img.shields.io/badge/Masters-GPT--5.6%20live%20readings-10a37f?style=flat-square)](#-architecture)
+[![Models](https://img.shields.io/badge/Hero%20models-Tripo-f59e0b?style=flat-square)](https://www.tripo3d.ai)
 [![Voices](https://img.shields.io/badge/Voices-MiniMax%20speech--2.8-b594ff?style=flat-square)](https://www.minimax.io)
 [![Collection](https://img.shields.io/badge/Collection-Art%20Institute%20of%20Chicago%20Open%20Access-8b5e3c?style=flat-square)](https://www.artic.edu/open-access)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success?style=flat-square)](LICENSE)
@@ -128,7 +129,8 @@ flowchart LR
 | [**OpenAI**](https://platform.openai.com) `gpt-5.6-luna` · `whisper-1` | the masters' readings, the roundtable, spoken answers |
 | [**MiniMax**](https://www.minimax.io) `speech-2.8-turbo` | the masters' voices |
 | [**Art Institute of Chicago Open Access**](https://www.artic.edu/open-access) | the paintings on the walls |
-| AI-generated 3D models | the masters' bodies, the props, doors and hero pieces |
+| [**Tripo**](https://www.tripo3d.ai) | hero models: the Grotto's giant cliff Buddha and its replica, the Forbidden City hall at the Gate |
+| AI-generated 3D models | the masters' bodies, the props, doors and the other hero pieces |
 
 ---
 
