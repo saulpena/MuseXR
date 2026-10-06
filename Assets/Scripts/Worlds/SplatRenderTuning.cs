@@ -49,10 +49,16 @@ namespace MuseXR.Worlds
         /// 0.6 chosen by Saul. Cost seen in headset captures: softer fine detail (window bars,
         /// petals) and the paving's tiny white specks turn into small squares.
         /// </summary>
+#if MUSEXR_PICO
+        // PICO (6 Oct): the eye buffer is 1440x1584 at renderScale 1.0, so 0.5 of it (720 px) costs about what 0.6 of
+        // the old 1152 did. musexr-b-3e's T7 measured this combination at 29-30 FPS against 24-25 at 0.6.
+        public const float SplatResolutionScale = 0.5f;
+#else
         public const float SplatResolutionScale = 0.6f;
+#endif
 
         /// <summary>The steps the X button (F9 in the Editor) cycles through, for A/B in the headset.</summary>
-        public static readonly float[] SplatScaleSteps = { 1.0f, 0.9f, 0.8f, 0.7f, 0.6f };
+        public static readonly float[] SplatScaleSteps = { 1.0f, 0.9f, 0.8f, 0.7f, 0.6f, 0.5f };
 
         /// <summary>The step after <paramref name="current"/>, wrapping; the first step if it is not one.</summary>
         public static float NextSplatScale(float current)
