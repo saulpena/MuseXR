@@ -537,6 +537,12 @@ namespace MuseXR.Interaction
             var feet = body.Feet;
             if (_slot.Count != Mathf.Min(_ids.Count, CrowdPlaces.Length)) AssignSlots();
             var visitorSpeed = new Vector3(body.Velocity.x, 0f, body.Velocity.z).magnitude;
+            // Saul, 5 Oct, headset: walking forward they "move and stop repeatedly". The places ride on the visitor, so a
+            // master standing still waited for the place to get StartWalking away, overtook it and stopped again. Now,
+            // while the visitor walks, everyone walks; they finish to their places only once the visitor has stopped.
+            _visitorPace = Mathf.Lerp(_visitorPace, visitorSpeed, 1f - Mathf.Exp(-dt * 6f));
+            if (_visitorPace > VisitorWalking) { _visitorMoving = true; _visitorStillFor = 0f; }
+            else if ((_visitorStillFor += dt) > VisitorStopSeconds) _visitorMoving = false;
             for (var i = 0; i < _ids.Count; i++)
             {
                 var f = _figures[_ids[i]];
@@ -555,8 +561,11 @@ namespace MuseXR.Interaction
                 // places hang off the feet, which shift a little as the head turns; a master standing still sets off only
                 // when the place is StartWalking away, and once walking goes all the way in before standing again.
                 _moving.TryGetValue(_ids[i], out var moving);
-                if (!moving && behind < StartWalking) { _speeds[_ids[i]] = 0f; continue; }
-                if (moving && behind < ArriveWithin) { _moving[_ids[i]] = false; _speeds[_ids[i]] = 0f; continue; }
+                if (!_visitorMoving)
+                {
+                    if (!moving && behind < StartWalking) { _speeds[_ids[i]] = 0f; continue; }
+                    if (moving && behind < ArriveWithin) { _moving[_ids[i]] = false; _speeds[_ids[i]] = 0f; continue; }
+                }
                 _moving[_ids[i]] = true;
                 var step = (Mathf.Min(CrowdWalk + CrowdWalkPerMetre * behind, CrowdWalkMax) + visitorSpeed) * dt;
                 var na = a + Mathf.Sign(da) * Mathf.Min(Mathf.Abs(da), step / Mathf.Max(r, CrowdMinRadius) * Mathf.Rad2Deg);
@@ -564,8 +573,10 @@ namespace MuseXR.Interaction
                 var next = feet + Quaternion.Euler(0f, na, 0f) * Vector3.forward * nr;
                 var moved = new Vector3(next.x - f.position.x, 0f, next.z - f.position.z);
                 f.position = new Vector3(next.x, GroundAt(next, feet.y), next.z);
-                _speeds[_ids[i]] = moved.magnitude / Mathf.Max(dt, 1e-5f);
-                if (moved.magnitude / Mathf.Max(dt, 1e-5f) > 0.25f)
+                // Smoothed: a frame's jitter must not flip the gait or the playback rate.
+                _speeds.TryGetValue(_ids[i], out var was);
+                _speeds[_ids[i]] = Mathf.Lerp(was, moved.magnitude / Mathf.Max(dt, 1e-5f), 1f - Mathf.Exp(-dt * 8f));
+                if (_speeds[_ids[i]] > 0.25f)
                 {
                     _walking = true;
                     f.rotation = Quaternion.RotateTowards(f.rotation, Quaternion.LookRotation(moved.normalized, Vector3.up), 240f * dt);
@@ -743,6 +754,18 @@ namespace MuseXR.Interaction
         /// <summary>Who is on their way to their place: set off past StartWalking, stood again within ArriveWithin.</summary>
         readonly Dictionary<string, bool> _moving = new Dictionary<string, bool>();
         public const float StartWalking = 0.45f, ArriveWithin = 0.08f;
+        /// <summary>The visitor counts as walking above this (m/s, smoothed), and as stopped only after this long below it.</summary>
+        public const float VisitorWalking = 0.25f, VisitorStopSeconds = 0.6f;
+        float _visitorPace, _visitorStillFor;
+        bool _visitorMoving;
+        /// <summary>
+        /// Ground speed each Painter.controller WalkStyle's clip was authored at, m/s (measured, PainterEscort): 0 Walk,
+        /// 4 the long-stride walk. The walk plays at the pace the master actually moves, so the feet do not slide
+        /// (Saul, 5 Oct: "they are more like sliding"); above GaitUp they take the long stride, below GaitDown the short.
+        /// </summary>
+        public const float ShortStride = 0.78f, LongStride = 1.32f, GaitUp = 1.1f, GaitDown = 0.95f;
+        static readonly int WalkStyleParam = Animator.StringToHash("WalkStyle");
+        readonly Dictionary<string, int> _gait = new Dictionary<string, int>();
 
         /// <summary>
         /// Saul, 5 Oct: the speaker plays a talking animation (and faces the visitor - <see cref="Face"/>), the others
@@ -760,11 +783,19 @@ namespace MuseXR.Interaction
                 // speaking stays in their talking pose unless they are really moving.
                 _moving.TryGetValue(id, out var onTheWay);
                 var walking = Crowd && onTheWay && v > 0.1f;
+                _gait.TryGetValue(id, out var gait);
+                if (walking) gait = v > GaitUp ? 4 : v < GaitDown ? 0 : gait;
+                _gait[id] = gait;
+                var hasStyle = false;
                 foreach (var p in an.parameters)
                 {
                     if (p.nameHash == TalkingParam) an.SetBool(TalkingParam, id == _active && !walking);
                     else if (p.nameHash == SpeedParam) an.SetFloat(SpeedParam, walking ? Mathf.Clamp(v, 0f, 2f) : 0f, 0.15f, dt);
+                    else if (p.nameHash == WalkStyleParam) { hasStyle = true; if (walking) an.SetInteger(WalkStyleParam, gait); }
                 }
+                // The clip's own pace times this is the ground speed; standing, talking and idling play at 1.
+                var stride = hasStyle && gait == 4 ? LongStride : ShortStride;
+                an.speed = walking ? Mathf.Clamp(v / stride, 0.6f, 1.8f) : 1f;
             }
         }
 

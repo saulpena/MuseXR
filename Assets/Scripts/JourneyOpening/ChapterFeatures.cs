@@ -275,10 +275,13 @@ namespace MuseXR.Journey
     {
         // Corridor in the chapter's space (probe captures, 4 Oct): the walk runs along -Z from the origin,
         // the hung works on the +x wall, a gold-draped ceiling about 3.5 m up, the side door at (3.1, -5.3).
-        public static readonly Vector3 CeilingCentre = new Vector3(0.4f, 3.25f, -7.5f);
+        // Saul placed it by hand in Play (5 Oct): higher, and turned so the sky reads from the entrance.
+        public static readonly Vector3 CeilingCentre = new Vector3(-0.77f, 4.8f, -7.36f);
+        public static readonly Quaternion CeilingRotation = new Quaternion(0.53683f, 0.46023f, 0.46023f, -0.53683f);
         public static readonly Vector2 CeilingSize = new Vector2(20f, 5f);   // along the corridor, across it
         // Right of the end wall's centre: the AI study "Emotional Sky" hangs at the corridor's end too (her works plan).
-        public static readonly Vector3 BedroomAt = new Vector3(2.0f, 0f, -17.3f);
+        public static readonly Vector3 BedroomAt = new Vector3(0.921f, 0.536f, -16.729f);   // Saul, by hand in Play (5 Oct)
+        public static readonly Quaternion BedroomRotation = new Quaternion(0f, 0.88123f, 0f, 0.47268f);
         // Her 6 m does not fit under the 3.25 m ceiling: 3.6 m wide keeps the whole picture on the end wall.
         public const float BedroomWidth = 3.6f, ReliefDepth = 0.2f;
 
@@ -371,8 +374,7 @@ namespace MuseXR.Journey
             _skyMat = ChapterFeatures.Unlit(Color.white, tex, twoSided: true);
             // The quad's +Z points up (its face looks down at the visitor) and its X runs along the corridor
             // (the chapter's Z), so the painting's width lies along her 20 m ceiling.
-            var rot = Quaternion.LookRotation(Vector3.up, Vector3.right);
-            _sky = ChapterFeatures.Quad(transform, "Hero · The Starry Night", CeilingCentre, rot, CeilingSize, _skyMat);
+            _sky = ChapterFeatures.Quad(transform, "Hero · The Starry Night", CeilingCentre, CeilingRotation, CeilingSize, _skyMat);
             // Show 85% of the width (room to drift) and the matching band of the sky, from the top.
             var aspect = tex.width / (float)tex.height;                       // ~1.24
             const float across = 0.85f;
@@ -437,7 +439,7 @@ namespace MuseXR.Journey
             var root = new GameObject("Hero · The Bedroom").transform;
             root.SetParent(transform, false);
             root.localPosition = BedroomAt;
-            root.localRotation = Quaternion.LookRotation(Vector3.back);   // faces the visitor walking down -Z: +Z away
+            root.localRotation = BedroomRotation;   // +Z away from the visitor, as Saul turned it
             var relief = new GameObject("Relief").transform;
             relief.SetParent(root, false);
             relief.localPosition = new Vector3(0f, 0.15f + h / 2f, 0f);

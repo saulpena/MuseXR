@@ -115,7 +115,11 @@ namespace MuseXR.UI
                     anchor.SetParent(transform, false);
                     // Above every slot card, never across one: a placed card reads "Saved / Placed"
                     // and must stay visible beside "Keep this moment?".
-                    anchor.position = Above(v.Slots.Count > 0 ? v.Slots[0].Slot.position : st.transform.position, 0.5f);
+                    // Over the slot the piece is in (Saul, 5 Oct: the Grotto's lamp set at the rail still asked to be
+                    // kept over the relief's stand).
+                    var at = st.Board.PlacedSlot;
+                    var over = at >= 0 && at < v.Slots.Count ? v.Slots[at].Slot.position : v.Slots.Count > 0 ? v.Slots[0].Slot.position : st.transform.position;
+                    anchor.position = Above(over, 0.5f);
                     anchor.position = new Vector3(anchor.position.x, Mathf.Max(anchor.position.y, CardsTop(v) + StripGap), anchor.position.z);
                     string detail = st.Board.Choice.Summary;
                     v.Strip = MuseScreens.ConfirmStrip(anchor, detail, NearDistance,

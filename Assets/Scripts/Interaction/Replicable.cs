@@ -61,8 +61,14 @@ namespace MuseXR.Interaction
             q.transform.SetParent(transform, false);
             // Just behind the work's own face but in front of whatever it hangs on: behind the frame's back
             // edge the white wall hid it completely (Editor capture, 4 Oct).
-            q.transform.localPosition = new Vector3(b.center.x, b.center.y, Mathf.Min(b.max.z, 0.012f));
-            q.transform.localScale = new Vector3(b.size.x + 0.16f, b.size.y + 0.16f, 1f);   // an 8 cm rim round the frame
+            // In metres, whatever the work's own scale: on the 20 x 5 m Starry Night ceiling a local 0.16 was a 1.6 m
+            // gold band, and lying in the picture's own plane it painted the whole sky yellow (Saul, 5 Oct).
+            var s = transform.lossyScale;
+            float sx = Mathf.Max(1e-4f, Mathf.Abs(s.x)), sy = Mathf.Max(1e-4f, Mathf.Abs(s.y)), sz = Mathf.Max(1e-4f, Mathf.Abs(s.z));
+            var flat = b.size.z * sz < 0.002f;
+            var z = flat ? b.max.z + 0.03f / sz : Mathf.Min(b.max.z, 0.012f / sz);
+            q.transform.localPosition = new Vector3(b.center.x, b.center.y, z);
+            q.transform.localScale = new Vector3(b.size.x + 0.16f / sx, b.size.y + 0.16f / sy, 1f);   // an 8 cm rim round the frame
             var rim = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
             rim.SetColor("_BaseColor", new Color(1f, 0.82f, 0.38f));   // opaque: added gold on a white wall stayed white
             q.GetComponent<Renderer>().sharedMaterial = rim;
@@ -179,15 +185,20 @@ namespace MuseXR.Interaction
 
         Bounds LocalBounds()
         {
+            // Each renderer's own local box, carried into this space: the world-aligned box of a work turned off the
+            // axes is far larger than the work (the Starry Night ceiling turned 9 degrees came out 2.2x as wide).
             var rs = GetComponentsInChildren<Renderer>();
             if (rs.Length == 0) return new Bounds(Vector3.zero, Vector3.one);
-            var b = new Bounds(transform.InverseTransformPoint(rs[0].bounds.center), Vector3.zero);
+            var first = true; var b = new Bounds();
             foreach (var r in rs)
             {
-                var rb = r.bounds;
+                var lb = r.localBounds;
                 for (var i = 0; i < 8; i++)
-                    b.Encapsulate(transform.InverseTransformPoint(rb.center + Vector3.Scale(rb.extents,
-                        new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1))));
+                {
+                    var corner = lb.center + Vector3.Scale(lb.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                    var p = transform.InverseTransformPoint(r.transform.TransformPoint(corner));
+                    if (first) { b = new Bounds(p, Vector3.zero); first = false; } else b.Encapsulate(p);
+                }
             }
             return b;
         }
