@@ -94,7 +94,12 @@ half4 frag (v2f i) : SV_Target
 #endif
             // 1. A silhouette block: this pixel is geometry nearer than the depth the block was tested against, so the
             //    splats over it are an artefact of the low resolution. Keep the object.
-            bool edge = LinearEyeDepth(myD) < LinearEyeDepth(farD) - 0.02;
+            //    Only for NEAR geometry (test M8, 6 Oct): there is no splat depth to compare with, and a large model
+            //    standing BEHIND splats (the Grotto's 87 m cliff Buddha) passed this test all along its silhouette, so the
+            //    cliff was cut away and the Buddha's outline showed through the rock. Masters, panels and frames stand
+            //    within a few metres; anything beyond 8 m keeps the splats as they were.
+            float myEye = LinearEyeDepth(myD);
+            bool edge = myEye < 8.0 && myEye < LinearEyeDepth(farD) - 0.02;
             // 2. Inside the object: its own splat texel was rejected, so only the upscale's neighbours reach here.
             bool hidden = _GaussianSplatRT.Load(int3(lp, 0)).a < 0.01;
             bool useEdge = _GaussianCrispMode == 0 || _GaussianCrispMode == 1;
