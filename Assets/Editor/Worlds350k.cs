@@ -26,16 +26,34 @@ namespace MuseXR.EditorTools
             "fantasy-realm-of-shimmering-spheres-500k",
         };
 
+        /// <summary>
+        /// What ships (Saul, 6 Oct 2026, after comparing 500k / 350k / 250k of every world in the headset
+        /// in Assets/Scenes/Tests/SplatCompare.unity): the Palace and Van Gogh at 350k, the rest at 250k. The Palace's 250k
+        /// cut put black blotches on its steps; 250k on the PICO is ~7 ms a frame cheaper than 350k.
+        /// </summary>
+        static readonly string[] Ship350k = { "palace-court-of-keeping-500k", "van-gogh-inspired-gallery-interior-500k" };
+
+        [MenuItem("MuseXR/Worlds/Use Shipping Worlds (250k, Palace and Van Gogh 350k)")]
+        public static void UseShipping()
+        {
+            foreach (var name in Names)
+            {
+                var at350 = System.Array.IndexOf(Ship350k, name) >= 0;
+                Convert(at350 ? "Tools/marble/smallworlds-350k" : "Tools/marble/smallworlds-250k", at350 ? 350000 : 250000, name);
+            }
+        }
+
         [MenuItem("MuseXR/Worlds/Use 350k Worlds")]
         public static void Use350k() => Convert("Tools/marble/smallworlds-350k", 350000);
 
         [MenuItem("MuseXR/Worlds/Use 500k Worlds")]
         public static void Use500k() => Convert("Tools/marble/smallworlds", 500000);
 
-        static void Convert(string sourceFolder, int expected)
+        static void Convert(string sourceFolder, int expected, string only = null)
         {
             foreach (var name in Names)
             {
+                if (only != null && name != only) continue;
                 var source = Path.GetFullPath(Path.Combine(sourceFolder, name + ".spz"));
                 if (!File.Exists(source)) { Debug.LogError("[Worlds] missing " + source); continue; }
                 var path = "Assets/Worlds/Marble/" + name + ".asset";
