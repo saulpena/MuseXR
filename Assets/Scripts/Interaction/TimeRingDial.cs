@@ -84,6 +84,15 @@ namespace MuseXR.Interaction
             Clicked?.Invoke(time);
         }
 
+        /// <summary>The next hour round the ring - after Dusk, Mist again - for a trigger pull or a key.</summary>
+        public void Next(int direction = 1)
+        {
+            var n = DialDetents.Count;
+            var next = ((Detents.Detent + Math.Sign(direction == 0 ? 1 : direction)) % n + n) % n;
+            SetDetent(next);
+            Click(next, HeldBy != null ? HeldBy.Source : null);
+        }
+
         /// <summary>Turn it from code: the Editor keys and the test harness.</summary>
         public void Step(int direction)
         {

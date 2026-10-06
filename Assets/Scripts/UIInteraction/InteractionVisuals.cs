@@ -125,6 +125,7 @@ namespace MuseXR.UI
                     v.Strip = MuseScreens.ConfirmStrip(anchor, detail, NearDistance,
                                                        () => st.Confirm(), () => st.Undo(), st.Board.Choice.UndoFraction);
                     v.Undo = FindText(v.Strip, "Undo");
+                    Clickable(v.Strip);
                     if (phaseChanged) MuseXR.Interaction.Appear.In(anchor.gameObject, 0.3f);
                 }
                 v.ShownPhase = phase;
@@ -136,6 +137,27 @@ namespace MuseXR.UI
                 v.Strip.parent.position = new Vector3(sp.x, Mathf.Max(sp.y, CardsTop(v) + StripGap + HalfHeight(v.Strip)), sp.z);
                 Face(v.Strip.parent);
                 if (v.Undo != null) v.Undo.text = st.Board.Choice.CanRedo ? "Undo " + Mathf.CeilToInt(st.Board.Choice.UndoLeft) + "s" : "";
+            }
+        }
+
+        /// <summary>
+        /// uGUI buttons do not hear the trigger ray: each of the strip's pills gets a hit box, a hover and the click
+        /// (Saul, 5 Oct: in the Palace and the Grotto the Confirm button did nothing, only A kept).
+        /// </summary>
+        static void Clickable(RectTransform strip)
+        {
+            Canvas.ForceUpdateCanvases();
+            UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(strip);
+            foreach (var button in strip.GetComponentsInChildren<UnityEngine.UI.Button>(true))
+            {
+                var rt = (RectTransform)button.transform;
+                var box = button.gameObject.AddComponent<BoxCollider>();
+                box.isTrigger = true;
+                box.center = rt.rect.center; box.size = new Vector3(rt.rect.width + 6f, rt.rect.height + 6f, 4f);
+                var p = MuseXR.Interaction.Pointable.Make(button.gameObject, "strip " + button.name);
+                MuseXR.Interaction.HoverTint.Bind(p, button.targetGraphic);
+                var b = button;
+                p.Selected += (_, __) => b.onClick.Invoke();
             }
         }
 
@@ -329,7 +351,7 @@ namespace MuseXR.UI
             _hoverTip.position = TopOf(target) + Vector3.up * 0.09f;
             Face(_hoverTip);
             var tipText = _hoverTip.GetComponentInChildren<TextMeshProUGUI>();
-            if (tipText != null) tipText.text = target is TimeRingDial ? "Grip the ring and turn" : (byRay ? "Hold Grip to pick it up" : "Hold Grip to pick up");
+            if (tipText != null) tipText.text = target is TimeRingDial ? "Pull the trigger for the next hour, or grip and turn" : (byRay ? "Hold Grip to pick it up" : "Hold Grip to pick up");
         }
 
         // ---- the time ring's detents --------------------------------------------------------------

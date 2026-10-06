@@ -786,7 +786,7 @@ namespace MuseXR.Journey
     {
         // The garden in the chapter's space (probe captures, 4 Oct): the lily pond runs along -Z on the low-x
         // side of the curved stone path; the rotunda ("Form my answer") stands near the start at (6.8, -3).
-        public static readonly Vector3 WaveAt = new Vector3(0.2f, -0.35f, -11f);
+        public static readonly Vector3 WaveAt = new Vector3(-5f, -0.35f, -11f);   // Saul, by hand in Play (5 Oct); was x 0.2
         public const float WaveHeight = 4.6f;
         public static readonly Vector3 LiliesAt = new Vector3(-0.9f, 0f, -21f);   // centred on the pond: at 0.6 its right 1.6 m stood over the stone path
         // Her spec: behind the wave, 8 m wide, standing on the water, a thin dark edge, its reflection below.
@@ -951,6 +951,9 @@ namespace MuseXR.Journey
             Exhibit.Make(lilies.gameObject, "aic-16568", "Water Lilies", "Claude Monet");
             // Her thin dark edge: one dark sheet just behind the canvas (+Z is away from the viewer).
             ChapterFeatures.Quad(root, "Edge", new Vector3(0f, LiliesWaterline + h / 2f, 0.02f), Quaternion.identity, new Vector2(LiliesWidth + 2f * LiliesEdge, h + 2f * LiliesEdge), ChapterFeatures.Unlit(new Color(0.06f, 0.05f, 0.04f), null, true));
+            // From behind it was the edge's black sheet (Saul, 5 Oct: entering the garden it is "a big black rectangle").
+            // The same picture faces the other way just behind the edge, the right way round from that side.
+            ChapterFeatures.Quad(root, "Canvas (back)", new Vector3(0f, LiliesWaterline + h / 2f, 0.04f), Quaternion.Euler(0f, 180f, 0f), new Vector2(LiliesWidth, h), ChapterFeatures.Unlit(Color.white, tex, true));
             Reflection(root, tex, h);
             ChapterFeatures.Label(transform, LiliesAt + new Vector3(LiliesWidth / 2f + 1.4f, 1.3f, 0.3f), Quaternion.LookRotation(Vector3.back),
                 "<b>Water Lilies</b>  ·  Claude Monet  ·  1906  ·  Art Institute of Chicago\n<size=70%>Standing on the water, enlarged only, nothing changed</size>", 2.2f, 0.6f);
@@ -1034,7 +1037,7 @@ namespace MuseXR.Journey
                 t.rectTransform.sizeDelta = new Vector2(0.3f, 0.08f);
             }
             var box = dial.AddComponent<BoxCollider>(); box.size = new Vector3(0.45f, 0.45f, 0.1f); box.isTrigger = true;
-            _ringPlate = ChapterFeatures.Label(root, new Vector3(0f, 1.62f, 0f), Quaternion.identity, "Grip the time ring and turn  ·  Mist  ·  Afternoon  ·  Dusk", 1.4f, 0.55f);
+            _ringPlate = ChapterFeatures.Label(root, new Vector3(0f, 1.62f, 0f), Quaternion.identity, "Point at the time ring and pull the trigger  ·  Mist  ·  Afternoon  ·  Dusk", 1.4f, 0.55f);
 
             _driver = new GameObject("Time Ring Driver").AddComponent<TimeRingDriver>();
             _driver.transform.SetParent(root, false);
@@ -1042,7 +1045,11 @@ namespace MuseXR.Journey
             _driver.particlesAtFull = MotesAtFull;
             _dial = TimeRingDial.Make(dial, ring.transform, _driver);
             _dial.Clicked += OnTime;
-            CompassTarget.Add(dial, 21, "The time ring", "Grip it and turn");
+            // Saul, 5 Oct: turning it with the wrist is "super hard" in VR. Pointing and pulling the trigger steps to the
+            // next hour (Mist, Afternoon, Dusk, round again); gripping and turning still works.
+            var point = Pointable.Make(dial, "time ring");
+            point.Selected += (_, __) => _dial.Next();
+            CompassTarget.Add(dial, 21, "The time ring", "Point at it and pull the trigger");
         }
 
         /// <summary>
@@ -1428,6 +1435,13 @@ namespace MuseXR.Journey
 
         void Update()
         {
+            // The Editor and a desktop: T or ] steps the time ring to the next hour, [ to the one before.
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (_dial != null && kb != null && Arrived)
+            {
+                if (kb.tKey.wasPressedThisFrame || kb.rightBracketKey.wasPressedThisFrame) _dial.Next();
+                else if (kb.leftBracketKey.wasPressedThisFrame) _dial.Next(-1);
+            }
             if (_rotunda == null) return;
             if (_group == null && _layout != null && Arrived) _group = ChapterFeatures.Crowd(_layout, transform);
             var cam = Camera.main;
