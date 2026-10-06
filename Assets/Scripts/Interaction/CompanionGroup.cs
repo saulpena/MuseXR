@@ -405,11 +405,20 @@ namespace MuseXR.Interaction
         /// them too - the shared voice saying the same line a moment later was the echo (Saul, 5 Oct, headset).</summary>
         public bool VoicedByOwner { get; set; }
 
+        /// <summary>
+        /// The visitor pressed A on the round's LAST line: they are done with it (Saul, 6 Oct: "even when I closed the
+        /// final masters dialogue the audio kept going"). Whatever was still coming about it - the live readings that
+        /// follow an opening line - must not start afterwards.
+        /// </summary>
+        public static event Action<CompanionGroup> LastLineDismissed;
+
         public bool Confirm()
         {
+            var last = Turns != null && Turns.Index >= 0 && Turns.Index >= Turns.Order.Count - 1;
             // Saul, 5 Oct, headset: skipped to the next master, the one cut off kept talking over them.
             if (Turns != null && Turns.Current == TurnTaking.Phase.Speaking) LineSkipped?.Invoke(this);
             Turns?.Advance();
+            if (last) LastLineDismissed?.Invoke(this);
             return Turns != null;
         }
         public bool Redo() => false;

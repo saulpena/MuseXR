@@ -146,10 +146,16 @@ namespace MuseXR.Interaction
 
             // The compass (musexr-bb, 3c2b476): the lamp, then its two stands, then the arch - before the
             // paintings (30).
-            var lampTarget = CompassTarget.Add(Lamp.gameObject, 21, "The lamp: grip to take it");
+            // Saul, 6 Oct: the compass says what to do, in order - go to the podiums, take the lamp, set it on one.
+            var detailPost = Find("Detail Post"); var wholePost = Find("Whole Post");
+            var podiums = new GameObject("Podiums (compass)").transform;
+            podiums.SetParent(transform, false);
+            podiums.position = (detailPost.position + wholePost.position) * 0.5f;
+            CompassTarget.Arrive(podiums.gameObject, 20, "Go to the two podiums", "Detail or whole: hear your companions", 2.5f);
+            var lampTarget = CompassTarget.Add(Lamp.gameObject, 21, "Take the lamp", "Grip to pick it up");
             Lamp.Grabbed += _ => lampTarget.MarkDone();
-            var stands = new[] { CompassTarget.Add(Find("Detail Post").gameObject, 22, "DETAIL: set the lamp by the relief"),
-                                 CompassTarget.Add(Find("Whole Post").gameObject, 22, "WHOLE: set the lamp at the rail") };
+            var stands = new[] { CompassTarget.Add(detailPost.gameObject, 22, "Set the lamp on a podium", "Detail: by the relief"),
+                                 CompassTarget.Add(wholePost.gameObject, 22, "Set the lamp on a podium", "Whole: at the rail") };
             Sockets.Cue += (s, e) => { if (e.Cue == SlotCue.Placed) foreach (var t in stands) t.MarkDone(); };
             // The rule: every painting and interactable object - click it or walk up to it, and a master speaks.
             InsightTarget.Add(Lamp.gameObject, "the brass lamp");
@@ -255,7 +261,7 @@ namespace MuseXR.Interaction
             foreach (Transform c in transform) if (c != Companions.transform && c.gameObject != teleportFloor) props.Add(c.gameObject);
             if (_probe != null && _probe.Root != null) props.Add(_probe.Root.gameObject);
             if (!arch.Open(here, props, showNow: true)) return;
-            var archTarget = CompassTarget.Add(arch.gameObject, 29, "The arch: walk through it");
+            var archTarget = CompassTarget.Add(arch.gameObject, 29, "Walk through the arch", "On to the next world");
             arch.Crossed += () => archTarget.MarkDone();
             Companions.StopTurns();
             Companions.FollowVisitor = true;

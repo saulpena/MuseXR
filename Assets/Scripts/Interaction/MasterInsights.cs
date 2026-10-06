@@ -406,7 +406,7 @@ namespace MuseXR.Interaction
             xb.center = (xlo + xhi) * 0.5f; xb.size = new Vector3(Mathf.Abs(xhi.x - xlo.x) + 0.02f, Mathf.Abs(xhi.y - xlo.y) + 0.02f, 0.02f);
             var close = Pointable.Make(xh.gameObject, "replies close");
             HoverTint.Bind(close, _closeChip);
-            close.Selected += (_, __) => CloseReplies();
+            close.Selected += (_, __) => DismissedByVisitor();
             _replies = anchor.gameObject;
             FollowVisitor.Attach(_replies);   // follows you like the masters' card (Saul, 5 Oct)
             Appear.In(_replies, 0.3f);   // eased, never popped (Saul, 5 Oct)
@@ -545,7 +545,7 @@ namespace MuseXR.Interaction
             xb.center = (xlo + xhi) * 0.5f; xb.size = new Vector3(Mathf.Abs(xhi.x - xlo.x) + 0.02f, Mathf.Abs(xhi.y - xlo.y) + 0.02f, 0.02f);
             var askClose = Pointable.Make(xh.gameObject, "ask close");
             HoverTint.Bind(askClose, x);
-            askClose.Selected += (_, __) => CloseReplies();
+            askClose.Selected += (_, __) => DismissedByVisitor();
             _replies = anchor.gameObject; _askOpen = true;
             FollowVisitor.Attach(_replies);
             Appear.In(_replies, 0.3f);
@@ -602,6 +602,41 @@ namespace MuseXR.Interaction
             if (_group.Busy) _group.StopTurns();
             _pending = lines;
             Debug.Log("[Insight] asked: " + question + " -> " + lines.Count + " answers in " + result.Seconds.ToString("F1") + " s");
+        }
+
+        /// <summary>
+        /// The visitor dismissed the masters' panel with its x: the conversation ends with it - the voice speaking, the
+        /// turns still to come and any readings on their way (Saul, 6 Oct: "once we dismiss a dialogue box the audio for
+        /// it also stops ... even after the dialogue should end, the masters audio still plays"). The x used to close
+        /// only the panel, and the round played on.
+        /// </summary>
+        void DismissedByVisitor()
+        {
+            CloseReplies();
+            HushAll();
+        }
+
+        void OnEnable() => CompanionGroup.LastLineDismissed += OnLastLineDismissed;
+        void OnDisable() => CompanionGroup.LastLineDismissed -= OnLastLineDismissed;
+
+        /// <summary>A on the last line of OUR round: the readings still on their way are dropped, so no new round starts
+        /// after the visitor closed the card (the single opening line looked like the end, and the live readings then
+        /// began a whole new round seconds later).</summary>
+        void OnLastLineDismissed(CompanionGroup g)
+        {
+            if (g == null || g != _group) return;
+            if (_pending == null && _thinkingAbout == null) return;
+            Debug.Log("[Insight] last line dismissed: the readings still coming are dropped");
+            Interrupt();
+        }
+
+        /// <summary>Stop whatever the masters are saying or about to say about any piece, if anything.</summary>
+        public void HushAll()
+        {
+            var busy = (_group != null && _group.Busy) || _pending != null || _thinkingAbout != null || MusePico.Dialogue.VoiceGate.Speaking;
+            if (!busy) return;
+            Debug.Log("[Insight] dismissed by the visitor: the masters stop");
+            Interrupt();
         }
 
         void CloseReplies()

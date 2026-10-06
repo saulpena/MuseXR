@@ -260,7 +260,7 @@ namespace MuseXR.Journey
                 var index = i;
                 var p = Pointable.Make(lantern.gameObject, Keys[i]);
                 p.Label = Chapters[i] + " lantern";
-                CompassTarget.Add(lantern.gameObject, 10 + i, Chapters[i] + " lantern", "Point to hear why");   // done when pointed at
+                CompassTarget.Add(lantern.gameObject, 10 + i, "Point at the " + Chapters[i] + " lantern", "Pull the trigger to hear why");   // done when pointed at
                 p.Selected += (_, __) => Hear(index);
                 p.Hovering += _ => light.intensity = 3.2f;     // brightens under the laser
                 p.Unhovered += _ => light.intensity = 1.6f;
@@ -617,7 +617,7 @@ namespace MuseXR.Journey
             Appear.Out(first.gameObject, 0.3f);
             mg.Arrived += () => StartCoroutine(Arrive());
             foreach (var l in _lanterns) if (l != null) { var lt = l.GetComponent<CompassTarget>(); if (lt != null) lt.MarkDone(); }
-            CompassTarget.Add(mg.gameObject, 20, "The moon gate", "Walk through to the Palace");
+            CompassTarget.Add(mg.gameObject, 20, "Walk through the moon gate", "On to the Palace");
             StartCoroutine(RetireCard());
             _gate = mg;
             Debug.Log("[Curation] the moon gate stands; the Palace is behind it");
@@ -744,7 +744,7 @@ namespace MuseXR.Journey
             // The Palace's figures are revealed on arrival, fading in beside the visitor (Arrive), not on the
             // throne room's marks at the crossing - they showed far off there and walked over (Saul, 5 Oct).
             mg.Arrived += () => StartCoroutine(Arrive());
-            CompassTarget.Add(mg.gameObject, 20, "The moon gate", "Walk through to the Palace");
+            CompassTarget.Add(mg.gameObject, 20, "Walk through the moon gate", "On to the Palace");
             StartCoroutine(RetireCard());
             _gate = mg; _hopped = false;
             return mg;

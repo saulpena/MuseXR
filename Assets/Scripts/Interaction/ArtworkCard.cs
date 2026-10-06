@@ -10,8 +10,10 @@ namespace MuseXR.Interaction
     /// stepping within 1.2 m of its viewing mark, a card stands 0.3 m right of the frame at the same depth
     /// (below it, when the work is under 1 m wide), facing the viewing mark, with the six required fields
     /// read from artworks.json: title, artist, date, source, rights, source URL. AI studies carry a purple
-    /// "AI" tag. Buttons show controller letters: A hears the companions on it, B closes. One card at a
-    /// time; it goes when the visitor walks away or looks elsewhere for a while.
+    /// "AI" tag. Information only (Saul, 6 Oct: "remove the ask about and close buttons ... make them smaller just to
+    /// show some data about the piece, the main interaction is to click on them or not"): pointing and pulling the
+    /// trigger on the WORK is what plays the companions. One card at a time; it goes when the visitor walks away,
+    /// looks elsewhere or points at nothing for a while.
     /// </summary>
     public sealed class ArtworkCard : MonoBehaviour, IConfirmable
     {
@@ -99,9 +101,7 @@ namespace MuseXR.Interaction
             MasterInsights.Ensure().CardOpened(insight);   // only the newly pointed-at work keeps a panel
             Appear.In(go, 0.3f);   // eased, never popped (Saul, 5 Oct)
             Current = card;
-            // A and B are the card's only while nothing else holds them (a chapter's own choice keeps its A).
-            if (ConfirmInput.Focus == null) { ConfirmInput.Take(card); card._tookInput = true; }
-            return card;
+            return card;   // no buttons, so it never takes A and B from anything else
         }
 
         void Build(Vector2 workSize)
@@ -119,7 +119,8 @@ namespace MuseXR.Interaction
             var at = origin + right * o.x + Vector3.up * o.y + facing * 0.02f;
             transform.SetPositionAndRotation(at, Quaternion.LookRotation(-facing, Vector3.up));   // +Z away from the viewer reads
 
-            var c = MuseUi.Canvas(transform, "Card", 2.6f, 340f);   // read from the viewing mark, 2.1 m out and to the side
+            // Smaller than it was (2.6 m / 340 px, Saul, 6 Oct): a label beside the work, not a panel to operate.
+            var c = MuseUi.Canvas(transform, "Card", 2.2f, 280f);
             // Her milk-glass with a gold hairline.
             var glass = MuseUi.Card(c, MuseTheme.Paper, MuseTheme.OptionRadius, MuseTheme.Gold, 1f, padX: 14f, padY: 12f, gap: 4f, name: "Card");
             if (IsAiStudy(_record))
@@ -132,29 +133,9 @@ namespace MuseXR.Interaction
             var title = MuseUi.Text(glass, _record.title, MuseUi.Face.Serif, 22f, MuseTheme.Ink, name: "Title");
             var fonts = MuseFonts.Get(); if (fonts != null && fonts.display != null) title.font = fonts.display;
             MuseUi.Text(glass, string.IsNullOrEmpty(_record.date) ? _record.artist : _record.artist + "  ·  " + _record.date, MuseUi.Face.Sans, 14f, MuseTheme.Ink2, name: "Artist");
-            var source = Join(_record.source, _record.rights);
-            if (!string.IsNullOrEmpty(source)) MuseUi.Text(glass, source, MuseUi.Face.Sans, 11.5f, MuseTheme.Ink2, name: "Source");
-            if (!string.IsNullOrEmpty(_record.sourceUrl))
-                MuseUi.Text(glass, _record.sourceUrl.Replace("https://", "").Replace("http://", "").Replace("www.", ""), MuseUi.Face.Mono, 11f, MuseTheme.Ink2, name: "Url");
-            var row = MuseUi.Row(glass, 8f, TextAnchor.MiddleLeft, "Buttons");
-            var hear = MuseUi.Pill(row, "A", "Hear companions", true, () => Confirm());
-            var close = MuseUi.Pill(row, "B", "Close", false, () => Redo());
-            // uGUI buttons do not hear the trigger ray: each pill gets its own hit box, hover and click (Saul, 5 Oct:
-            // "I had a hard time interacting with the panel").
-            Canvas.ForceUpdateCanvases();
-            Clickable(hear, "hear companions", () => Confirm());
-            Clickable(close, "close card", () => Redo());
-        }
-
-        static void Clickable(UnityEngine.UI.Button pill, string id, System.Action act)
-        {
-            var rt = (RectTransform)pill.transform;
-            var box = pill.gameObject.AddComponent<BoxCollider>();
-            box.isTrigger = true;
-            box.center = rt.rect.center; box.size = new Vector3(rt.rect.width + 6f, rt.rect.height + 6f, 4f);
-            var p = Pointable.Make(pill.gameObject, id);
-            HoverTint.Bind(p, pill.targetGraphic);
-            p.Selected += (_, __) => act();
+            // Three readable lines rather than five small ones (blind review, 6 Oct: the rights and URL lines were too
+            // small and faint to read in a headset, and the URL read as debug text). The full record stays in artworks.json.
+            if (!string.IsNullOrEmpty(_record.source)) MuseUi.Text(glass, _record.source, MuseUi.Face.Sans, 13f, MuseTheme.Ink2, name: "Source");
         }
 
         /// <summary>Does another work or piece stand within a card's width of <paramref name="spot"/>?</summary>

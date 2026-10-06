@@ -38,6 +38,7 @@ namespace MuseXR.Interaction
                 if (nf.handedness == InteractorHandedness.None) continue;
                 var hand = nf.handedness == InteractorHandedness.Left ? Hand.Left : Hand.Right;
                 if (Hands.Exists(h => h.Source.Hand == hand)) continue;
+                Unsmooth(nf);
                 var source = new XrHandSource(hand, nf.transform);
                 var grip = GripHand.Attach(nf.gameObject, source);
                 Hands.Add(grip);
@@ -50,6 +51,23 @@ namespace MuseXR.Interaction
                 Pointers.Add(Desktop.Pointer);
             }
             Debug.Log("[Interaction] grips: " + Hands.Count + (Desktop != null ? " (incl. mouse hand)" : ""));
+        }
+
+        /// <summary>
+        /// One ray per hand, exactly where the hand points (Saul, 6 Oct, headset: "the laser pointer is duplicated, and
+        /// to click a button I need to aim a bit below it"). The toolkit's far caster had stabilization on (20 degrees,
+        /// 0.25 m), so its ray - the one that clicks UI and draws the curved line - trailed the hand, while our
+        /// <see cref="Pointer"/> ray follows it exactly: two lines, and a click that landed where the hand had been.
+        /// Stabilization off makes the two rays one; the toolkit's line is hidden and the pointer draws the only laser.
+        /// </summary>
+        static void Unsmooth(NearFarInteractor nf)
+        {
+            if (nf.farInteractionCaster is UnityEngine.XR.Interaction.Toolkit.Interactors.Casters.CurveInteractionCaster curve)
+                curve.enableStabilization = false;
+            foreach (var visual in nf.GetComponentsInChildren<UnityEngine.XR.Interaction.Toolkit.Interactors.Visuals.CurveVisualController>(true))
+                visual.enabled = false;
+            foreach (var line in nf.GetComponentsInChildren<LineRenderer>(true))
+                line.enabled = false;
         }
     }
 

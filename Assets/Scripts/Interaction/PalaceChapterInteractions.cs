@@ -63,9 +63,10 @@ namespace MuseXR.Interaction
 
             // The compass (musexr-bb, 3c2b476): the pieces, then the court, then the gate - before the
             // paintings (30). Done when the piece is set in the court.
-            var targets = new[] { CompassTarget.Add(crane.gameObject, 21, "Crane: point at it to hear your companions"),
-                                  CompassTarget.Add(turtle.gameObject, 21, "Turtle: point at it to hear your companions"),
-                                  CompassTarget.Add(courtT.gameObject, 22, "The miniature court: set it here") };
+            // Saul, 6 Oct: ask about both, then take one to the podium.
+            var targets = new[] { CompassTarget.Add(crane.gameObject, 21, "Ask about the crane", "Point at it and pull the trigger"),
+                                  CompassTarget.Add(turtle.gameObject, 21, "Ask about the turtle", "Point at it and pull the trigger"),
+                                  CompassTarget.Add(courtT.gameObject, 22, "Put the crane or the turtle on the podium", "Grip to pick one up") };
             Court.Cue += (s, e) => { if (e.Cue == SlotCue.Placed) foreach (var t in targets) t.MarkDone(); };
             // The rule: every interactable object - click it or walk up to it, and a master speaks.
             // Her script's labels, so the companions talk about what the pieces are after.
@@ -175,7 +176,7 @@ namespace MuseXR.Interaction
                 if (t.name.StartsWith("Exit Moon gate") && t.parent != null) props.Add(t.parent.gameObject);   // the layout root
             foreach (var n in new[] { "Court Table", "Interaction Visuals" }) { var g = GameObject.Find(n); if (g != null) props.Add(g); }
             if (!moonGate.Open(here, props, null, showNow: true)) return;
-            var gateTarget = CompassTarget.Add(moonGate.gameObject, 29, "The moon gate: walk through it");
+            var gateTarget = CompassTarget.Add(moonGate.gameObject, 29, "Walk through the moon gate", "On to the next world");
             moonGate.Crossed += () =>
             {
                 gateTarget.MarkDone();

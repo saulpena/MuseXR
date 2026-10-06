@@ -449,7 +449,7 @@ namespace MuseXR.Journey
             relief.gameObject.AddComponent<MeshRenderer>().sharedMaterial = m;
             Exhibit.Make(relief.gameObject, BedroomId, "The Bedroom", "Vincent van Gogh");   // the hung one's id: one painting, one record
             // Her rule: viewing The Bedroom is what lights the easel, so the compass leads there first.
-            CompassTarget.Add(relief.gameObject, 24, "The Bedroom", "Walk up to it and hear your companions");
+            CompassTarget.Add(relief.gameObject, 24, "Go to The Bedroom painting", "Point at it and pull the trigger");
             var lamp = new GameObject("Raking light").AddComponent<Light>();   // a light from the side brings the ridges out
             lamp.transform.SetParent(root, false); lamp.transform.localPosition = new Vector3(-BedroomWidth * 0.7f, h + 0.3f, -1.2f);
             lamp.type = LightType.Point; lamp.range = 7f; lamp.intensity = 2.2f; lamp.color = new Color(1f, 0.92f, 0.8f);
@@ -552,7 +552,7 @@ namespace MuseXR.Journey
             var light = new GameObject("Easel light").AddComponent<Light>();
             light.transform.SetParent(_easel, false); light.transform.localPosition = new Vector3(0f, 1.9f, -0.6f);
             light.type = LightType.Point; light.range = 2.5f; light.intensity = 1.6f; light.color = new Color(1f, 0.85f, 0.6f);
-            CompassTarget.Add(_easel.gameObject, 25, "The easel", "Touch each pot, then paint");
+            CompassTarget.Add(_easel.gameObject, 25, "Go to the easel and paint", "Touch each pot, then paint your stroke");
         }
 
         void PickColour(int index)
@@ -1050,7 +1050,7 @@ namespace MuseXR.Journey
             // next hour (Mist, Afternoon, Dusk, round again); gripping and turning still works.
             var point = Pointable.Make(dial, "time ring");
             point.Selected += (_, __) => _dial.Next();
-            CompassTarget.Add(dial, 21, "The time ring", "Point at it and pull the trigger");
+            CompassTarget.Add(dial, 21, "Turn the time ring", "Point at it and pull the trigger");
         }
 
         /// <summary>
@@ -1348,7 +1348,7 @@ namespace MuseXR.Journey
             // takes ~30 s. Asked now, while the visitor walks over, it is usually ready when they arrive.
             if (_tableAsk == null) _tableAsk = RoundtableAsk();
             if (_tableSign != null) _tableSign.text = "Form my answer";
-            var ct = _rotunda.GetComponent<CompassTarget>(); if (ct == null) CompassTarget.Add(_rotunda.gameObject, 28, "Form my answer", "The rotunda · they are waiting");
+            var ct = _rotunda.GetComponent<CompassTarget>(); if (ct == null) CompassTarget.Add(_rotunda.gameObject, 28, "Go to the rotunda", "Form your answer with them");
         }
 
         void Note(string text)

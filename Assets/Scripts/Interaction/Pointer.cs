@@ -178,6 +178,7 @@ namespace MuseXR.Interaction
         }
 
         LineRenderer _laser;
+        float _uiDistance = float.PositiveInfinity;
 
         /// <summary>Draw the laser without a headset too (for checking it in the Editor).</summary>
         public static bool LaserAtDesk;
@@ -189,7 +190,8 @@ namespace MuseXR.Interaction
         /// </summary>
         void DrawLaser()
         {
-            var show = Hovered != null && (UnityEngine.XR.XRSettings.isDeviceActive || LaserAtDesk) && Source?.Aim != null;
+            var onUi = Hovered == null && _uiDistance < Reach;
+            var show = (Hovered != null || onUi) && (UnityEngine.XR.XRSettings.isDeviceActive || LaserAtDesk) && Source?.Aim != null;
             if (!show) { if (_laser != null && _laser.enabled) _laser.enabled = false; return; }
             if (_laser == null)
             {
@@ -205,7 +207,7 @@ namespace MuseXR.Interaction
             }
             _laser.enabled = true;
             _laser.SetPosition(0, Source.Aim.position);
-            _laser.SetPosition(1, HitPoint);
+            _laser.SetPosition(1, onUi ? Source.Aim.position + Source.Aim.forward * _uiDistance : HitPoint);
         }
 
         IPointable Find()
@@ -224,7 +226,10 @@ namespace MuseXR.Interaction
             // A panel in front stops the ray: its buttons take the trigger (through the UI system), and whatever
             // stands behind it must not take it too. Pointing at a menu's option started an interaction with the
             // painting behind it (Saul, 5 Oct). A pointable that is itself on the panel is a hair nearer than it.
-            if (best != null && UiDistance(new Ray(aim.position, aim.forward), nearest) < nearest - 0.02f) best = null;
+            // The UI under the ray, kept for the laser too: with the toolkit's own line hidden (HandsBootstrap.Unsmooth),
+            // this is the only laser, and it must show on a panel's plain buttons as well as on pointables.
+            _uiDistance = UiDistance(new Ray(aim.position, aim.forward), best != null ? nearest : Reach);
+            if (best != null && _uiDistance < nearest - 0.02f) best = null;
             return best;
         }
 

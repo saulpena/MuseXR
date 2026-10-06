@@ -17,9 +17,13 @@ namespace MuseXR.Interaction
         public string detail;
         public bool Done { get; private set; }
 
-        /// <summary>Orders below this are the walk's own steps; at or above it, things worth a look
-        /// (hung works, heroes to replicate) that the compass offers only when no step is waiting.</summary>
+        /// <summary>Orders below this are the walk's own steps; at or above it, things worth a look (hung works, heroes
+        /// to replicate). The compass never offers those (Saul, 6 Oct: "it sometimes shows extra goals that are options
+        /// and will confuse people") - it only ever says what to do next.</summary>
         public const int Optional = 30;
+
+        /// <summary>A "go to" step: done once the visitor stands within this many metres of it (0 = not an arrival).</summary>
+        public float arriveWithin;
 
         static readonly List<CompassTarget> All = new List<CompassTarget>();
 
@@ -31,15 +35,22 @@ namespace MuseXR.Interaction
             return t;
         }
 
+        /// <summary>A "go to" step, done when the visitor arrives within <paramref name="within"/> metres.</summary>
+        public static CompassTarget Arrive(GameObject go, int order, string label, string detail, float within)
+        {
+            var t = Add(go, order, label, detail);
+            t.arriveWithin = within;
+            return t;
+        }
+
         /// <summary>Her "stop n / N": where <paramref name="target"/> falls among the active targets, done or not -
         /// counted among the walk's steps, or among the optional works when it is one.</summary>
         public static void Progress(CompassTarget target, out int stop, out int stops)
         {
             stop = 1; stops = 0;
-            var optional = target.order >= Optional;
             foreach (var t in All)
             {
-                if (t == null || !t.isActiveAndEnabled || (t.order >= Optional) != optional) continue;
+                if (t == null || !t.isActiveAndEnabled || t.order >= Optional) continue;
                 stops++;
                 if (t != target && (t.order < target.order || (t.order == target.order && t.GetInstanceID() < target.GetInstanceID()))) stop++;
             }
@@ -66,8 +77,13 @@ namespace MuseXR.Interaction
             var bestDistance = float.MaxValue;
             foreach (var t in All)
             {
-                if (t == null || t.Done || !t.isActiveAndEnabled) continue;
+                if (t == null || t.Done || !t.isActiveAndEnabled || t.order >= Optional) continue;
                 var d = (t.transform.position - from).sqrMagnitude;
+                if (t.arriveWithin > 0f)
+                {
+                    var flat = t.transform.position - from; flat.y = 0f;
+                    if (flat.magnitude <= t.arriveWithin) { t.MarkDone(); continue; }
+                }
                 if (best == null || t.order < best.order || (t.order == best.order && d < bestDistance))
                 {
                     best = t; bestDistance = d;
