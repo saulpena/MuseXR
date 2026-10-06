@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2b7365b139f7aec43b23d26b7a48b5a6, type: 3}
   m_Name: MetaQuestTouchPlusControllerProfile Android
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.Features.Interactions.MetaQuestTouchPlusControllerProfile
-  m_enabled: 1
+  m_enabled: 0
   nameUi: Meta Quest Touch Plus Controller Profile
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.metaquestplus
@@ -139,7 +139,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7410d1eba61186c43a9ff128c59f364c, type: 3}
   m_Name: OpenXRExtensions Android
   m_EditorClassIdentifier: ByteDance.PICO.XR::ByteDance.PICO.OpenXR.OpenXRExtensions
-  m_enabled: 0
+  m_enabled: 1
   nameUi: PICO OpenXR Features
   version: 6.1.1
   featureIdInternal: com.unity.openxr.pico.features
@@ -246,7 +246,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: feeef8d85de8db242bdda70cc7ff5acd, type: 3}
   m_Name: OculusTouchControllerProfile Android
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.Features.Interactions.OculusTouchControllerProfile
-  m_enabled: 1
+  m_enabled: 0
   nameUi: Oculus Touch Controller Profile
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.oculustouch
@@ -490,7 +490,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9b76292af5e4e389c642703b656f3b6, type: 3}
   m_Name: PICOFeature Android
   m_EditorClassIdentifier: ByteDance.PICO.XR::ByteDance.PICO.OpenXR.PICOFeature
-  m_enabled: 0
+  m_enabled: 1
   nameUi: PICO XR Support
   version: 6.1.1
   featureIdInternal: com.unity.openxr.feature.pico
@@ -793,7 +793,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4891747df4d5e714f9fec69b98639e2c, type: 3}
   m_Name: PICO4UltraControllerProfile Android
   m_EditorClassIdentifier: ByteDance.PICO.XR::ByteDance.PICO.OpenXR.Interactions.PICO4UltraControllerProfile
-  m_enabled: 0
+  m_enabled: 1
   nameUi: PICO4 Ultra Touch Controller Profile
   version: 1.0.0
   featureIdInternal: com.unity.openxr.feature.input.PICO4Ultratouch
@@ -813,7 +813,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1fc69ec2fe7250b429391581208e2fbe, type: 3}
   m_Name: PICO4ControllerProfile Android
   m_EditorClassIdentifier: ByteDance.PICO.XR::ByteDance.PICO.OpenXR.Interactions.PICO4ControllerProfile
-  m_enabled: 0
+  m_enabled: 1
   nameUi: PICO4 Touch Controller Profile
   version: 1.0.0
   featureIdInternal: com.unity.openxr.feature.input.PICO4touch
@@ -833,7 +833,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7137a47eb739c7a4485f1395871a6d68, type: 3}
   m_Name: FoveationFeature Android
   m_EditorClassIdentifier: ByteDance.PICO.XR::ByteDance.PICO.OpenXR.FoveationFeature
-  m_enabled: 0
+  m_enabled: 1
   nameUi: OpenXR Foveation
   version: 6.1.1
   featureIdInternal: com.pico.openxr.feature.foveation
@@ -935,7 +935,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4b862ee14fb479fbfe5fffe655d3ed3, type: 3}
   m_Name: MetaQuestTouchProControllerProfile Android
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.Features.Interactions.MetaQuestTouchProControllerProfile
-  m_enabled: 1
+  m_enabled: 0
   nameUi: Meta Quest Touch Pro Controller Profile
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.metaquestpro
@@ -955,7 +955,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f647cc0545697264a9878224faada6d5, type: 3}
   m_Name: MetaQuestFeature Android
   m_EditorClassIdentifier: Unity.XR.OpenXR.Features.MetaQuestSupport::UnityEngine.XR.OpenXR.Features.MetaQuestSupport.MetaQuestFeature
-  m_enabled: 1
+  m_enabled: 0
   nameUi: Meta Quest Support
   version: 1.0.0
   featureIdInternal: com.unity.openxr.feature.metaquest
@@ -1226,7 +1226,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f13a1b00c8524d6495757293c2324596, type: 3}
   m_Name: DisplayRefreshRateFeature Android
   m_EditorClassIdentifier: ByteDance.PICO.XR::ByteDance.PICO.OpenXR.DisplayRefreshRateFeature
-  m_enabled: 0
+  m_enabled: 1
   nameUi: OpenXR Display Refresh Rate
   version: 6.1.1
   featureIdInternal: com.pico.openxr.feature.refreshrate
@@ -1279,7 +1279,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 50d1481d756df2e4093342229c33de82, type: 3}
   m_Name: PICONeo3ControllerProfile Android
   m_EditorClassIdentifier: ByteDance.PICO.XR::ByteDance.PICO.OpenXR.Interactions.PICONeo3ControllerProfile
-  m_enabled: 0
+  m_enabled: 1
   nameUi: PICO Neo3 Touch Controller Profile
   version: 1.0.0
   featureIdInternal: com.unity.openxr.feature.input.PICONeo3touch

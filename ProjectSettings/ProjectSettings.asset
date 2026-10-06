@@ -13,7 +13,7 @@ PlayerSettings:
   useOnDemandResources: 0
   accelerometerFrequency: 60
   companyName: MuseXR
-  productName: MuseXR (Quest)
+  productName: MuseXR
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
@@ -831,7 +831,7 @@ PlayerSettings:
   webWasm2023: 0
   webEnableSubmoduleStrippingCompatibility: 0
   scriptingDefineSymbols:
-    Android: ENABLE_PICO_OPENXR_SDK;PICO_SPATIALIZER;MUSEXR_QUEST
+    Android: ENABLE_PICO_OPENXR_SDK;PICO_SPATIALIZER;MUSEXR_PICO
     Standalone: ENABLE_PICO_XR_SDK;PICO_SPATIALIZER;ENABLE_PICO_OPENXR_SDK
   additionalCompilerArguments: {}
   platformArchitecture: {}
