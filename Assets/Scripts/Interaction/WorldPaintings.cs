@@ -94,7 +94,7 @@ namespace MuseXR.Interaction
             for (var i = 0; i < hangs.Count; i++)
             {
                 var tex = Image(works[i].id);
-                var aspect = tex != null && tex.height > 0 ? tex.width / (float)tex.height : 1.3f;
+                var aspect = MuseXR.Worlds.PictureAspect.Of(tex, 1.3f);
                 var centre = hangs[i].centre; centre.y = floorY + HangAboveFloor;
                 Build(works[i], tex, centre, MuseXR.Worlds.WebGalleryLayout.QuadRotation(centre, hangs[i].faces),
                       MuseXR.Worlds.WebGalleryLayout.CanvasSize(aspect));
@@ -163,7 +163,7 @@ namespace MuseXR.Interaction
         static void Crop(Transform canvas, Texture2D tex, Vector2 box, Vector2 focus)
         {
             if (tex == null || tex.height == 0) return;
-            var r = CropRect(tex.width / (float)tex.height, box, focus);
+            var r = CropRect(MuseXR.Worlds.PictureAspect.Of(tex), box, focus);
             var m = canvas.GetComponent<MeshRenderer>().sharedMaterial;
             m.SetTextureScale("_BaseMap", new Vector2(r.width, r.height));
             m.SetTextureOffset("_BaseMap", new Vector2(r.x, r.y));
@@ -186,7 +186,7 @@ namespace MuseXR.Interaction
         /// <summary>The largest size of the work's proportions inside <paramref name="box"/>.</summary>
         public static Vector2 Fit(Texture2D tex, Vector2 box)
         {
-            var aspect = tex != null && tex.height > 0 ? tex.width / (float)tex.height : 1.3f;
+            var aspect = MuseXR.Worlds.PictureAspect.Of(tex, 1.3f);
             return aspect >= box.x / box.y ? new Vector2(box.x, box.x / aspect) : new Vector2(box.y * aspect, box.y);
         }
 

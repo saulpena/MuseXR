@@ -974,7 +974,7 @@ namespace MusePico.Journey
             for (var i = 0; i < hangs.Count; i++)
             {
                 var texture = ArtworkImage(works[i].id);
-                var aspect = texture != null && texture.height > 0 ? texture.width / (float)texture.height : 1.3f;
+                var aspect = MuseXR.Worlds.PictureAspect.Of(texture, 1.3f);
                 _hanging.Add(works[i]);
                 // Her height is above the collider ground under the work, which in the conservatory
                 // is a planter bed a metre above the path: the works hung 2.9 m over the visitor.
@@ -997,9 +997,7 @@ namespace MusePico.Journey
         void BuildArtwork(ArtworkRecord record, Vector3 position, Quaternion quadRotation, Vector2? size = null)
         {
             var texture = ArtworkImage(record.id);
-            var aspect = texture != null && texture.height > 0
-                ? texture.width / (float)texture.height
-                : 1.2f;
+            var aspect = MuseXR.Worlds.PictureAspect.Of(texture, 1.2f);
             var canvas = size ?? new Vector2(artworkHeight * aspect, artworkHeight);
 
             var go = GameObject.CreatePrimitive(PrimitiveType.Quad);

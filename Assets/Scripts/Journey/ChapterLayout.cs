@@ -197,7 +197,7 @@ namespace MusePico.Journey
             var faces = Quaternion.LookRotation(into, Vector3.up);   // +Z into the wall: reads from the room
 
             var tex = image?.Invoke(item.Id);
-            float aspect = tex != null ? tex.width / (float)tex.height : 1.25f;
+            float aspect = MuseXR.Worlds.PictureAspect.Of(tex, 1.25f);
             var size = WebGalleryLayout.CanvasSize(aspect);
             if (fit.x > 0f && fit.y > 0f) size = aspect >= fit.x / fit.y ? new Vector2(fit.x, fit.x / aspect) : new Vector2(fit.y * aspect, fit.y);
             if (bottom > 0f) onWall += Vector3.up * (bottom + size.y / 2f - centreHeight);

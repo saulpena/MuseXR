@@ -58,7 +58,7 @@ namespace MuseXR.Interaction
                 if (tex != null && tex.height > 0 && kind != "ceiling")
                 {
                     var tiling = r.sharedMaterial.HasProperty("_BaseMap") ? r.sharedMaterial.GetTextureScale("_BaseMap") : Vector2.one;
-                    float imageAspect = tex.width * Mathf.Abs(tiling.x) / (tex.height * Mathf.Abs(tiling.y));
+                    float imageAspect = MuseXR.Worlds.PictureAspect.Of(tex) * Mathf.Abs(tiling.x) / Mathf.Abs(tiling.y);
                     float err = Mathf.Abs(canvasAspect / imageAspect - 1f);
                     if (err > AspectTolerance) notes.Add("ASPECT " + (err * 100f).ToString("F0") + "% off (canvas " + canvasAspect.ToString("F2") + ", image " + imageAspect.ToString("F2") + ")");
                 }

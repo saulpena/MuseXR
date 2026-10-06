@@ -1190,7 +1190,7 @@ namespace MusePico.Journey
             foreach (var c in panel.Choices)
             {
                 var t = ImageFor != null ? ImageFor(c.ImageId) : null;
-                if (t != null && t.height > 0) aspects.Add(t.width / (float)t.height);
+                if (t != null && t.height > 0) aspects.Add(MuseXR.Worlds.PictureAspect.Of(t));
             }
             if (aspects.Count == 0) return 0.75f;
 
@@ -1209,7 +1209,7 @@ namespace MusePico.Journey
         {
             if (texture == null || texture.height <= 0) return;
 
-            var imageAspect = texture.width / (float)texture.height;
+            var imageAspect = MuseXR.Worlds.PictureAspect.Of(texture);
             if (imageAspect > cardAspect)
             {
                 // Too wide: keep full height, take a centred slice of the width.
