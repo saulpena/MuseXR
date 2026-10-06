@@ -25,6 +25,34 @@ PICO 4 with the same build: 30 FPS of 90, ~30 ms GPU (22-23 FPS before). Not yet
 Reported in the headset after the change: the distortion under head movement that had been
 causing headaches has eased. An observation, not a measurement.
 
+## PICO 4 Ultra (A8110), 6 Oct 2026 — tearing gone, sharper text
+
+Tested on the headset one change per build; each step kept only when Saul saw it improve. All PICO-only — the Quest
+build is unchanged. Builds: `Builds/MuseXR-PICO-Gate-M<n>-*.apk` (mine) and `MuseXR-B/Builds/*-T<n>*` (musexr-b-3e).
+
+| Test | Change (on top of the previous kept step) | Measured | Verdict |
+|---|---|---|---|
+| master | foveation on, renderScale 0.8, splat 0.6, 90 Hz | 26-30 FPS (350k), eye 1152x1268, splat 691x761 | head-turn tearing very bad; masters and text pixelated |
+| M1 | **foveated rendering off** (`XRBuild.PicoFeatures` without `FoveationFeature`) | 24 FPS | tearing much more subtle — **kept** |
+| T3 (B) | no splats at all | — | masters and text better, text still jagged: the splat layer is part of it |
+| M3 | **URP renderScale 1.0** (set inside PICO builds: `PicoBuildRenderScale`; a startup script was too late) | 24-25 FPS, eye **1440x1584** | text sharper — **kept** |
+| T7 (B) | **splat layer 0.5** + **SMAA High** | 29-30 FPS, splat 720x792 | same text, smoother edges, faster — **kept** as the baseline |
+| M4 | **display 72 Hz** (`Assets/Scripts/Pico/PicoRefreshRate.cs`, asked for at runtime) | log: "was 90, now 72" | **tearing gone completely** — **kept** |
+
+What did not work, and why:
+- `PICOProjectSetting.displayFrequency = 72` never applied in a build (no request in the log, display stayed at 90). Ask for the
+  rate at runtime once the OpenXR session is running.
+- `PXR_Settings.asset` (stereoRenderingModeAndroid, optimizeBufferDiscards, AppSpaceWarp) is **not read** under OpenXR — only by
+  the proprietary PXR loader. The 18 Sep change there never did anything.
+- Setting URP renderScale from a `RuntimeInitializeOnLoadMethod` came too late: the eye buffers were already 1152x1268.
+- MSAA cannot be used with the splat layer (its 1-sample HDR target and the composite blit; see CLAUDE.md). T5/T6 showed MSAA 4x
+  makes painting frames "completely solid" — but only with splats off.
+- The GPU reads 587 MHz at 99% throughout; that looks like the Adreno 650's top clock, not throttling, so a performance-level
+  hint is unlikely to help.
+
+Still open: painting frames are not as solid as with MSAA (needs a change to the splat composite — musexr-b-3e's T9), and the
+masters and small text could be sharper still.
+
 ## Test log — one variable per test
 
 Every test changes ONE thing, is built from a commit, and that commit is tagged `perf-test/Txx`
