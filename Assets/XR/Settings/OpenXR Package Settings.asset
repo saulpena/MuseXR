@@ -833,7 +833,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7137a47eb739c7a4485f1395871a6d68, type: 3}
   m_Name: FoveationFeature Android
   m_EditorClassIdentifier: ByteDance.PICO.XR::ByteDance.PICO.OpenXR.FoveationFeature
-  m_enabled: 1
+  m_enabled: 0
   nameUi: OpenXR Foveation
   version: 6.1.1
   featureIdInternal: com.pico.openxr.feature.foveation

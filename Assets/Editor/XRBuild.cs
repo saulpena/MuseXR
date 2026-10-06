@@ -44,7 +44,9 @@ namespace MuseXR.EditorTools
         {
             "PICOFeature", "OpenXRExtensions",
             "PICO4ControllerProfile", "PICO4UltraControllerProfile", "PICONeo3ControllerProfile",
-            "FoveationFeature", "DisplayRefreshRateFeature",
+            // FoveationFeature off (test 1, 6 Oct): on the PICO 4 Ultra the UI and the masters read as "made of many
+            // rectangles", the tiled look of fixed foveated rendering.
+            "DisplayRefreshRateFeature",
         };
 
         /// <summary>
